@@ -19,7 +19,13 @@ npx nx serve Ultima4        # http://localhost:4203
 npx nx test Ultima4
 npx nx lint Ultima4
 npx nx e2e Ultima4
+npx nx run Ultima4:inspect-disks -- <image> ...   # check disk images from the command line
 ```
+
+On first load the app asks for the four disk images (program, Britannia, towne,
+underworld; `.do`, `.dsk`, `.po` or `.2mg`). They are kept in the browser's IndexedDB
+and never sent anywhere. Tests and CI use synthetic disks
+(`src/app/data/testing/synthetic-disks.ts`), never the real ones.
 
 ## Licence
 

@@ -243,3 +243,43 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **Risk 3** (self-modifying code) is smaller than feared: 61 operand patch points and one opcode store, all
   listed above.
 - **Risk 4** (timing) is mostly answered: one idle tick is about 94 ms, and the pass timeout is 128 ticks.
+
+## Phase 3 findings
+
+- **Which disk is which.** `DISK` is a binary file BLOADed over `disk_id` at zero page `$D0`. It holds
+  1 for program, 2 for Britannia, 3 for towne and 4 for underworld (`SUBS.s` `request_disk`). The
+  port identifies disks the same way, then checks each one's required files (from the remaster's
+  Makefile).
+- **Sector order.** DOS sectors 0 and 15 sit at the same offset in DOS order and ProDOS order, so
+  a VTOC at track 17 sector 0 does not show which order a `.dsk` is in. The port reads the image
+  both ways and keeps the reading whose `DISK` file names an Ultima IV disk.
+- **Patch offsets.** The remaster's `.prg` patch offsets count the 2-byte load address. With 2
+  taken off, they land where the layouts below predict. Two examples: `DNG3`'s ladder fixes fall
+  on whole 8-byte rows of level 4, and the `MAPD` and `MAPF` fixes fall in the towne object
+  table's dialogue column.
+- **Layouts, confirmed against the patches and the load code:**
+  - **Towne maps:** 32×32 tiles, then the 256-byte object table (8 columns of 32: sprite, x, y,
+    type, previous x, previous y, movement, dialogue). `ULT4.s` `load_letter_location` copies
+    them to `$E800` and `$EE00`.
+  - **Arenas (`CON*`, `CAMP`):** 16 foe x, 16 foe y, 8 player x, 8 player y, then 11×11 tiles
+    from offset `$40` (memory `$0280`).
+  - **Dungeon rooms:** one sector each. Track = dungeon, except the Abyss, which takes 7 + level/2.
+    Sector = room. Each room holds, in order:
+    - 4 triggers of 4 bytes;
+    - 16 foe types;
+    - 16 foe x and 16 foe y;
+    - entry squares by the side entered (north `$40`, east `$50`, south `$60`, west `$70`;
+      8 x then 8 y each);
+    - 11×11 tiles from `$80`.
+
+    The Covetous patch, a full row of 11 at `$B7`, confirms where the tiles start.
+  - **Dungeon levels (`DNG0`-`DNG7`):** 8 levels of 8×8 squares, level after level.
+- **Conversations.** The retail and remaster layouts are described in `data/conversations.ts`.
+  The remaster's corrections come to 112 text edits (447 inserted characters) and 9 value changes
+  (6 triggers, 3 humility flags). `tools/generate-talk-corrections.ts` checked three things:
+  - the retail layout round-trips every record of `documented`'s `talk.json`;
+  - the edits turn those records into `fixed`'s exactly;
+  - the remaster layout written by the port equals `gen_talk.py`'s `TLK.bin` byte for byte.
+- **Not yet checked against a real disk.** World chunks are taken to be row-major. Arena and room
+  tiles are taken to start where noted above. Phase 4's oracle confirms all three.
+

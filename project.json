@@ -78,6 +78,13 @@
         "command": "playwright test",
         "cwd": "apps/Ultima4/e2e"
       }
+    },
+    "inspect-disks": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx apps/Ultima4/tools/inspect-disks.ts",
+        "forwardAllArgs": true
+      }
     }
   }
 }
