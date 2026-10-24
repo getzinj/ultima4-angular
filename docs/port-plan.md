@@ -89,7 +89,7 @@ browser or in gitignored folders.
 | D2 | **Behaviour baseline.** Port `fixed` (`428a793`), with its hidden features off by default, so retail's stack-overflow crashes are not reproduced. Retail-exact was rejected. The oracle runs disks built from `fixed` | Agreed |
 | D3 | **Method.** Lift first, then hand-port. A lifter (phase 5) turns each `.s` file into instruction-level TS, giving a runnable, faithful baseline early. Each file is then rewritten as structured TS (phases 7–12) and checked against both the baseline and the oracle. Hand-porting straight against the oracle was rejected | Agreed |
 | D4 | **Oracle data stays local.** Oracle recordings contain game data, so they are never committed. Only key scripts and per-step SHA-256 digests are committed. CI runs the port on synthetic disks; full fidelity runs locally with `npm run oracle-check -- --disks <dir>` | Proposed |
-| D5 | **Sound.** Speaker effects in phase 14. Mockingboard music (two AY-3-8910 chips) as a later, optional phase | **Open** |
+| D5 | **Sound.** Speaker effects in phase 14. Mockingboard music (`MBSI`/`MBSM`, two AY-3-8910 chips in Web Audio) is phase 17, optional, after the game is released | Agreed |
 | D6 | **Name and publishing.** Unofficial-fan-project wording and bring-your-own-disk, as for Wizardry. Whether to use the name "Ultima IV" in the title and domain is the user's call | **Open** |
 | D7 | **Trainers** (the remaster's cheat menu): out of scope unless asked | Proposed |
 | D8 | **Persistence.** IndexedDB in the browser only; no login, no server, nothing touches Stonequest's Firebase | Proposed |
@@ -114,9 +114,10 @@ browser or in gitignored folders.
 | 11 | **Dungeons.** `DNGD` (the 3D view, rooms and room exits), `underworld/TMAP`, `SEAR`, `USE`; dungeon combat | ⬜ |
 | 12 | **Endgame.** `END`: the Abyss, the Codex questions and the end screens | ⬜ |
 | 13 | **Presentation.** The scaling canvas, CRT effect and colours (from Akalabeth); keyboard and touch input; a screen-reader mirror of the message pane; save disks (create, pick, rename, export as a real `.do`, import) | ⬜ |
-| 14 | **Sound.** Speaker effects; Mockingboard music if D5 says so | ⬜ |
+| 14 | **Sound.** Speaker effects (`sound.i`) | ⬜ |
 | 15 | **Hardening.** Local pixel checkpoints against the oracle, accessibility checks, `madge --circular`, a tighter budget, and an error banner for anything the original would not trap | ⬜ |
 | 16 | **Deploy and extract.** A GitHub Pages workflow and CNAME as for Akalabeth; `git filter-repo` into `getzinj/ultima4-angular`; remove `apps/Ultima4` and this plan's working copy from here | ⬜ |
+| 17 | **Mockingboard music** (optional, D5). `MBSI`/`MBSM` ported, with two AY-3-8910 chips emulated in Web Audio; the music toggle from `fixed` | ⬜ |
 
 Every hand-port phase (7–12) **replaces lifted code** with structured TS, file by file, and is done when the
 oracle digests for its scenarios match exactly.
