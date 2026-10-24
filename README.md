@@ -27,6 +27,20 @@ underworld; `.do`, `.dsk`, `.po` or `.2mg`). They are kept in the browser's Inde
 and never sent anywhere. Tests and CI use synthetic disks
 (`src/app/data/testing/synthetic-disks.ts`), never the real ones.
 
+## Tools for the port
+
+These run against a checkout of the remaster at the pinned commit, with cc65 2.19 installed:
+
+```sh
+npx nx run Ultima4:lift <checkout>               # generate src/app/lifted/ (not committed)
+npx nx run Ultima4:lift-gate                     # the lifted game against the oracle
+npx nx run Ultima4:generate-symbols <checkout>   # regenerate src/app/state/symbols.ts
+npx nx run Ultima4:verify-symbols <checkout>     # check it against ca65
+```
+
+The oracle, in Python, is in [`tools/oracle/`](tools/oracle/README.md), and the lifter is in
+[`tools/lift/`](tools/lift/README.md).
+
 ## Licence
 
 GPL-3.0 for the original work of this port only. The game itself belongs to its

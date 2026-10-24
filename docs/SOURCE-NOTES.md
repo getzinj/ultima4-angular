@@ -332,3 +332,25 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **Not committed.** The lifted modules carry EA's program bytes and code. They are generated
   locally (`nx run Ultima4:lift`) and ignored by git and ESLint. The gate's fixture holds only
   digests.
+
+## Phase 6 findings
+
+- **Character constants are charmapped.** Every program includes `uscii.i` first, and ca65 puts
+  character constants through the charmap, so `status_Good = 'G'` assembles as `$C7`, as do the
+  music letters. A port that took `'G'` as `$47` would never match the game's status bytes.
+- **Encodings the include files don't give.** Found from the code that reads and writes each
+  field:
+  - **BCD** (`sed` arithmetic, `printbcd`): character strength, dexterity, intelligence and magic;
+    hit points, maximum hit points and experience, two bytes each, high byte first; virtues and
+    every count (torches, gems, keys, sextants, armour, weapons, reagents, mixtures); food (four
+    digits, plus hundredths in `food_frac`); gold; `ship_hull`; the move counter (eight digits).
+  - **Names:** high-bit ASCII as typed, at most 15 characters, zero-padded to 16 bytes
+    (`BOOT.s` `input_text`, `NEWGAME.s` `@set_player_name`).
+  - **Gender:** the glyph shown, `glyph_male` (`$5C`) or `glyph_female` (`$7B`).
+- **Aliases.** `zp_demo.i` defines `game_mode` and `party_size` again, with the same values, and
+  uses `$10`-`$13` for its own pointers. That is safe only because the demo runs before a game is
+  loaded. The generator accepts a name defined twice with the same value and refuses one defined
+  two ways.
+- **New games aren't saved by `NEWGAME`.** It builds the party in memory and goes straight into
+  the game. The lifted creation run issues no `BSAVE`; the save files are first written when the
+  player saves.

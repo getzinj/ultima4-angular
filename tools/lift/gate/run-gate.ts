@@ -27,7 +27,8 @@ export function oracleSnapshots(fixture: string): IGateSnapshot[] {
 }
 
 
-export function liftedSnapshots(): IGateSnapshot[] {
+/** The lifted machine after the creation scenario, or as far as it got. */
+export function runCreation(): { machine: LiftedMachine; failure: unknown } {
   const subs: ILiftedModule | undefined = LIFTED_MODULES.find((module: ILiftedModule): boolean => module.name === 'SUBS');
   const machine: LiftedMachine = new LiftedMachine(smokeDisks(), LIFTED_MODULES, subs?.labels['rnd0'] ?? null);
   let failure: unknown = null;
@@ -39,6 +40,11 @@ export function liftedSnapshots(): IGateSnapshot[] {
     failure = error;
   }
 
+  return { machine, failure };
+}
+
+
+export function liftedSnapshots({ machine, failure }: { machine: LiftedMachine; failure: unknown } = runCreation()): IGateSnapshot[] {
   const snapshots: IGateSnapshot[] = machine.snapshots.map((snapshot: ISnapshot): IGateSnapshot => ({
     key: snapshot.key,
     polls: snapshot.polls,

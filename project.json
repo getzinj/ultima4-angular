@@ -98,6 +98,20 @@
       "options": {
         "command": "npx vitest run --config apps/Ultima4/tools/lift/vitest.gate.config.mts"
       }
+    },
+    "generate-symbols": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx apps/Ultima4/tools/symbols/generate-symbols.ts",
+        "forwardAllArgs": true
+      }
+    },
+    "verify-symbols": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx apps/Ultima4/tools/symbols/verify-symbols.ts",
+        "forwardAllArgs": true
+      }
     }
   }
 }
