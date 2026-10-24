@@ -1,0 +1,23 @@
+Ultima IV for the browser
+Copyright (C) 2026 Jeffrey Getzin
+
+The GNU General Public License, version 3 (see LICENSE), is granted for the
+original work of the author of this port only: the Angular shell, the Apple II
+emulation, the tooling, and the tests.
+
+Everything in this directory that is ported or translated from Ultima IV: Quest
+of the Avatar (Origin Systems, 1985) - the game logic, its rules and formulas,
+its messages, maps and graphics - belongs to its rights holder, Electronic Arts.
+No licence to it is granted here, and nothing in this directory's LICENSE
+extends to it. No data from the original disks is distributed here: players
+supply their own disk images.
+
+The port follows Sean Gugler's reconstruction of the Apple II source,
+https://github.com/sean-gugler/u4remasteredA2 (branch "fixed", pinned at commit
+428a793a4d6327cc9734ec151bf377f3d328f2cc). His own work - symbol names,
+comments, bug fixes and tools - is (c) 2021 Sean Gugler and licensed under
+CC BY-SA 4.0; where this port adapts it, it does so under that licence's
+compatibility with GPL-3.0, with this credit.
+
+This is an unofficial fan project, not affiliated with or endorsed by Electronic
+Arts. If a rights holder asks for it to come down, it will come down promptly.
