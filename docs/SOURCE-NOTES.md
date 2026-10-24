@@ -311,6 +311,23 @@ on the developer's machine. The images, and anything built from them, stay out o
   not go through `delay`, but it also polls between frames. So the oracle counts keyboard polls
   with nothing waiting, and the port must poll at the same points.
 
+## Phase 4 findings on the real disks
+
+- **The images.** 4am's crack of the original, four DOS-order `.dsk` files. Each identifies by its
+  `DISK` file, and each has every file the remaster's Makefile needs; its build accepts them.
+- **Locked files.** Every file is locked except the save game on the britannia disk (`PRTY`,
+  `ROST`, `LIST`, `TLST`) and everything on the underworld disk. DOS refuses to `BSAVE` over a
+  locked file, so applying the data patches with BSAVE failed (`FILE LOCKED: MAPB`). They are now
+  written in place, in the file's own sectors, as the remaster's build edits its images; the file
+  stays locked. The synthetic disks lock the same files, so CI covers it.
+- **Phase 3 holds.** All 26 data patches find the bytes they expect, and all 256 conversations
+  convert to the remaster's layout with no correction skipped.
+- **Recorded.** `boot-to-title` (8 snapshots), `creation` (53) and `first-steps` (59) in about two
+  minutes. The `creation` checkpoint catches the map view half drawn, since `drawview` polls the
+  keyboard on every scan line, so a checkpoint's poll count fixes how far a drawing has got.
+- **The lifted game agrees.** Run on the same built disks, the lifted modules give the oracle's
+  digests at all 53 `creation` snapshots: screen, zero page, memory, language card and RNG.
+
 ## Phase 5 findings
 
 - **The lifted game agrees with the oracle.** Its own `creation` run on blank data gives the

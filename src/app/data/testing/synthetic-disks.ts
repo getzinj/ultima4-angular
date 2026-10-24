@@ -10,9 +10,18 @@ import type { UltimaDiskName } from '../ultima-disks';
 
 // Four disks with the right catalogs and none of the game: every file holds filler, except where a
 // data patch looks, which holds the bytes the patch expects, and the talk area holds made-up
-// conversations in the retail layout. CI and the specs run on these, never on the real disks.
+// conversations in the retail layout. Files are locked as on the real disks. CI and the specs run
+// on these, never on the real disks.
 
 const FILLER_LENGTH: number = 16;
+
+/** As on the real disks: everything locked but the save game and the whole underworld disk. */
+const UNLOCKED: Readonly<Record<UltimaDiskName, readonly string[]>> = {
+  program: [],
+  britannia: [ 'PRTY', 'ROST', 'LIST', 'TLST' ],
+  towne: [],
+  underworld: REQUIRED_FILES.underworld,
+};
 
 
 export function syntheticConversation(record: number): IConversation {
@@ -54,6 +63,9 @@ export function syntheticDisk(name: UltimaDiskName): Dos33Disk {
     }
   }
 
+  for (const file of REQUIRED_FILES[name].filter((candidate: string): boolean => !UNLOCKED[name].includes(candidate))) {
+    disk.setLocked(file, true);
+  }
   image.bytes.fill(0x00, 0, rawBytes);
   for (const patch of DATA_PATCHES.filter((candidate: IDataPatch): boolean => (candidate.disk === name) && (candidate.file == null))) {
     image.bytes.set(patch.match, patch.offset);

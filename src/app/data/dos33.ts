@@ -173,6 +173,47 @@ export class Dos33Disk {
 
 
   /**
+   * Rewrites a binary file's contents in place, in the sectors it already has, as a disk editor
+   * would: for data fixes, which keep a file's length. Works on a locked file and leaves it locked.
+   */
+  public patchBinary(name: string, data: Uint8Array): void {
+    const entry: ICatalogEntry | null = this.find(name);
+    const existing: IBinaryFile = this.readBinary(name);
+
+    if (entry == null) {
+      throw new Dos33Error(`FILE NOT FOUND: ${ name }`);
+    } else if (data.length !== existing.data.length) {
+      throw new Dos33Error(`${ name } is ${ existing.data.length } bytes; a patch cannot make it ${ data.length }`);
+    } else {
+      const content: Uint8Array = this.readFile(entry);
+
+      content.set(data, 4);
+      this.dataSectors(entry).forEach((address: ISectorAddress, index: number): void => {
+        if (address.track !== 0) {
+          this.image.writeSector(address.track, address.sector, content.subarray(index * SECTOR_SIZE, (index + 1) * SECTOR_SIZE));
+        }
+      });
+    }
+  }
+
+
+  /** DOS's LOCK and UNLOCK. */
+  public setLocked(name: string, locked: boolean): void {
+    const entry: ICatalogEntry | null = this.find(name);
+
+    if (entry == null) {
+      throw new Dos33Error(`FILE NOT FOUND: ${ name }`);
+    } else {
+      const sector: Uint8Array = this.image.readSector(entry.catalogTrack, entry.catalogSector).slice();
+      const at: number = entry.entryOffset + ENTRY_TYPE;
+
+      sector[at] = locked ? (sector[at] | LOCKED) : (sector[at] & ~LOCKED);
+      this.image.writeSector(entry.catalogTrack, entry.catalogSector, sector);
+    }
+  }
+
+
+  /**
    * BSAVE: writes a binary file, replacing one of the same name. Tracks below `reservedTracks` are
    * never given to it, because the game keeps raw data there that the VTOC may not mark as used.
    */
