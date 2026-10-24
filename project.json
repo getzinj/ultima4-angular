@@ -112,6 +112,13 @@
         "command": "npx tsx apps/Ultima4/tools/symbols/verify-symbols.ts",
         "forwardAllArgs": true
       }
+    },
+    "real-gate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx apps/Ultima4/tools/lift/gate/run-real-gate.ts",
+        "forwardAllArgs": true
+      }
     }
   }
 }

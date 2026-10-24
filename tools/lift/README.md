@@ -47,3 +47,17 @@ lines; `tools/oracle/export_gate.py` writes it. `gate/run-gate.ts` does the same
 the command line and names the first snapshot and the regions that differ.
 
 The gate is not in CI, because it needs cc65 and the remaster checkout.
+
+## Ported programs
+
+A program ported by hand (`src/app/port/`) is an `INativeModule`: loading its file installs its
+variables and tables, and its entry addresses run TypeScript instead of lifted code. Lifted and
+ported code call each other, so a program can be ported while its callers are still lifted.
+`src/app/port/ported-modules.ts` lists them.
+
+- `gate/run-differential.ts [routine ...] [--seeds n]` runs each routine from the same random
+  state lifted and ported, and names every difference. `gate/subs-differential.spec.ts` runs it
+  in `lift-gate`.
+- `nx run Ultima4:real-gate [--native] [scenario ...]` runs the oracle's scenarios on the disks
+  `tools/oracle/build-disks.sh` built from your images, against `tools/oracle/digests/`, with
+  the ported programs when `--native` is given.
