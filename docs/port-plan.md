@@ -79,7 +79,7 @@ browser or in gitignored folders.
   draw into the HGR page through an `IPainter` seam, as in Akalabeth.
 - `ui/`: the canvas, the CRT presenter, input, settings and disk import.
 - `tools/oracle/` (dev only, offline): py65 running the original binaries.
-- `tools/lift/` (dev only, if D3 is accepted): a lifter that turns 6502 source into TypeScript.
+- `tools/lift/` (dev only, D3): a lifter that turns 6502 source into TypeScript.
 
 ## Decisions
 
@@ -87,7 +87,7 @@ browser or in gitignored folders.
 |---|---|---|
 | D1 | **Location.** `apps/Ultima4` in this monorepo; extracted to `getzinj/ultima4-angular` in the last phase | Proposed |
 | D2 | **Behaviour baseline.** Port `fixed` (`428a793`), with its hidden features off by default, so retail's stack-overflow crashes are not reproduced. Retail-exact was rejected. The oracle runs disks built from `fixed` | Agreed |
-| D3 | **Method.** Recommended: lift first, then hand-port. A lifter turns each `.s` file into instruction-level TS, giving a runnable, faithful baseline early. Each file is then rewritten as structured TS and checked against both the baseline and the oracle. The alternative is to hand-port straight against the oracle, as Akalabeth did. That is cheaper up front, but riskier for `ULT4.s` | **Open** |
+| D3 | **Method.** Lift first, then hand-port. A lifter (phase 5) turns each `.s` file into instruction-level TS, giving a runnable, faithful baseline early. Each file is then rewritten as structured TS (phases 7–12) and checked against both the baseline and the oracle. Hand-porting straight against the oracle was rejected | Agreed |
 | D4 | **Oracle data stays local.** Oracle recordings contain game data, so they are never committed. Only key scripts and per-step SHA-256 digests are committed. CI runs the port on synthetic disks; full fidelity runs locally with `npm run oracle-check -- --disks <dir>` | Proposed |
 | D5 | **Sound.** Speaker effects in phase 14. Mockingboard music (two AY-3-8910 chips) as a later, optional phase | **Open** |
 | D6 | **Name and publishing.** Unofficial-fan-project wording and bring-your-own-disk, as for Wizardry. Whether to use the name "Ultima IV" in the title and domain is the user's call | **Open** |
@@ -103,7 +103,7 @@ browser or in gitignored folders.
 | 2 | **Apple II runtime.** Adapt Akalabeth's `HiresScreen`, palette, keyboard and machine; drop the Applesoft parts. Add the full-screen HGR mode, the speaker, and the idle tick the keyboard wait drives. Golden-bitmap specs | ⬜ |
 | 3 | **Disks and data.** DOS 3.3 reader; identify all four disks and reject a wrong or misordered one with a reason; extract the files; decoders for tiles, font, packed images, cards, maps and conversations; IndexedDB storage; `npm run inspect-disks`. Synthetic disks for CI | ⬜ |
 | 4 | **Oracle.** py65 Apple II with the four disks. Trap the game's RWTS (`$B600`) and serve sectors from the images, so no Disk II emulation is needed. Scripted keys; after each key record the HGR page, zero page, party/roster/map-object memory and RNG state. Scenarios: boot to title, creation, the first steps in Britannia | ⬜ |
-| 5 | **Lifter** (if D3). Parse the ca65 source and emit TS per file over a flat 64 KB memory. Handles `.addr` jump tables, inline strings after `jsr`, the `err_resume` stack reset (as a thrown error), overlays as modules loaded at the same address, and stores into code (self-modifying sites listed and handled one by one). Gate: the lifted game boots and matches the oracle's boot scenario | ⬜ |
+| 5 | **Lifter** (D3). Parse the ca65 source and emit TS per file over a flat 64 KB memory. Handles `.addr` jump tables, inline strings after `jsr`, the `err_resume` stack reset (as a thrown error), overlays as modules loaded at the same address, and stores into code (self-modifying sites listed and handled one by one). Gate: the lifted game boots and matches the oracle's boot scenario | ⬜ |
 | 6 | **State model.** Generate typed accessors from `include/*.i` over the 64 KB image; read and write `PRTY`/`ROST`/`LIST` save files | ⬜ |
 | 7 | **Core.** `SUBS` (RNG, printing, number input, the idle loop, overlay loading through the jump tables), `BOOT`, `INIT` and `SEL`: title, intro and main menu | ⬜ |
 | 8 | **Creation.** `NEWGAME`: the gypsy's questions, the cards and the packed images; the new party written out | ⬜ |
@@ -119,8 +119,7 @@ browser or in gitignored folders.
 | 16 | **Deploy and extract.** A GitHub Pages workflow and CNAME as for Akalabeth; `git filter-repo` into `getzinj/ultima4-angular`; remove `apps/Ultima4` and this plan's working copy from here | ⬜ |
 
 Every hand-port phase (7–12) **replaces lifted code** with structured TS, file by file, and is done when the
-oracle digests for its scenarios match exactly. If D3 is declined, phase 5 is dropped and phases 7–12 are checked
-against the oracle alone.
+oracle digests for its scenarios match exactly.
 
 ## Verification
 
