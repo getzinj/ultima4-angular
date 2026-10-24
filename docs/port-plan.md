@@ -2,7 +2,8 @@
 
 > **Live plan.** Status is tracked in [`docs/PLAN.md`](../PLAN.md) item AJ. D2, D3, D5 and D6 were agreed on
 > 2026-10-24; D1, D4, D7 and D8 are proposed defaults that stand unless changed. Questions go to the user one at a
-> time, and each answer is recorded here in the same session.
+> time, and each answer is recorded here in the same session. Source findings are in
+> [`2026-10-ultima4-source-notes.md`](2026-10-ultima4-source-notes.md).
 >
 > **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -17,12 +18,13 @@ The source is Sean Gugler's disassembly, [`sean-gugler/u4remasteredA2`](https://
 ca65 6502 assembly that rebuilds byte-exact disk images. Two branches matter:
 
 - `documented` (`7016e9d`): the retail game with labels and comments. This is what gets read.
-- `fixed` (`428a793`): the same code plus about 70 listed bug fixes and the opt-in "hidden features" (trainers, a
-  non-binary answer at creation, per-player dungeon turns, a music toggle).
+- `fixed` (`428a793`): the same code plus about 70 listed bug fixes and 18 enhancements. Only the trainers are
+  opt-in; the rest (a non-binary answer at creation, per-player turns, a music toggle, saving in dungeons) are
+  always available.
 
 ### What the source looks like
 
-- **About 30,000 non-comment lines across 38 files**, one per binary, grouped by the four disks:
+- **29,717 non-comment lines across 36 files** on `fixed`, one per binary, grouped by the four disks:
   - `program`: `ULT4` (9.4k lines, holding the command loop, movement and combat), `SUBS` (shared routines, the
     RNG and the idle loop), `BOOT`, `INIT`, `SEL`, `NEWGAME` (the gypsy), and `MBSI`/`MBSM` (Mockingboard).
   - `britannia`: `TMAP`, `SEAR`, `USE`, `HOLE` (camping), `HELP`, `SAVE`, `LORD` (Lord British) and `SHRN`
@@ -34,8 +36,8 @@ ca65 6502 assembly that rebuilds byte-exact disk images. Two branches matter:
   the `.cfg` files.
 - **Overlays.** Each disk's code loads at the same address (`$8800`, see `overlay8800.cfg`) and is reached
   through the fixed jump tables in `jump_overlay.i`, `jump_subs.i` and `jump_system.i`.
-- **The game uses non-local exits.** `SUBS.s` saves the stack pointer (`err_resume_stack`) and later unwinds to
-  it. Most of the remaster's "critical" fixes are stack overflows from paths that leave a routine without
+- **The game uses non-local exits.** `SUBS.s` saves the stack pointer (`err_resume_stack`) so a failed DOS
+  command can be retried from a clean stack, and several overlays drop frames on entry. Most of the remaster's "critical" fixes are stack overflows from paths that leave a routine without
   returning.
 - **Screen.** The whole screen is hi-res graphics (`hw_FULLSCREEN`, `hw_HIRES`). Text is drawn as glyphs from
   the game's font file (`HTXT`), not by the Apple's text mode.
@@ -45,8 +47,9 @@ ca65 6502 assembly that rebuilds byte-exact disk images. Two branches matter:
 
 ### Licence
 
-`u4remasteredA2` has **no licence file**, so it is read and cited, never copied. That covers its assembly, its
-Python tools and `src/talk/talk.json`. The game is still EA's. As with Wizardry, nothing from the original
+`u4remasteredA2` has no licence file, but its README licenses Gugler's own work (symbol names, comments, fixes,
+tools) under CC BY-SA 4.0, which may be adapted into GPL-3.0 code with credit. The disassembled code, the dialogue
+in `src/talk/talk.json` and the save files are EA's content and are never vendored (source notes, §Licence). As with Wizardry, nothing from the original
 disks is committed: the player brings their own four disk images, and everything derived from them stays in the
 browser or in gitignored folders.
 
@@ -86,7 +89,7 @@ browser or in gitignored folders.
 | # | Decision | Status |
 |---|---|---|
 | D1 | **Location.** `apps/Ultima4` in this monorepo; extracted to `getzinj/ultima4-angular` in the last phase | Proposed |
-| D2 | **Behaviour baseline.** Port `fixed` (`428a793`), with its hidden features off by default, so retail's stack-overflow crashes are not reproduced. Retail-exact was rejected. The oracle runs disks built from `fixed` | Agreed |
+| D2 | **Behaviour baseline.** Port `fixed` (`428a793`), with its trainers off by default, so retail's stack-overflow crashes are not reproduced. Phase 0 found the other "hidden features" are always on in `fixed`, so they come with it. Retail-exact was rejected. The oracle runs disks built from `fixed` | Agreed |
 | D3 | **Method.** Lift first, then hand-port. A lifter (phase 5) turns each `.s` file into instruction-level TS, giving a runnable, faithful baseline early. Each file is then rewritten as structured TS (phases 7–12) and checked against both the baseline and the oracle. Hand-porting straight against the oracle was rejected | Agreed |
 | D4 | **Oracle data stays local.** Oracle recordings contain game data, so they are never committed. Only key scripts and per-step SHA-256 digests are committed. CI runs the port on synthetic disks; full fidelity runs locally with `npm run oracle-check -- --disks <dir>` | Proposed |
 | D5 | **Sound.** Speaker effects in phase 14. Mockingboard music (`MBSI`/`MBSM`, two AY-3-8910 chips in Web Audio) is phase 17, optional, after the game is released | Agreed |
@@ -98,12 +101,12 @@ browser or in gitignored folders.
 
 | Phase | Description | Status |
 |---|---|---|
-| 0 | **Source notes.** Write `SOURCE-NOTES.md`: pin both source commits; inventory each file (disk, load address, entry points, which jump-table slots it fills); write down the memory map from `include/*.i`; list the data files per disk and their formats; record the licence position. D2, D3, D5 and D6 are settled | ⬜ |
+| 0 | **Source notes.** Pin both source commits; inventory each file (disk, load address, entry points, which jump-table slots it fills); write down the memory map from `include/*.i`; list the data files per disk and their formats; record the licence position. D2, D3, D5 and D6 are settled | ✅ [`2026-10-ultima4-source-notes.md`](2026-10-ultima4-source-notes.md): both commits pinned; 36 code files with disk, load address, loader and entry points; the memory map; every data file and the raw-sector areas (world map, conversations, dungeon rooms); the licence is CC BY-SA 4.0 for Gugler's work, not none. Found: the game drives real DOS 3.3 and writes saves with `BSAVE`; `fixed` also patches data files and rebuilds the conversations in a new layout; 61 operand patch points and one opcode store are the only self-modifying code; idle animation consumes the RNG, so oracle keys need tick counts; one idle tick is about 94 ms |
 | 1 | **Scaffold** `apps/Ultima4`, copied from the Akalabeth scaffold: port 4203, 500 kB budget, `nx.json` ESLint include, the extraction-guard rule (shown to fire), placeholder 280×192 canvas, e2e smoke spec | ⬜ |
 | 2 | **Apple II runtime.** Adapt Akalabeth's `HiresScreen`, palette, keyboard and machine; drop the Applesoft parts. Add the full-screen HGR mode, the speaker, and the idle tick the keyboard wait drives. Golden-bitmap specs | ⬜ |
-| 3 | **Disks and data.** DOS 3.3 reader; identify all four disks and reject a wrong or misordered one with a reason; extract the files; decoders for tiles, font, packed images, cards, maps and conversations; IndexedDB storage; `npm run inspect-disks`. Synthetic disks for CI | ⬜ |
-| 4 | **Oracle.** py65 Apple II with the four disks. Trap the game's RWTS (`$B600`) and serve sectors from the images, so no Disk II emulation is needed. Scripted keys; after each key record the HGR page, zero page, party/roster/map-object memory and RNG state. Scenarios: boot to title, creation, the first steps in Britannia | ⬜ |
-| 5 | **Lifter** (D3). Parse the ca65 source and emit TS per file over a flat 64 KB memory. Handles `.addr` jump tables, inline strings after `jsr`, the `err_resume` stack reset (as a thrown error), overlays as modules loaded at the same address, and stores into code (self-modifying sites listed and handled one by one). Gate: the lifted game boots and matches the oracle's boot scenario | ⬜ |
+| 3 | **Disks and data.** DOS 3.3 reader and writer (`BSAVE` of the save files); `.po` reordered, nibble images refused; identify all four disks and reject a wrong or misordered one with a reason; extract the files and the raw-sector areas; apply `fixed`'s data patches; convert the retail conversations to `fixed`'s layout and apply its corrections; decoders for tiles, font, packed images, cards, maps and conversations; IndexedDB storage; `npm run inspect-disks`. Synthetic disks for CI | ⬜ |
+| 4 | **Oracle.** py65 Apple II with the four disks. Disks built from `fixed` with its own `make all`. Trap DOS's RWTS entry (`$B7B5`, IOB at `$B7E8`) and serve sectors from the images, so no Disk II emulation is needed. Scripted keys, each with its idle-tick count; after each key record the HGR page, zero page, party/roster/map-object memory and RNG state. Scenarios: boot to title, creation, the first steps in Britannia | ⬜ |
+| 5 | **Lifter** (D3). Parse the ca65 source and emit TS per file over a flat 64 KB memory. Models the carry flag (`fastrand` depends on it). Handles `.addr` jump tables, inline strings after `jsr` (and the DOS command strings patched at run time), the `err_resume` retry and frame drops (as thrown errors), overlays as modules loaded at the same address, and the 61 operand patch points plus one opcode store listed in the source notes. Gate: the lifted game boots and matches the oracle's boot scenario | ⬜ |
 | 6 | **State model.** Generate typed accessors from `include/*.i` over the 64 KB image; read and write `PRTY`/`ROST`/`LIST` save files | ⬜ |
 | 7 | **Core.** `SUBS` (RNG, printing, number input, the idle loop, overlay loading through the jump tables), `BOOT`, `INIT` and `SEL`: title, intro and main menu | ⬜ |
 | 8 | **Creation.** `NEWGAME`: the gypsy's questions, the cards and the packed images; the new party written out | ⬜ |
@@ -135,12 +138,12 @@ oracle digests for its scenarios match exactly.
    across 9a–9c may need shared context objects, as Moria's `dungeon` did.
 2. **The non-local exits** must land where the original's stack reset lands. If they don't, the remaster's
    stack bugs come back in another form.
-3. **Self-modifying code.** There are 224 stores to `label+1`/`label+2`. Most are pointer setup in zero page
-   (`sta ptr1 + 1`), but 63 go to labels not named as pointers, and any that write into code must be found in
-   phase 0.
-4. **Timing.** The game passes a turn while you idle, and its animations run off the same loop. The pace has to
-   be tuned by feel, since there is no reference clock.
-5. **Legal.** Disassembly-derived code under no licence, of a game EA still owns. The risk is accepted, not
+3. **Self-modifying code.** Smaller than feared: 61 operand patch points (32 of them in `DNGD`) and one opcode
+   store, all in fast copy and draw loops, and listed in the source notes.
+4. **Timing.** The game passes a turn while you idle, and idle animation consumes the RNG. One idle tick is about
+   94 ms at 1.023 MHz and the pass timeout is 128 ticks, so the pace has a reference; the tick count per key
+   must match the oracle exactly.
+5. **Legal.** Disassembly-derived code of a game EA still owns; only Gugler's own work carries a licence. The risk is accepted, not
    cleared, as for Wizardry; the port comes down on request.
 
 ## Effort
