@@ -1,0 +1,83 @@
+{
+  "name": "Ultima4",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "ultima4",
+  "sourceRoot": "apps/Ultima4/src",
+  "tags": [
+    "layer:app"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/Ultima4",
+        "browser": "apps/Ultima4/src/main.ts",
+        "tsConfig": "apps/Ultima4/tsconfig.app.json",
+        "inlineStyleLanguage": "scss",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/Ultima4/public"
+          }
+        ],
+        "styles": [
+          "apps/Ultima4/src/styles.scss"
+        ],
+        "index": "apps/Ultima4/src/index.html",
+        "scripts": [],
+        "baseHref": "/"
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "namedChunks": true
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "port": 4203
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "Ultima4:build:production"
+        },
+        "development": {
+          "buildTarget": "Ultima4:build:development"
+        }
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright test",
+        "cwd": "apps/Ultima4/e2e"
+      }
+    }
+  }
+}
