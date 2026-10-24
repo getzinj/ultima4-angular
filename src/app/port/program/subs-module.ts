@@ -1,5 +1,6 @@
 import type { LiftedMachine } from '../../lifted-runtime/lifted-machine';
 import type { INativeModule, NativeRoutine } from '../../lifted-runtime/native-module';
+import { routine } from '../routine';
 import { Subs } from './subs';
 import { SUBS_LOAD, subsData } from './subs-data';
 
@@ -68,13 +69,8 @@ const INLINE: readonly [ number, Body ][] = [
 ];
 
 
-function routine(body: Body, returns: boolean): NativeRoutine {
-  return async (machine: LiftedMachine): Promise<void> => {
-    await body(new Subs(machine));
-    if (returns) {
-      machine.rts();
-    }
-  };
+function entry(body: Body, returns: boolean): NativeRoutine {
+  return routine((machine: LiftedMachine): Subs => new Subs(machine), body, returns);
 }
 
 
@@ -88,7 +84,7 @@ export const SUBS_MODULE: INativeModule = {
     }
   },
   entries: new Map<number, NativeRoutine>([
-    ...RETURNING.map(([ address, body ]: [ number, Body ]): [ number, NativeRoutine ] => [ address, routine(body, true) ]),
-    ...INLINE.map(([ address, body ]: [ number, Body ]): [ number, NativeRoutine ] => [ address, routine(body, false) ]),
+    ...RETURNING.map(([ address, body ]: [ number, Body ]): [ number, NativeRoutine ] => [ address, entry(body, true) ]),
+    ...INLINE.map(([ address, body ]: [ number, Body ]): [ number, NativeRoutine ] => [ address, entry(body, false) ]),
   ]),
 };

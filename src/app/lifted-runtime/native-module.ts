@@ -18,4 +18,7 @@ export interface INativeModule {
 
   /** By entry address: every address another program jumps to. */
   readonly entries: ReadonlyMap<number, NativeRoutine>;
+
+  /** Entries other programs store an opcode over, which the routine there reads to decide what to do. */
+  readonly opcodeStores?: readonly number[];
 }

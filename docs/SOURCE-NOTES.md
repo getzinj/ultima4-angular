@@ -392,3 +392,26 @@ on the developer's machine. The images, and anything built from them, stay out o
   seven operands it rewrites. They stay there, so memory matches the oracle byte for byte.
 - **The drive digit.** `request_disk` writes the drive number into its own `BLOAD DISK,D1`
   string (`$18D6`) before printing it.
+
+## Phase 7b findings
+
+- **The stack's depth is visible.** `primm_cout` stores the stack pointer in `err_resume_stack`
+  (`$0328`, in the snapshot's low region), and a BRUN leaves the next program at the depth it
+  was run from. So BOOT's own JSRs push their return addresses as the 6502's would, and its JMPs
+  out (`load_music`'s `jmp music_ctl`) run SEL with BOOT's return address standing in.
+- **`j_music_ctl` is read as an opcode.** INIT stores an RTS over it, and BOOT a JMP again when a
+  sound board is fitted; the native SEL reads that byte and fails on anything else.
+- **Inline data is called where it is.** `primm_xy` and `primm_cout` keep the address of their
+  string (`primmaddr`, `ptr1`), so a ported caller hands over the string at its own address in
+  its image (`callInline`), returning past it at the same depth.
+- **The pauses are only arithmetic.** `short_pause` polls once and then counts down a triangle
+  of A; the port counts it in the CPU and adds its cycles. With that, the title scenario runs in
+  2 s instead of 235 s lifted.
+- **Unreachable code.** `mystery_routine`, `get_bitmap_byte` and `remove_window` are never
+  called and are not ported. `init_mb_iigs` is 65816 code; it is only reached with a sound board
+  on a IIgs, and the port fails there.
+- **Two sound boards loop.** `menu_which_slot`'s second card bumps `mb_count` by 2 and asks
+  again while bit 7 is set, which it always is; the redundant check that would end it is
+  commented out in the source. The port keeps the loop.
+- **TRAINERS is not on the synthetic disks**, so the CI spec that runs INIT to NEWGAME puts a
+  filler one there.

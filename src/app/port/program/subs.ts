@@ -4,14 +4,13 @@
 // code follows the original's instructions wherever they decide what is left in it. Its
 // variables, tables and inline data stay at their addresses in SUBS's image (subs-data.ts).
 
-import { CARRY, DECIMAL, NEGATIVE, ZERO } from '../../lifted-runtime/cpu';
-import type { Cpu } from '../../lifted-runtime/cpu';
+import { DECIMAL } from '../../lifted-runtime/cpu';
 import {
   APPLE, CHAR, DOS, JUMP_OVERLAY, JUMP_SYSTEM, MAP_OBJECTS, MOONS, PRTY, ROST, TABLES, TILES, ZP_LINE_OF_SIGHT, ZP_MAIN, ZP_MAP_SCROLL,
 } from '../../state/symbols';
-import type { IPortMachine } from '../port-machine';
+import { PortProgram } from '../port-program';
 import { SUBS_INLINE, SUBS_TABLES, SUBS_VARIABLES, WALKABLE_TILES_LAST } from './subs-data';
-import type { IInlineData } from './subs-data';
+import type { IInlineData } from '../inline-data';
 
 const V = SUBS_VARIABLES;
 const T = SUBS_TABLES;
@@ -29,156 +28,7 @@ const ZP_SFX_DURATION: number = 0xF0;
 const DELAY_CYCLES: number = 96_303;
 
 
-export class Subs {
-  constructor(private readonly m: IPortMachine) {
-  }
-
-
-  private get cpu(): Cpu {
-    return this.m.cpu;
-  }
-
-
-  // --- register helpers, named for the instructions they stand for ------------------------
-
-  private peek(address: number): number {
-    return this.m.read(address & 0xFFFF);
-  }
-
-
-  private poke(address: number, value: number): void {
-    this.m.write(address & 0xFFFF, value & 0xFF);
-  }
-
-
-  private lda(value: number): number {
-    this.cpu.a = this.cpu.nz(value & 0xFF);
-
-    return this.cpu.a;
-  }
-
-
-  private ldx(value: number): number {
-    this.cpu.x = this.cpu.nz(value & 0xFF);
-
-    return this.cpu.x;
-  }
-
-
-  private ldy(value: number): number {
-    this.cpu.y = this.cpu.nz(value & 0xFF);
-
-    return this.cpu.y;
-  }
-
-
-  private inc(address: number): number {
-    const value: number = this.cpu.nz((this.peek(address) + 1) & 0xFF);
-
-    this.poke(address, value);
-
-    return value;
-  }
-
-
-  private dec(address: number): number {
-    const value: number = this.cpu.nz((this.peek(address) - 1) & 0xFF);
-
-    this.poke(address, value);
-
-    return value;
-  }
-
-
-  private inx(): number {
-    return this.ldx(this.cpu.x + 1);
-  }
-
-
-  private dex(): number {
-    return this.ldx(this.cpu.x - 1);
-  }
-
-
-  private iny(): number {
-    return this.ldy(this.cpu.y + 1);
-  }
-
-
-  private dey(): number {
-    return this.ldy(this.cpu.y - 1);
-  }
-
-
-  private carry(): boolean {
-    return this.cpu.flag(CARRY);
-  }
-
-
-  private zero(): boolean {
-    return this.cpu.flag(ZERO);
-  }
-
-
-  private negative(): boolean {
-    return this.cpu.flag(NEGATIVE);
-  }
-
-
-  private setCarry(on: boolean): void {
-    this.cpu.setFlag(CARRY, on);
-  }
-
-
-  /** `clc` / `adc #value`. */
-  private add(value: number): number {
-    this.setCarry(false);
-    this.cpu.adc(value & 0xFF);
-
-    return this.cpu.a;
-  }
-
-
-  /** `sec` / `sbc #value`. */
-  private subtract(value: number): number {
-    this.setCarry(true);
-    this.cpu.sbc(value & 0xFF);
-
-    return this.cpu.a;
-  }
-
-
-  private cmp(value: number): void {
-    this.cpu.compare(this.cpu.a, value & 0xFF);
-  }
-
-
-  /** `lsr` four times, as `div16`. */
-  private div16(value: number): number {
-    let result: number = value;
-
-    for (let shift: number = 0; shift < 4; shift++) {
-      result = this.cpu.lsr(result);
-    }
-    this.cpu.a = result;
-
-    return result;
-  }
-
-
-  /** `asl` four times, as `mul16`. */
-  private mul16(value: number): number {
-    let result: number = value;
-
-    for (let shift: number = 0; shift < 4; shift++) {
-      result = this.cpu.asl(result);
-    }
-    this.cpu.a = result;
-
-    return result;
-  }
-
-
+export class Subs extends PortProgram {
   // --- movement round Britannia (SUBS.s:196-468) -----------------------------------------
 
   /** SUBS.s:196 move_east. */
@@ -705,12 +555,6 @@ export class Subs {
   }
 
 
-  /** A zero-page pointer, `(zp)` as the 6502 reads it. */
-  private pointer(address: number): number {
-    return this.peek(address) | (this.peek((address + 1) & 0xFF) << 8);
-  }
-
-
   /** SUBS.s:769 update_britannia: the moons move, and the 11 x 11 tiles round the player come from the four chunks. */
   public async updateBritannia(): Promise<void> {
     this.animateTiles();
@@ -1024,11 +868,6 @@ export class Subs {
         await this.scankey();
       }
     }
-  }
-
-
-  private patchedWord(address: number): number {
-    return this.peek(address) | (this.peek(address + 1) << 8);
   }
 
 

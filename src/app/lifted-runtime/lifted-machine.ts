@@ -274,6 +274,22 @@ export class LiftedMachine implements IBus {
   }
 
 
+  /**
+   * For native code: the JSR at `data - 3` to a routine that takes the bytes after it, such as
+   * primm, and runs until it returns past them to the same stack depth.
+   */
+  public async callInline(address: number, data: number, length: number): Promise<void> {
+    const depth: number = this.cpu.sp;
+    const returnTo: number = data + length;
+
+    this.cpu.pushWord(data - 1);
+    this.cpu.pc = address;
+    while ((this.cpu.pc !== returnTo) || (this.cpu.sp !== depth)) {
+      await this.dispatch();
+    }
+  }
+
+
   /** For native code: the RTS that ends a routine entered by JSR. */
   public rts(): void {
     this.cpu.pc = (this.cpu.pullWord() + 1) & 0xFFFF;
@@ -670,11 +686,20 @@ export class LiftedMachine implements IBus {
 
 
   private claimNative(index: number): void {
-    for (const address of this.natives[index].entries.keys()) {
+    const native: INativeModule = this.natives[index];
+
+    for (const address of native.entries.keys()) {
       const slot: number = this.writeSlot(address);
 
       if (slot >= 0) {
         this.owners[slot] = -2 - index;
+      }
+    }
+    for (const address of native.opcodeStores ?? []) {
+      const slot: number = this.writeSlot(address);
+
+      if (slot >= 0) {
+        this.rewritable[slot] = 1;
       }
     }
   }

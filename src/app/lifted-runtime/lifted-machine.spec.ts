@@ -289,12 +289,17 @@ describe('LiftedMachine', (): void => {
 
   describe('a native module', (): void => {
     // DATA as a native program: at $5000 it returns 7 in A; at $5003 it calls INIT's loop at
-    // $4005 and returns; at $5006 it reads the keyboard and returns the key.
+    // $4005 and returns; at $5006 it reads the keyboard and returns the key; at $5009, which
+    // other programs store opcodes over, it returns that opcode in A; at $500C it returns the
+    // byte after its JSR in A, and past it; at $500F it calls $500C with the byte at $2020.
     const DATA: INativeModule = {
       disk: 'program',
       name: 'DATA',
       load: 0x2000,
-      install: (machine: LiftedMachine): void => machine.write(0x2010, 0x99),
+      install: (machine: LiftedMachine): void => {
+        machine.write(0x2010, 0x99);
+        machine.write(0x2020, 0x42);
+      },
       entries: new Map([
         [ 0x5000, async (machine: LiftedMachine): Promise<void> => {
           machine.cpu.a = 7;
@@ -309,7 +314,25 @@ describe('LiftedMachine', (): void => {
           machine.cpu.a = await machine.readKeyboard();
           machine.rts();
         } ],
+        [ 0x5009, async (machine: LiftedMachine): Promise<void> => {
+          machine.cpu.a = machine.read(0x5009);
+          machine.rts();
+          await Promise.resolve();
+        } ],
+        [ 0x500C, async (machine: LiftedMachine): Promise<void> => {
+          const back: number = machine.cpu.pullWord();
+
+          machine.cpu.a = machine.read(back + 1);
+          machine.cpu.pushWord(back + 1);
+          machine.rts();
+          await Promise.resolve();
+        } ],
+        [ 0x500F, async (machine: LiftedMachine): Promise<void> => {
+          await machine.callInline(0x500C, 0x2020, 1);
+          machine.rts();
+        } ],
       ]),
+      opcodeStores: [ 0x5009 ],
     };
 
     function withNative(): LiftedMachine {
@@ -358,6 +381,23 @@ describe('LiftedMachine', (): void => {
       await machine.runUntil((): boolean => machine.pending == null);
 
       expect(machine.cpu.pc).toBe(0x5006);
+    });
+
+    it('keeps an entry other programs store opcodes over', async (): Promise<void> => {
+      const machine: LiftedMachine = withNative();
+
+      machine.write(0x5009, 0x60);
+      await jsr(machine, 0x5009);
+
+      expect(machine.cpu.a).toBe(0x60);
+    });
+
+    it('calls a routine with the data after its JSR, and returns past it', async (): Promise<void> => {
+      const machine: LiftedMachine = withNative();
+
+      await jsr(machine, 0x500F);
+
+      expect(machine.cpu.a).toBe(0x42);
     });
 
     it('loses an entry the game writes over', async (): Promise<void> => {

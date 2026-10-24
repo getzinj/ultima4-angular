@@ -1,5 +1,5 @@
 import { STRINGS, SUBS_INLINE, SUBS_VARIABLES, subsData } from './subs-data';
-import type { IInlineData } from './subs-data';
+import type { IInlineData } from '../inline-data';
 
 
 describe('SUBS data', (): void => {

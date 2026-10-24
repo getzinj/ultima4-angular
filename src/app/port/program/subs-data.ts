@@ -1,3 +1,5 @@
+import { inline } from '../inline-data';
+import type { IInlineData } from '../inline-data';
 import { msbString, zeroTerminated } from '../text';
 
 // Where SUBS keeps its variables, tables and inline data in the `fixed` build ($0800-$1FE8), and
@@ -61,18 +63,6 @@ export const SUBS_TABLES = {
 } as const;
 
 export const WALKABLE_TILES_LAST: number = 40;
-
-
-/** A block of inline data after a JSR in SUBS: where it sits, and its bytes. */
-export interface IInlineData {
-  readonly address: number;
-  readonly bytes: readonly number[];
-}
-
-
-function inline(address: number, bytes: readonly number[]): IInlineData {
-  return { address, bytes };
-}
 
 
 const STATUS_RULE: number[] = [ 0x18, 0x00, ...Array.from({ length: 15 }, (_: unknown, index: number): number => ((index % 2) === 0 ? 0x04 : 0x05)), 0xFF ];
