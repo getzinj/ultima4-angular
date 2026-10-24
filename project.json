@@ -85,6 +85,19 @@
         "command": "npx tsx apps/Ultima4/tools/inspect-disks.ts",
         "forwardAllArgs": true
       }
+    },
+    "lift": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx apps/Ultima4/tools/lift/lift.ts",
+        "forwardAllArgs": true
+      }
+    },
+    "lift-gate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run --config apps/Ultima4/tools/lift/vitest.gate.config.mts"
+      }
     }
   }
 }

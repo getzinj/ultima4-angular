@@ -11,7 +11,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    include: ['src/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', 'tools/lift/*.spec.ts'],
     reporters: ['default'],
     pool: 'forks',
     maxWorkers: 4,
