@@ -6,6 +6,10 @@ import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machi
 
 export const RETURN: number = 0x0D;
 export const ESC: number = 0x1B;
+const LEFT: number = 0x08;
+const RIGHT: number = 0x15;
+const UP: number = 0x0B;
+const DOWN: number = 0x0A;
 const MODE_WORLD: number = 0x01;
 const GAME_MODE: number = 0x0B;
 
@@ -42,7 +46,7 @@ export class Session {
   public entered(program: string, name: string): Condition {
     const address: number = this.label(program, name);
 
-    return (): boolean => (this.machine.cpu.pc === address) && (this.machine.moduleAt(address)?.name === program);
+    return (): boolean => (this.machine.cpu.pc === address) && (this.machine.programAt(address) === program);
   }
 
 
@@ -56,20 +60,20 @@ export class Session {
   }
 
 
-  public press(key: Key, polls: number = 0): void {
-    this.machine.press(codeOf(key), polls);
+  public press(key: Key, polls: number = 0): Promise<void> {
+    return this.machine.press(codeOf(key), polls);
   }
 
 
-  public type(text: string): void {
+  public async type(text: string): Promise<void> {
     for (const character of text) {
-      this.press((character === '\n') ? RETURN : character);
+      await this.press((character === '\n') ? RETURN : character);
     }
   }
 
 
-  public idle(polls: number): void {
-    this.machine.idle(polls);
+  public idle(polls: number): Promise<void> {
+    return this.machine.idle(polls);
   }
 
 
@@ -79,7 +83,7 @@ export class Session {
 
 
   /** Presses the keys in turn, each at the next poll, until the condition holds. */
-  public pressUntil(keys: readonly Key[], condition: Condition, limit: number): void {
+  public async pressUntil(keys: readonly Key[], condition: Condition, limit: number): Promise<void> {
     let reached: boolean = false;
     const check: Condition = (): boolean => {
       if (condition()) {
@@ -93,7 +97,7 @@ export class Session {
     while ((count < limit) && !check()) {
       this.machine.pending = { code: codeOf(keys[count % keys.length]), polls: 0 };
       this.machine.polls = 0;
-      this.machine.runUntil((): boolean => check() || ((this.machine.pending == null) && ((this.machine.key & 0x80) === 0)));
+      await this.machine.runUntil((): boolean => check() || ((this.machine.pending == null) && ((this.machine.key & 0x80) === 0)));
       if (reached && (this.machine.pending != null)) {
         this.machine.pending = null;
       }
@@ -107,13 +111,41 @@ export class Session {
 
 
 /** A new character: the menu's I, a name, a gender, A to every question, into the game. */
-export function creation(session: Session): void {
-  session.machine.runUntil(session.dosSeen('BRUN BOOT'));
-  session.pressUntil([ 'I' ], session.entered('BOOT', 'input_text'), 2000);
-  session.type('AVATAR\n');
-  session.press('M');
-  session.pressUntil([ 'A', ESC ], session.dosSeen('BRUN ULT4'), 400);
-  session.pressUntil([ ESC ], session.memoryIs(GAME_MODE, MODE_WORLD), 20);
-  session.idle(20);
+export async function creation(session: Session): Promise<void> {
+  await session.machine.runUntil(session.dosSeen('BRUN BOOT'));
+  await session.pressUntil([ 'I' ], session.entered('BOOT', 'input_text'), 2000);
+  await session.type('AVATAR\n');
+  await session.press('M');
+  await session.pressUntil([ 'A', ESC ], session.dosSeen('BRUN ULT4'), 400);
+  await session.pressUntil([ ESC ], session.memoryIs(GAME_MODE, MODE_WORLD), 20);
+  await session.idle(20);
   session.checkpoint();
 }
+
+
+/** Boot and let the intro run, a checkpoint every 250 polls. */
+export async function bootToTitle(session: Session): Promise<void> {
+  await session.machine.runUntil(session.dosSeen('BRUN BOOT'));
+  for (let checkpoint: number = 0; checkpoint < 8; checkpoint++) {
+    await session.idle(250);
+    session.checkpoint();
+  }
+}
+
+
+/** creation, then a few steps round Britannia, then long enough idle to pass a turn. */
+export async function firstSteps(session: Session): Promise<void> {
+  await creation(session);
+  for (const key of [ UP, UP, RIGHT, DOWN, LEFT ]) {
+    await session.press(key, 10);
+  }
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
+export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
+  'boot-to-title': bootToTitle,
+  creation,
+  'first-steps': firstSteps,
+};

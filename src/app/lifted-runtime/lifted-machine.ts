@@ -8,6 +8,13 @@
 // are then owned by the module, and control at an owned address runs the module's code. A write
 // over an instruction byte drops that ownership, so running it afterwards fails loudly instead of
 // running stale code. Only the patch points and the opcode stores are rewritten in place.
+//
+// A program ported by hand (an INativeModule) replaces its lifted module: loading it installs the
+// program's variables (over the lifted image, when there is one, so memory still matches the
+// oracle's byte for byte), and control at one of its entries runs the native routine. Native and
+// lifted code call each other freely. The machine runs as a coroutine: `runUntil` resumes it, and
+// it stops at the first instruction boundary, or the first checkpoint a native routine reaches,
+// where the condition holds, as the oracle stops between instructions.
 
 import { AppleMachine } from '../runtime/apple-machine';
 import type { IBinaryFile } from '../data/dos33';
@@ -17,6 +24,7 @@ import type { UltimaDiskName } from '../data/ultima-disks';
 import { CARRY, Cpu } from './cpu';
 import type { IBus } from './cpu';
 import type { ILiftedModule } from './lifted-module';
+import type { INativeModule, NativeRoutine } from './native-module';
 
 export const COUT: number = 0xFDED;
 export const HOME: number = 0xFC58;
@@ -25,9 +33,11 @@ export const DOS_OUTPUT: number = 0x9EBD;
 export const RWTS_ENTRY: number = 0xB7B5;
 /** The ROM stub's one instruction, an RTS. */
 export const ID_ROUTINE: number = 0xFE1F;
+/** Where `call` returns to: in the I/O page, so no program can own it. */
+const CALL_RETURN: number = 0xC0FF;
 
-const KEYBOARD: number = 0xC000;
-const STROBE: number = 0xC010;
+export const KEYBOARD: number = 0xC000;
+export const STROBE: number = 0xC010;
 const CSW: number = 0x36;
 const REQDISK: number = 0xDE;
 const IOB: number = 0xB7E8;
@@ -67,6 +77,12 @@ export interface ISnapshot {
   readonly polls: number;
   readonly dos: readonly string[];
   readonly regions: Readonly<Record<string, Uint8Array>>;
+}
+
+
+interface IStop {
+  readonly resolve: () => void;
+  readonly reject: (error: unknown) => void;
 }
 
 
@@ -114,9 +130,19 @@ export class LiftedMachine implements IBus {
   private running: number = -1;
   private condition: () => boolean = (): boolean => true;
   private stepStart: number = 0;
+  private task: Promise<void> | null = null;
+  private stop: IStop | null = null;
+  private resume: (() => void) | null = null;
+  private failure: unknown = null;
+  private nativeAt: { readonly name: string; readonly address: number } | null = null;
 
 
-  constructor(disks: DiskSet, public readonly modules: readonly ILiftedModule[], private readonly rngAddress: number | null = null) {
+  constructor(
+    disks: DiskSet,
+    public readonly modules: readonly ILiftedModule[],
+    private readonly rngAddress: number | null = null,
+    public readonly natives: readonly INativeModule[] = [],
+  ) {
     this.disks = { ...disks };
     this.images = modules.map((module: ILiftedModule): Uint8Array => decodeImage(module.image));
     this.apple.write(CSW, DOS_OUTPUT & 0xFF);
@@ -157,20 +183,28 @@ export class LiftedMachine implements IBus {
   // --- the keyboard -------------------------------------------------------------------------
 
   /** Runs until the game has polled `polls` times with nothing waiting, latches `code`, and runs on until the game has read it. */
-  public press(code: number, polls: number = 0): void {
+  public press(code: number, polls: number = 0): Promise<void> {
     this.pending = { code: code & 0x7F, polls };
     this.polls = 0;
-    this.runUntil((): boolean => (this.pending == null) && ((this.key & 0x80) === 0));
+
+    return this.runUntil((): boolean => (this.pending == null) && ((this.key & 0x80) === 0));
   }
 
 
-  public idle(polls: number): void {
+  public idle(polls: number): Promise<void> {
     this.polls = 0;
-    this.runUntil((): boolean => this.polls >= polls);
+
+    return this.runUntil((): boolean => this.polls >= polls);
   }
 
 
   // --- running ------------------------------------------------------------------------------
+
+  /** BLOAD outside the game, for tests and tools. */
+  public bload(disk: UltimaDiskName, name: string, at: number | null = null): number {
+    return this.load(disk, name, at);
+  }
+
 
   public boot(): void {
     this.dosLog.push('BRUN INIT');
@@ -178,28 +212,149 @@ export class LiftedMachine implements IBus {
   }
 
 
-  public runUntil(done: () => boolean): void {
-    const outer: () => boolean = this.condition;
+  /** Runs the game until `done` holds between two instructions, or at a native routine's checkpoint. */
+  public runUntil(done: () => boolean): Promise<void> {
+    let result: Promise<void>;
 
-    this.condition = done;
-    this.stepStart = this.cpu.cycles;
-    try {
-      while (!done()) {
-        this.checkProgress();
-        if (!this.trap(this.cpu.pc)) {
-          const owner: number = this.ownerAt(this.cpu.pc);
+    if (this.failure != null) {
+      result = Promise.reject(this.failure);
+    } else if (done()) {
+      result = Promise.resolve();
+    } else {
+      this.condition = done;
+      this.stepStart = this.cpu.cycles;
+      result = new Promise<void>((resolve: () => void, reject: (error: unknown) => void): void => {
+        const resume: (() => void) | null = this.resume;
 
-          if (owner < 0) {
-            throw new LiftedMachineError(`no lifted code at ${ hex(this.cpu.pc) }`);
-          } else {
-            this.running = owner;
-            this.modules[owner].run(this.cpu, this.cpu.pc);
-          }
+        this.stop = { resolve, reject };
+        this.resume = null;
+        if (resume != null) {
+          resume();
+        } else if (this.task == null) {
+          this.task = this.execute();
         }
+      });
+    }
+
+    return result;
+  }
+
+
+  /** For native code, where an instruction boundary would be: stops here if the condition holds. */
+  public async checkpoint(): Promise<void> {
+    this.checkProgress();
+    if (this.condition()) {
+      await new Promise<void>((resume: () => void): void => {
+        const stop: IStop | null = this.stop;
+
+        this.resume = resume;
+        this.stop = null;
+        stop?.resolve();
+      });
+    }
+  }
+
+
+  /** For native code: as if the 6502 were at `address` in `program`, for scenarios that wait for a label. */
+  public async at(program: string, address: number): Promise<void> {
+    this.cpu.pc = address;
+    this.nativeAt = { name: program, address };
+    await this.checkpoint();
+    this.nativeAt = null;
+  }
+
+
+  /** For native code: JSR to `address`, lifted, native or trapped, and run until it returns. */
+  public async call(address: number): Promise<void> {
+    this.cpu.pushWord(CALL_RETURN - 1);
+    this.cpu.pc = address;
+    while (this.cpu.pc !== CALL_RETURN) {
+      await this.dispatch();
+    }
+  }
+
+
+  /** For native code: the RTS that ends a routine entered by JSR. */
+  public rts(): void {
+    this.cpu.pc = (this.cpu.pullWord() + 1) & 0xFFFF;
+  }
+
+
+  /** For native code: a keyboard read, which a scenario may stop just after. */
+  public async readKeyboard(): Promise<number> {
+    const value: number = this.read(KEYBOARD);
+
+    await this.checkpoint();
+
+    return value;
+  }
+
+
+  /** For native code: `bit hw_STROBE`. */
+  public async clearKeyboardStrobe(): Promise<number> {
+    const value: number = this.read(STROBE);
+
+    await this.checkpoint();
+
+    return value;
+  }
+
+
+  /** The name of the program whose code is at `address`, lifted or native. */
+  public programAt(address: number): string | null {
+    const owner: number = this.ownerAt(address);
+    let name: string | null = null;
+
+    if ((this.nativeAt != null) && (this.nativeAt.address === address)) {
+      name = this.nativeAt.name;
+    } else if (owner >= 0) {
+      name = this.modules[owner].name;
+    } else if (owner <= -2) {
+      name = this.natives[-2 - owner].name;
+    }
+
+    return name;
+  }
+
+
+  private async execute(): Promise<void> {
+    try {
+      for (;;) {
+        await this.dispatch();
       }
-    } finally {
-      this.condition = outer;
-      this.running = -1;
+    } catch (error: unknown) {
+      const stop: IStop | null = this.stop;
+
+      this.failure = error;
+      this.stop = null;
+      stop?.reject(error);
+    }
+  }
+
+
+  private async dispatch(): Promise<void> {
+    if (this.condition()) {
+      await this.checkpoint();
+    }
+    this.checkProgress();
+    if (!this.trap(this.cpu.pc)) {
+      const owner: number = this.ownerAt(this.cpu.pc);
+
+      if (owner >= 0) {
+        this.running = owner;
+        this.modules[owner].run(this.cpu, this.cpu.pc);
+        this.running = -1;
+      } else if (owner <= -2) {
+        const routine: NativeRoutine | undefined = this.natives[-2 - owner].entries.get(this.cpu.pc);
+
+        if (routine == null) {
+          throw new LiftedMachineError(`no native routine at ${ hex(this.cpu.pc) }`);
+        } else {
+          await routine(this);
+        }
+      } else {
+        throw new LiftedMachineError(`no lifted code at ${ hex(this.cpu.pc) }`);
+      }
     }
   }
 
@@ -352,11 +507,6 @@ export class LiftedMachine implements IBus {
   }
 
 
-  private rts(): void {
-    this.cpu.pc = (this.cpu.pullWord() + 1) & 0xFFFF;
-  }
-
-
   // --- DOS ----------------------------------------------------------------------------------
 
   private dosOutput(value: number): void {
@@ -449,17 +599,27 @@ export class LiftedMachine implements IBus {
   }
 
 
-  /** BLOAD: a lifted module's image if there is one for the file, else the file. Returns where it went. */
+  /**
+   * BLOAD: a program's image from its lifted module, or the file. A native program is installed over
+   * whatever image there is and owns only its entries. Returns where it went.
+   */
   private load(disk: UltimaDiskName, name: string, at: number | null): number {
     const index: number = this.modules.findIndex((module: ILiftedModule): boolean => (module.disk === disk) && (module.name === name));
+    const nativeIndex: number = this.natives.findIndex((native: INativeModule): boolean => (native.disk === disk) && (native.name === name));
     let address: number;
 
-    if (index >= 0) {
-      const module: ILiftedModule = this.modules[index];
+    if ((index >= 0) || (nativeIndex >= 0)) {
+      const load: number = (nativeIndex >= 0) ? this.natives[nativeIndex].load : this.modules[index].load;
 
-      address = at ?? module.load;
-      if (address !== module.load) {
-        throw new LiftedMachineError(`${ disk } ${ name } is lifted for ${ hex(module.load) }, not ${ hex(address) }`);
+      address = at ?? load;
+      if (address !== load) {
+        throw new LiftedMachineError(`${ disk } ${ name } is ported for ${ hex(load) }, not ${ hex(address) }`);
+      } else if (nativeIndex >= 0) {
+        if (index >= 0) {
+          this.copyIn(address, this.images[index]);
+        }
+        this.natives[nativeIndex].install(this);
+        this.claimNative(nativeIndex);
       } else {
         this.copyIn(address, this.images[index]);
         this.claim(index);
@@ -504,6 +664,17 @@ export class LiftedMachine implements IBus {
 
       if (slot >= 0) {
         this.rewritable[slot] = 1;
+      }
+    }
+  }
+
+
+  private claimNative(index: number): void {
+    for (const address of this.natives[index].entries.keys()) {
+      const slot: number = this.writeSlot(address);
+
+      if (slot >= 0) {
+        this.owners[slot] = -2 - index;
       }
     }
   }

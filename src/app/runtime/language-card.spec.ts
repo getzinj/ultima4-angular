@@ -136,4 +136,23 @@ describe('LanguageCard', (): void => {
       expect(card.contents('high')[0x10]).toBe(0x66);
     });
   });
+
+  describe('armedForWrite', (): void => {
+    it('is set by one read of an odd switch', (): void => {
+      const card: LanguageCard = new LanguageCard();
+
+      card.switch(0xC083, false);
+
+      expect(card.armedForWrite).toBe(true);
+    });
+
+    it('is cleared by an even switch', (): void => {
+      const card: LanguageCard = new LanguageCard();
+
+      card.switch(0xC083, false);
+      card.switch(0xC080, false);
+
+      expect(card.armedForWrite).toBe(false);
+    });
+  });
 });

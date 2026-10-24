@@ -371,3 +371,24 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **New games aren't saved by `NEWGAME`.** It builds the party in memory and goes straight into
   the game. The lifted creation run issues no `BSAVE`; the save files are first written when the
   player saves.
+
+## Phase 7a findings
+
+- **SUBS's interface is its registers.** The contract analysis tried first could not say which
+  outputs callers rely on: hundreds of the 600 `primm` call sites flow into code whose own inputs
+  are unknown. So the port leaves A, X, Y and every flag as the original does, and the
+  differential harness proves it per entry.
+- **Carry crosses routine boundaries.** `fastrand` adds with the carry it is called with, and
+  `animate_view` and `j_update_view_combat` pass their caller's carry on to it through
+  `scroll_tiles`, which never touches C. The port keeps the carry in the CPU for that reason.
+- **Language-card switching is all reads of odd addresses**, so writing stays enabled
+  throughout `drawview` and the tile animation; an extra `bit $C083` is harmless, though the
+  port does not add one.
+- **Reads past tables.** `idle_combat` and `update_monsters` index `mul_11` with Y up to 255 and
+  so read SUBS's own code beyond it; the port reads its tables from memory at their addresses, so
+  it does the same.
+- **SUBS keeps state in its image:** the RNG (`rnd0`-`rndf`), the cursor, the moons, the
+  saved console position, the line drawer's flags, the idle timeout, two sound counters, and
+  seven operands it rewrites. They stay there, so memory matches the oracle byte for byte.
+- **The drive digit.** `request_disk` writes the drive number into its own `BLOAD DISK,D1`
+  string (`$18D6`) before printing it.

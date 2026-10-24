@@ -28,6 +28,12 @@ export class LanguageCard {
   }
 
 
+  /** Whether the last access was a read of an odd switch, so a second one would enable writing. */
+  public get armedForWrite(): boolean {
+    return this.preWrite;
+  }
+
+
   public get bank(): number {
     return this.bankOne ? 1 : 2;
   }

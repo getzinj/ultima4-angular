@@ -11,6 +11,7 @@ import { LIFTED_MODULES } from '../../../src/app/lifted/lifted-modules';
 import type { ISnapshot } from '../../../src/app/lifted-runtime/lifted-machine';
 import { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import type { ILiftedModule } from '../../../src/app/lifted-runtime/lifted-module';
+import type { INativeModule } from '../../../src/app/lifted-runtime/native-module';
 import { Session, creation } from './session';
 import { smokeDisks } from './smoke-disks';
 
@@ -28,14 +29,14 @@ export function oracleSnapshots(fixture: string): IGateSnapshot[] {
 
 
 /** The lifted machine after the creation scenario, or as far as it got. */
-export function runCreation(): { machine: LiftedMachine; failure: unknown } {
+export async function runCreation(natives: readonly INativeModule[] = []): Promise<{ machine: LiftedMachine; failure: unknown }> {
   const subs: ILiftedModule | undefined = LIFTED_MODULES.find((module: ILiftedModule): boolean => module.name === 'SUBS');
-  const machine: LiftedMachine = new LiftedMachine(smokeDisks(), LIFTED_MODULES, subs?.labels['rnd0'] ?? null);
+  const machine: LiftedMachine = new LiftedMachine(smokeDisks(), LIFTED_MODULES, subs?.labels['rnd0'] ?? null, natives);
   let failure: unknown = null;
 
   machine.boot();
   try {
-    creation(new Session(machine));
+    await creation(new Session(machine));
   } catch (error: unknown) {
     failure = error;
   }
@@ -44,7 +45,7 @@ export function runCreation(): { machine: LiftedMachine; failure: unknown } {
 }
 
 
-export function liftedSnapshots({ machine, failure }: { machine: LiftedMachine; failure: unknown } = runCreation()): IGateSnapshot[] {
+export function liftedSnapshots({ machine, failure }: { machine: LiftedMachine; failure: unknown }): IGateSnapshot[] {
   const snapshots: IGateSnapshot[] = machine.snapshots.map((snapshot: ISnapshot): IGateSnapshot => ({
     key: snapshot.key,
     polls: snapshot.polls,
@@ -61,9 +62,9 @@ export function liftedSnapshots({ machine, failure }: { machine: LiftedMachine; 
 }
 
 
-function main(): void {
+async function main(): Promise<void> {
   const expected: IGateSnapshot[] = oracleSnapshots('apps/Ultima4/tools/lift/gate/creation-blank.json');
-  const actual: IGateSnapshot[] = liftedSnapshots();
+  const actual: IGateSnapshot[] = liftedSnapshots(await runCreation());
   const first: number = expected.findIndex((snapshot: IGateSnapshot, index: number): boolean => JSON.stringify(snapshot) !== JSON.stringify(actual[index]));
 
   if (first < 0) {
@@ -82,5 +83,5 @@ function main(): void {
 
 
 if (process.argv[1]?.endsWith('run-gate.ts')) {
-  main();
+  void main();
 }

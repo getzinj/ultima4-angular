@@ -6,65 +6,21 @@
 // assembles it again with a listing to tell code from data, and writes
 // apps/Ultima4/src/app/lifted/<disk>/<program>.ts and apps/Ultima4/src/app/lifted/lifted-modules.ts.
 
-import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { LiftError, emitInstruction, emitOpcodeStore } from './emit';
+import { COMMIT, PROGRAMS, assemble, checkPinned, hex } from './build';
+import type { IAssembled } from './build';
+import { emitInstruction, emitOpcodeStore } from './emit';
 import type { IInstruction } from './emit';
-import type { IListing, ISpan } from './listing';
-import { parseListing, readLabels, segmentStarts } from './listing';
-import { OPCODES, OPERAND_BYTES } from './opcodes';
-import type { IOpcode } from './opcodes';
 
-const COMMIT: string = '428a793a4d6327cc9734ec151bf377f3d328f2cc';
 const OUT: string = join(process.cwd(), 'apps/Ultima4/src/app/lifted');
 
 /** Opcodes the game itself rewrites, by program: INIT.s:82 and BOOT.s:1005 store RTS and JMP over `music_ctl`. */
 const OPCODE_STORES: Readonly<Record<string, readonly number[]>> = {
   'program/SEL': [ 0x0320 ],
 };
-
-/** Every program but the Mockingboard drivers (phase 17) and the trainer menu (D7). */
-const PROGRAMS: readonly [ string, string, string ][] = [
-  ...[ 'INIT', 'SEL', 'SUBS', 'BOOT', 'NEWGAME', 'ULT4' ].map((name: string): [ string, string, string ] => [ 'program', name, `src/patchedgame/program/${ name }` ]),
-  [ 'program', 'TRAINERS', 'src/trainer/TRAINERS' ],
-  ...[ 'HELP', 'HOLE', 'LORD', 'SAVE', 'SEAR', 'SHRN', 'TMAP', 'USE' ].map((name: string): [ string, string, string ] => [ 'britannia', name, `src/patchedgame/britannia/${ name }` ]),
-  ...[ 'MIX', 'SEAR', 'SHP0', 'SHP1', 'SHP2', 'SHP3', 'SHP4', 'SHP5', 'SHP6', 'SHP7', 'SHP8', 'SHP9', 'TALK', 'TMAP', 'USE' ]
-    .map((name: string): [ string, string, string ] => [ 'towne', name, `src/patchedgame/towne/${ name }` ]),
-  ...[ 'DNGD', 'END', 'SEAR', 'TMAP', 'USE' ].map((name: string): [ string, string, string ] => [ 'underworld', name, `src/patchedgame/underworld/${ name }` ]),
-];
-
-
-function hex(value: number, digits: number): string {
-  return `0x${ value.toString(16).toUpperCase().padStart(digits, '0') }`;
-}
-
-
-function decode(span: ISpan, image: Uint8Array, load: number): IInstruction[] {
-  const instructions: IInstruction[] = [];
-  let address: number = span.address;
-
-  while (address < (span.address + span.length)) {
-    const opcode: IOpcode | undefined = OPCODES.get(image[address - load]);
-
-    if (opcode == null) {
-      throw new LiftError(`${ hex(image[address - load], 2) } at ${ hex(address, 4)} is not an instruction (${ span.source })`);
-    } else {
-      const length: number = 1 + OPERAND_BYTES[opcode.mode];
-
-      instructions.push({ address, opcode, bytes: Array.from(image.subarray(address - load, address - load + length)) });
-      address = address + length;
-    }
-  }
-
-  if (address !== (span.address + span.length)) {
-    throw new LiftError(`instructions overrun the line at ${ hex(span.address, 4) } (${ span.source })`);
-  }
-
-  return instructions;
-}
 
 
 function ranges(instructions: readonly IInstruction[], patched: ReadonlySet<number>): [ number, number ][] {
@@ -90,19 +46,7 @@ function ranges(instructions: readonly IInstruction[], patched: ReadonlySet<numb
 
 
 function lift(checkout: string, work: string, disk: string, name: string, path: string): { constant: string; file: string } {
-  const listingPath: string = join(work, `${ disk }-${ name }.lst`);
-
-  execFileSync('make', [ '-s', '-C', checkout, `${ path }.prg` ], { stdio: 'inherit' });
-  execFileSync('ca65', [ '-t', 'apple2', '-I', '.', '-I', 'src/include', '-l', listingPath, '-o', join(work, `${ disk }-${ name }.o`), `${ path }.s` ], { cwd: checkout });
-
-  const prg: Uint8Array = new Uint8Array(readFileSync(join(checkout, `${ path }.prg`)));
-  const load: number = prg[0] | (prg[1] << 8);
-  const image: Uint8Array = prg.slice(2);
-  const listing: IListing = parseListing(readFileSync(listingPath, 'latin1'), segmentStarts(readFileSync(join(checkout, `${ path }.map`), 'latin1')));
-  const instructions: IInstruction[] = listing.spans
-    .filter((span: ISpan): boolean => (span.kind === 'code') && (span.address >= load) && ((span.address + span.length) <= (load + image.length)))
-    .flatMap((span: ISpan): IInstruction[] => decode(span, image, load));
-  const labels: Map<string, number> = readLabels(readFileSync(join(checkout, `${ path }.lab`), 'latin1'), load, load + image.length);
+  const { load, image, listing, instructions, labels }: IAssembled = assemble(checkout, work, disk, name, path);
   const constant: string = `${ disk.toUpperCase() }_${ name }`;
   const opcodeStores: readonly number[] = OPCODE_STORES[`${ disk }/${ name }`] ?? [];
   const cases: string[] = instructions.map((instruction: IInstruction): string => {
@@ -157,26 +101,23 @@ function lift(checkout: string, work: string, disk: string, name: string, path: 
 
 function main(checkout: string): void {
   const work: string = mkdtempSync(join(tmpdir(), 'u4-lift-'));
-  const head: string = execFileSync('git', [ '-C', checkout, 'rev-parse', 'HEAD' ], { encoding: 'utf8' }).trim();
 
-  if (head !== COMMIT) {
-    throw new LiftError(`${ checkout } is at ${ head }; the lifter is pinned to ${ COMMIT }`);
-  } else {
-    const lifted: { constant: string; file: string }[] = PROGRAMS.map(([ disk, name, path ]: [ string, string, string ]) => lift(checkout, work, disk, name, path));
+  checkPinned(checkout);
 
-    writeFileSync(join(OUT, 'lifted-modules.ts'), [
-      '// Generated by apps/Ultima4/tools/lift/lift.ts. Do not edit.',
-      '',
-      'import type { ILiftedModule } from \'../lifted-runtime/lifted-module\';',
-      ...lifted.map((entry: { constant: string; file: string }): string => `import { ${ entry.constant } } from './${ entry.file.replace(/\.ts$/, '') }';`),
-      '',
-      '',
-      'export const LIFTED_MODULES: readonly ILiftedModule[] = [',
-      ...lifted.map((entry: { constant: string }): string => `  ${ entry.constant },`),
-      '];',
-      '',
-    ].join('\n'));
-  }
+  const lifted: { constant: string; file: string }[] = PROGRAMS.map(([ disk, name, path ]: [ string, string, string ]) => lift(checkout, work, disk, name, path));
+
+  writeFileSync(join(OUT, 'lifted-modules.ts'), [
+    '// Generated by apps/Ultima4/tools/lift/lift.ts. Do not edit.',
+    '',
+    'import type { ILiftedModule } from \'../lifted-runtime/lifted-module\';',
+    ...lifted.map((entry: { constant: string; file: string }): string => `import { ${ entry.constant } } from './${ entry.file.replace(/\.ts$/, '') }';`),
+    '',
+    '',
+    'export const LIFTED_MODULES: readonly ILiftedModule[] = [',
+    ...lifted.map((entry: { constant: string }): string => `  ${ entry.constant },`),
+    '];',
+    '',
+  ].join('\n'));
 }
 
 

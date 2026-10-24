@@ -2,6 +2,7 @@ import { join } from 'node:path';
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { GameState } from '../../../src/app/state/game-state';
+import { PORTED_MODULES } from '../../../src/app/port/ported-modules';
 import { MachineStateMemory } from '../../../src/app/state/state-memory';
 import { CHAR, PRTY } from '../../../src/app/state/symbols';
 import { liftedSnapshots, oracleSnapshots, runCreation } from './run-gate';
@@ -17,8 +18,8 @@ describe('the lifted creation scenario on blank data', (): void => {
   let actual: IGateSnapshot[] = [];
   let state: GameState;
 
-  beforeAll((): void => {
-    const run: { machine: LiftedMachine; failure: unknown } = runCreation();
+  beforeAll(async (): Promise<void> => {
+    const run: { machine: LiftedMachine; failure: unknown } = await runCreation();
 
     actual = liftedSnapshots(run);
     state = new GameState(new MachineStateMemory(run.machine.apple));
@@ -52,4 +53,20 @@ describe('the lifted creation scenario on blank data', (): void => {
       expect(state.characters[0].gender).toBe(CHAR.glyph_male);
     });
   });
+});
+
+
+describe('the creation scenario on blank data with the ported programs', (): void => {
+  let actual: IGateSnapshot[] = [];
+
+  beforeAll(async (): Promise<void> => {
+    actual = liftedSnapshots(await runCreation(PORTED_MODULES));
+  }, 120_000);
+
+  it.each(expected.map((snapshot: IGateSnapshot, index: number): [ number, IGateSnapshot ] => [ index, snapshot ]))(
+    'matches the oracle at snapshot %i',
+    (index: number, snapshot: IGateSnapshot): void => {
+      expect(actual[index]).toEqual(snapshot);
+    },
+  );
 });
