@@ -117,4 +117,23 @@ describe('LanguageCard', (): void => {
       expect(card.read(0xD123)).toBe(0);
     });
   });
+
+  describe('contents', (): void => {
+    it('shows bank 1 as written', (): void => {
+      const card: LanguageCard = new LanguageCard();
+
+      readTwice(card, 0xC08B);
+      card.write(0xD010, 0x55);
+
+      expect(card.contents('bank1')[0x10]).toBe(0x55);
+    });
+
+    it('shows the high 8 KB as written', (): void => {
+      const card: LanguageCard = new LanguageCard();
+
+      card.write(0xE010, 0x66);
+
+      expect(card.contents('high')[0x10]).toBe(0x66);
+    });
+  });
 });

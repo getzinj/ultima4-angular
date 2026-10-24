@@ -68,3 +68,12 @@ python3 smoke.py <fixed checkout> # the remaster's own code on blank data (see i
 `smoke.py` runs the assembled `INIT`, `SEL`, `SUBS`, `BOOT`, `NEWGAME` and `ULT4` with filler data,
 through the same steps as `creation`. With nothing on the Britannia disk to load, it stops where
 the game is in Britannia.
+
+## Fixtures for the lifter
+
+Two scripts write committed fixtures for the lifter (`../lift/`). Neither holds any of the game:
+
+- **`export_gate.py`** runs `creation` on `smoke.py`'s blank data and writes the digests and DOS
+  lines to `../lift/gate/creation-blank.json`.
+- **`export_cpu_vectors.py`** writes py65's `ADC`, `SBC` and `CMP` results over a spread of
+  operands, in both modes, to `../../src/app/lifted-runtime/cpu-vectors.json`.

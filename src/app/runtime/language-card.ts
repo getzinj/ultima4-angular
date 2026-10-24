@@ -33,6 +33,18 @@ export class LanguageCard {
   }
 
 
+  /** One bank's RAM as it stands, for snapshots. */
+  public contents(bank: 'bank1' | 'bank2' | 'high'): Uint8Array {
+    if (bank === 'bank1') {
+      return this.bank1;
+    } else if (bank === 'bank2') {
+      return this.bank2;
+    } else {
+      return this.high;
+    }
+  }
+
+
   /** An access to $C080-$C08F. */
   public switch(address: number, isWrite: boolean): void {
     const low: number = address & 3;

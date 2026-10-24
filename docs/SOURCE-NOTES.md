@@ -187,9 +187,11 @@ copies.
    functions.
 4. **Self-modifying code.** 61 operand patch points, written `@name=*+$01`/`*+$02`:
    - where: `DNGD` 32, `SUBS` 12, `BOOT` 11, `ULT4` 3, `NEWGAME` 2, `END` 1;
-   - one opcode store: `BOOT.s:880` turns the IIgs Mockingboard init into `RTS`.
+   - three opcode stores (phase 5 found the two that go through a constant): `BOOT.s:880` turns the IIgs
+     Mockingboard init into `RTS`; `INIT.s:82` turns `SEL`'s `music_ctl` (`$0320`, from `jump_system.i`) into
+     `RTS`, and `BOOT.s:1005` turns it back into `JMP` when music is chosen.
 
-   They are all operand rewrites for fast copy and draw loops. They become variables, not code changes. The
+   The operand rewrites are all in fast copy and draw loops. They become variables, not code changes. The
    plan's "224 stores to `label+1`" were nearly all pointer setup in zero page: of 629 stores to labels in the
    files, all but one go to data.
 5. **Stack tricks.**
@@ -309,3 +311,24 @@ on the developer's machine. The images, and anything built from them, stay out o
   not go through `delay`, but it also polls between frames. So the oracle counts keyboard polls
   with nothing waiting, and the port must poll at the same points.
 
+## Phase 5 findings
+
+- **The lifted game agrees with the oracle.** Its own `creation` run on blank data gives the
+  oracle's digests, polls and DOS lines at all 53 snapshots. A one-bit fault in `ADC` breaks the
+  match at snapshot 1, so the gate is sensitive.
+- **Size.** 36 modules and 20,096 instructions make 2.8 MB of TypeScript. 63 patch points are read
+  live: the 61 above plus 2 in `TRAINERS`.
+- **Opcode stores.** `INIT` stores `RTS` over `SEL`'s `j_music_ctl` before anything calls it. The
+  lifted `SEL` reads that opcode each time, runs `RTS` or the original `JMP`, and fails on any
+  other value.
+- **The ROM stub runs once.** `INIT` calls the IIgs ID routine at `$FE1F`, which the stub answers
+  with an `RTS`. The machine runs that one instruction; any other jump into the ROM fails.
+- **Real stack, not exceptions.** The lifted code keeps the 6502 stack, so `primm`, the jump
+  tables, `err_resume` and the frame drops run unchanged. The plan's thrown errors move to the
+  hand port (phases 7–12), which can check them against the lifted baseline.
+- **Speed.** Stopping to check the scenario before every instruction, the lifted game runs about
+  2 million cycles a second under Node, twice the Apple's speed and about py65's. That is enough to
+  play.
+- **Not committed.** The lifted modules carry EA's program bytes and code. They are generated
+  locally (`nx run Ultima4:lift`) and ignored by git and ESLint. The gate's fixture holds only
+  digests.
