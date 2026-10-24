@@ -1,0 +1,113 @@
+"""Scripted sessions, from boot. Each scenario is a function of a Session; every key it presses is
+snapshotted just before the game reads it, and checkpoint() snapshots without a key.
+
+The scripts follow the remaster's source (BOOT.s, NEWGAME.s, ULT4.s), not a recording of play: a
+step that waits for a label or a DOS command stops with an error if the game never gets there,
+which is how a script that has drifted from the game shows itself.
+"""
+
+RETURN, ESC = 0x0D, 0x1B
+LEFT, RIGHT, UP, DOWN = 0x08, 0x15, 0x0B, 0x0A
+
+LOAD_ADDRESSES = {'BOOT': 0x6000, 'NEWGAME': 0x6400, 'ULT4': 0x4000, 'SUBS': 0x0800}
+MODE_WORLD = 0x01
+GAME_MODE = 0x0B
+
+
+class ScenarioError(Exception):
+    pass
+
+
+class Session:
+    def __init__(self, machine, labels):
+        self.machine = machine
+        self.labels = labels
+
+    def label(self, program, name):
+        try:
+            return self.labels[program][name]
+        except KeyError:
+            raise ScenarioError(f'no label {name} in {program}') from None
+
+    def entered(self, program, name):
+        address = self.label(program, name)
+        return lambda: self.machine.mpu.pc == address and self.machine.owner(address) == program
+
+    def dos_seen(self, prefix):
+        return lambda: any(line.startswith(prefix) for line in self.machine.dos_log)
+
+    def memory_is(self, address, value):
+        return lambda: self.machine.memory.ram[address] == value
+
+    def press(self, key, polls=0):
+        self.machine.press(ord(key) if isinstance(key, str) else key, polls)
+
+    def type(self, text):
+        for character in text:
+            self.press(RETURN if character == '\n' else character)
+
+    def idle(self, polls):
+        self.machine.idle(polls)
+
+    def checkpoint(self):
+        self.machine.snapshots.append(self.machine.snapshot(None, self.machine.polls))
+
+    def run_until(self, condition):
+        self.machine.run_until(condition)
+
+    def press_until(self, keys, condition, limit):
+        """Presses the keys in turn, each at the next poll, until the condition holds."""
+        reached = [False]
+
+        def check():
+            if condition():
+                reached[0] = True
+            return reached[0]
+
+        for count in range(limit):
+            if check():
+                return
+            key = keys[count % len(keys)]
+            self.machine.pending = (ord(key) if isinstance(key, str) else key, 0)
+            self.machine.polls = 0
+            self.machine.run_until(lambda: check() or (self.machine.pending is None and not (self.machine.key & 0x80)))
+            if reached[0] and self.machine.pending is not None:
+                self.machine.pending = None
+        if not check():
+            raise ScenarioError(f'not reached after {limit} key presses')
+
+
+def boot_to_title(session):
+    """Boot and let the intro run, a checkpoint every 250 polls."""
+    session.run_until(session.dos_seen('BRUN BOOT'))
+    for _ in range(8):
+        session.idle(250)
+        session.checkpoint()
+
+
+def creation(session):
+    """A new character: the menu's I, a name, a gender, A to every question, into the game."""
+    session.run_until(session.dos_seen('BRUN BOOT'))
+    session.press_until(['I'], session.entered('BOOT', 'input_text'), limit=2000)
+    session.type('AVATAR\n')
+    session.press('M')
+    session.press_until(['A', ESC], session.dos_seen('BRUN ULT4'), limit=400)
+    session.press_until([ESC], session.memory_is(GAME_MODE, MODE_WORLD), limit=20)
+    session.idle(20)
+    session.checkpoint()
+
+
+def first_steps(session):
+    """creation, then a few steps round Britannia, then long enough idle to pass a turn."""
+    creation(session)
+    for key in (UP, UP, RIGHT, DOWN, LEFT):
+        session.press(key, polls=10)
+    session.idle(140)
+    session.checkpoint()
+
+
+SCENARIOS = {
+    'boot-to-title': boot_to_title,
+    'creation': creation,
+    'first-steps': first_steps,
+}

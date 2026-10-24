@@ -283,3 +283,29 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **Not yet checked against a real disk.** World chunks are taken to be row-major. Arena and room
   tiles are taken to start where noted above. Phase 4's oracle confirms all three.
 
+## Phase 4 findings
+
+- **What the game needs from DOS and the ROM** (both branches):
+  - **Boot.** `INIT` calls `HOME`, `COUT` and DOS's hook-up entry `$03EA`, and reads the
+    machine-ID bytes.
+  - **Commands.** Every DOS command goes out through `CSW` from `SUBS.s` `primm_cout`.
+  - **Raw sectors.** These go through `RWTS_readblock` (`$B7B5`).
+  - **After boot, nothing else.** No other ROM routine and no other DOS entry is called, so the
+    oracle traps those few addresses and loads neither DOS nor the ROM.
+- **The ROM copy.** `INIT` copies `$F000`-`$FFFF` of ROM into language-card RAM (`rom_SHADOW`),
+  so the top 4 KB of the card holds whatever the ROM held. With the stub ROM that is zeros, except
+  the ID bytes. The game only uses that area for the interrupt vectors, and the Mockingboard
+  driver `MBSM` overwrites `$FD00`-`$FFFF` when it is chosen.
+- **The stack after BRUN.** At DOS's output handler the stack holds `primm_cout`'s own `jsr
+  @cout` frame. DOS's `BRUN` leaves one frame of its own above that, which makes the "2 frames"
+  `HELP`, `LORD` and `END` pop. The oracle pushes one frame. The port has no 6502 stack, so it
+  needs no counterpart.
+- **TRAINERS.** The `fixed` `BOOT` and `ULT4` always `BLOAD TRAINERS`, a file only `fixed`'s build
+  puts on the program disk. The port, which reads retail disks, will have to provide it itself
+  (all flags zero, D7) when `BOOT` is ported in phase 7.
+- **Two drives.** `numdrives` is toggled from the menu. Britannia and the underworld then go in
+  drive 2. The scenarios use one drive, so every disk change prompts for Esc.
+- **Polls stand for ticks.** In play, `waitkey` polls `$C000` once per idle tick. The intro does
+  not go through `delay`, but it also polls between frames. So the oracle counts keyboard polls
+  with nothing waiting, and the port must poll at the same points.
+
