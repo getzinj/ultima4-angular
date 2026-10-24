@@ -415,3 +415,18 @@ on the developer's machine. The images, and anything built from them, stay out o
   commented out in the source. The port keeps the loop.
 - **TRAINERS is not on the synthetic disks**, so the CI spec that runs INIT to NEWGAME puts a
   filler one there.
+
+## Phase 8 findings
+
+- **NEWGAME's text is most of its image.** The string table runs from `$6CA6` to the end
+  (10,894 bytes, 68 strings, `$FF` for a newline). By the user's decision it is committed in
+  `newgame-data.ts` as text, like SUBS's and BOOT's strings.
+- **The answers add up in BCD.** `chosen_on_left` sets the decimal flag and carries one `adc`
+  into the next: the virtue's level, then strength, dexterity and intelligence.
+- **The runoff.** Before the fifth and seventh questions, `mark_runoff_cards` makes every card
+  that has not been discarded eligible again; cards are picked by `j_rand` until an eligible one
+  comes up, so the RNG's state decides the questions.
+- **`insert_disk`, `print_disk_name` and `clear_window` are unused** (the source says so) and
+  are not ported.
+- **Super-Packer's dead code.** In a pattern, a run with no pattern bytes left first resets the
+  pointer to the pattern's start, and then reads the run either way; the port keeps both.
