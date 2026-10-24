@@ -86,7 +86,7 @@ browser or in gitignored folders.
 | # | Decision | Status |
 |---|---|---|
 | D1 | **Location.** `apps/Ultima4` in this monorepo; extracted to `getzinj/ultima4-angular` in the last phase | Proposed |
-| D2 | **Behaviour baseline.** Port `fixed`, with its hidden features off by default. Recommended, because retail's stack-overflow crashes would have to be reproduced on purpose. The alternative is retail-exact, with the fixes as options | **Open** |
+| D2 | **Behaviour baseline.** Port `fixed` (`428a793`), with its hidden features off by default, so retail's stack-overflow crashes are not reproduced. Retail-exact was rejected. The oracle runs disks built from `fixed` | Agreed |
 | D3 | **Method.** Recommended: lift first, then hand-port. A lifter turns each `.s` file into instruction-level TS, giving a runnable, faithful baseline early. Each file is then rewritten as structured TS and checked against both the baseline and the oracle. The alternative is to hand-port straight against the oracle, as Akalabeth did. That is cheaper up front, but riskier for `ULT4.s` | **Open** |
 | D4 | **Oracle data stays local.** Oracle recordings contain game data, so they are never committed. Only key scripts and per-step SHA-256 digests are committed. CI runs the port on synthetic disks; full fidelity runs locally with `npm run oracle-check -- --disks <dir>` | Proposed |
 | D5 | **Sound.** Speaker effects in phase 14. Mockingboard music (two AY-3-8910 chips) as a later, optional phase | **Open** |
