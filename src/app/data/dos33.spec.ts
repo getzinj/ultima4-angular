@@ -110,6 +110,98 @@ describe('Dos33Disk', (): void => {
     });
   });
 
+  describe('LOCK', (): void => {
+    it('marks the file locked', (): void => {
+      const disk: Dos33Disk = blankDisk();
+
+      disk.writeBinary('MAPB', 0x8B00, bytesOf(0x400));
+      disk.setLocked('MAPB', true);
+
+      expect(disk.find('MAPB')?.locked).toBe(true);
+    });
+
+    it('keeps BSAVE off a locked file', (): void => {
+      const disk: Dos33Disk = blankDisk();
+
+      disk.writeBinary('MAPB', 0x8B00, bytesOf(0x400));
+      disk.setLocked('MAPB', true);
+
+      expect((): void => disk.writeBinary('MAPB', 0x8B00, bytesOf(0x400))).toThrow('FILE LOCKED: MAPB');
+    });
+
+    it('UNLOCK lets BSAVE in again', (): void => {
+      const disk: Dos33Disk = blankDisk();
+
+      disk.writeBinary('MAPB', 0x8B00, bytesOf(0x400));
+      disk.setLocked('MAPB', true);
+      disk.setLocked('MAPB', false);
+
+      expect(disk.find('MAPB')?.locked).toBe(false);
+    });
+  });
+
+  describe('patching a file in place', (): void => {
+    function lockedMap(): Dos33Disk {
+      const disk: Dos33Disk = blankDisk();
+
+      disk.writeBinary('MAPB', 0x8B00, bytesOf(0x400));
+      disk.setLocked('MAPB', true);
+
+      return disk;
+    }
+
+    function patched(): Uint8Array {
+      const data: Uint8Array = bytesOf(0x400);
+
+      data[0x65] = 0x6E;
+
+      return data;
+    }
+
+    it('rewrites a locked file', (): void => {
+      const disk: Dos33Disk = lockedMap();
+
+      disk.patchBinary('MAPB', patched());
+
+      expect(disk.readBinary('MAPB').data[0x65]).toBe(0x6E);
+    });
+
+    it('leaves it locked', (): void => {
+      const disk: Dos33Disk = lockedMap();
+
+      disk.patchBinary('MAPB', patched());
+
+      expect(disk.find('MAPB')?.locked).toBe(true);
+    });
+
+    it('keeps its load address', (): void => {
+      const disk: Dos33Disk = lockedMap();
+
+      disk.patchBinary('MAPB', patched());
+
+      expect(disk.readBinary('MAPB').address).toBe(0x8B00);
+    });
+
+    it('touches no other sector', (): void => {
+      const disk: Dos33Disk = lockedMap();
+      const before: Uint8Array = disk.image.bytes.slice();
+      const changed: number[] = [];
+
+      disk.patchBinary('MAPB', patched());
+      for (let offset: number = 0; offset < before.length; offset++) {
+        if (before[offset] !== disk.image.bytes[offset]) {
+          changed.push(offset);
+        }
+      }
+
+      expect(changed.length).toBe(1);
+    });
+
+    it('refuses to change the length', (): void => {
+      expect((): void => lockedMap().patchBinary('MAPB', bytesOf(0x401))).toThrow(Dos33Error);
+    });
+  });
+
   describe('errors', (): void => {
     it('reports a missing file', (): void => {
       expect((): IBinaryFile => blankDisk().readBinary('NONE')).toThrow(Dos33Error);

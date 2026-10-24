@@ -67,7 +67,7 @@ function applyDataPatch(disks: DiskSet, patch: IDataPatch): PatchOutcome {
 
     outcome = applyPatch(data, patch);
     if (outcome === 'applied') {
-      disk.writeBinary(patch.file, file.address, data, RAW_TRACKS[patch.disk]);
+      disk.patchBinary(patch.file, data);
     }
   }
 
