@@ -33,6 +33,9 @@ export interface ICase {
   /** The cycles a routine may run without a call or jump, past the default: SHRN's delays are long. */
   readonly cycles?: number;
 
+  /** Compare every write to the hi-res screen, not just the screen left: text a long talk scrolls away. */
+  readonly screen?: boolean;
+
   /** Where a routine that jumps on rather than returning is stopped: the turn's next steps. */
   readonly stops?: readonly number[] | ((machine: LiftedMachine) => readonly number[]);
 }
@@ -43,6 +46,7 @@ export interface IOutcome {
   readonly card: readonly number[];
   readonly polls: number;
   readonly clicks: number;
+  readonly screen: number;
   readonly dos: readonly string[];
   readonly failure: string | null;
 }
@@ -154,7 +158,18 @@ export async function runRoutine(natives: readonly INativeModule[], entry: numbe
   const { machine, clicks, returnTo, keys } = prepare(natives, seed, testCase);
   const card: LiftedMachine['apple']['languageCard'] = machine.apple.languageCard;
   let failure: string | null = null;
+  let screen: number = 0x811C9DC5;
 
+  if (testCase.screen === true) {
+    const write: (address: number, value: number) => void = machine.write.bind(machine);
+
+    machine.write = (address: number, value: number): void => {
+      if ((address >= 0x2000) && (address < 0x4000)) {
+        screen = Math.imul(screen ^ ((address << 8) | (value & 0xFF)), 0x01000193) >>> 0;
+      }
+      write(address, value);
+    };
+  }
   machine.maxCyclesPerStep = testCase.cycles ?? 50_000_000;
   const stops: ReadonlySet<number> = new Set<number>((typeof testCase.stops === 'function') ? testCase.stops(machine) : (testCase.stops ?? []));
 
@@ -186,6 +201,7 @@ export async function runRoutine(natives: readonly INativeModule[], entry: numbe
     card: [ card.readsRam, card.writesRam, card.bank === 1, card.armedForWrite ].map((on: boolean): number => (on ? 1 : 0)),
     polls: machine.polls,
     clicks: clicks(),
+    screen,
     dos: machine.dosLog,
     failure,
   };
@@ -207,7 +223,7 @@ export function differences(lifted: IOutcome, native: IOutcome): string[] {
   if (lifted.card.join() !== native.card.join()) {
     found.push(`card: ${ lifted.card.join('') } / ${ native.card.join('') }`);
   }
-  for (const key of [ 'polls', 'clicks' ] as const) {
+  for (const key of [ 'polls', 'clicks', 'screen' ] as const) {
     if (lifted[key] !== native[key]) {
       found.push(`${ key }: ${ lifted[key] } / ${ native[key] }`);
     }

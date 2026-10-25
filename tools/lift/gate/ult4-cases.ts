@@ -180,7 +180,7 @@ export const ULT4_CASES: Readonly<Record<string, readonly [ number, ICase ]>> = 
   dec_virtue: routine(E.dec_virtue, (machine: LiftedMachine, random: Random): void => {
     machine.cpu.y = Math.floor(random() * 8);
     machine.cpu.a = pick(random, [ 0x01, 0x02, 0x03, 0x05, 0x10 ]);
-    machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ 0x00, 0x01, 0x02, 0x03, 0x05, 0x50, 0x99 ]));
+    machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ machine.cpu.a, 0x00, 0x01, 0x02, 0x03, 0x05, 0x50, 0x99 ]));
   }),
   print_newline: routine(E.print_newline),
   check_enter_moongate: routine(E.check_enter_moongate, (machine: LiftedMachine, random: Random): void => {

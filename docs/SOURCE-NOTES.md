@@ -561,5 +561,12 @@ on the developer's machine. The images, and anything built from them, stay out o
   machine `press` returns once the key is in the buffer, not when the game uses it, so specs and
   cases that type ahead lose the mantra: `runOverlay` now waits for the buffer to empty after each
   key, as the scenarios do, and the cases' pages take a letter, never SPACE, which empties the
-  buffer of whatever is still in it.
+  buffer of whatever is still in it. A mantra's first key waits 300 polls, past the dots.
+- **The end state is not enough for a talk.** A long talk with Lord British scrolls its first
+  answers off the screen, so a wrong one leaves no trace in the memory the differential compares;
+  mutation testing missed a wrong welcome that way. Cases may now set `ICase.screen`, which folds
+  every write to the hi-res screen into a hash both sides must share; LORD, HELP and SHRN set it.
+  Two mutants survive, and cannot be caught: LORD's level-up caps a stat with `cmp #$51` / `bcc`,
+  and `cmp #$50` gives the same $50; SHRN's Super-Packer ORs the rune onto a view it has just
+  cleared, so storing it instead looks the same.
 

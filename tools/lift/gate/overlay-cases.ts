@@ -32,17 +32,23 @@ const SEAR_X: readonly number[] = [ 0xB6, 0x64, 0x2E, 0xCD, 0xB0, 0x2D, 0x60, 0x
 const SEAR_Y: readonly number[] = [ 0x36, 0xA5, 0x95, 0x2C, 0xD0, 0xAD, 0xD7, 0xF5, 0x85, 0x50 ];
 const ITEMS: readonly string[] = [ 'STONES', 'BELL', 'BOOK', 'CANDLE', 'KEY', 'HORN', 'WHEEL', 'SKULL' ];
 const NOT_ITEMS: readonly string[] = [ 'SKUX', 'SWORDFISHBATTERY', 'X', '' ];
-const SUBJECTS: readonly string[] = [
-  'BYE', 'NAME', 'LOOK', 'JOB', 'HEAL', 'TRUTH', 'LOVE', 'COURAGE', 'HONESTY', 'COMPASSION', 'VALOR', 'JUSTICE', 'SACRIFICE', 'HONOR',
-  'SPIRITUALITY', 'HUMILITY', 'PRIDE', 'AVATAR', 'QUEST', 'BRITANNIA', 'ANKH', 'HELP', 'ABYSS', 'MONDAIN', 'MINAX', 'EXODUS', 'VIRTUE', 'XYZZY',
-  'Y', 'N', '', 'HE',
+/** What is asked of Lord British, with healing's answer after it. */
+const SUBJECTS: readonly (readonly string[])[] = [
+  [ 'NAME' ], [ 'LOOK' ], [ 'JOB' ], [ 'HEAL', 'N' ], [ 'HEAL', 'N' ], [ 'HEAL', 'Y' ], [ 'HEAL', 'MAYBE' ], [ 'TRUTH' ], [ 'LOVE' ], [ 'COURAGE' ],
+  [ 'HONESTY' ], [ 'COMPASSION' ], [ 'VALOR' ], [ 'JUSTICE' ], [ 'SACRIFICE' ], [ 'HONOR' ], [ 'SPIRITUALITY' ], [ 'HUMILITY' ], [ 'PRIDE' ],
+  [ 'AVATAR' ], [ 'QUEST' ], [ 'BRITANNIA' ], [ 'ANKH' ], [ 'HELP' ], [ 'HELP' ], [ 'ABYSS' ], [ 'MONDAIN' ], [ 'MINAX' ], [ 'EXODUS' ],
+  [ 'VIRTUE' ], [ 'XYZZY' ], [ 'HE' ], [ 'BYE' ],
 ];
+/** A key for one of Lord British's pages: the left arrow, which an empty word ignores if there is no page left. */
+const PAGE: number = 0x08;
 const VIRTUES: readonly string[] = [ 'HONESTY', 'COMPASSION', 'VALOR', 'JUSTICE', 'SACRIFICE', 'HONOR', 'SPIRITUALITY', 'HUMILITY' ];
 const MANTRAS: readonly string[] = [ 'AHM', 'MU', 'RA', 'BEH', 'CAH', 'SUMMUM', 'OM', 'LUM' ];
 /** The return a case's overlay was entered by BRUN with: the overlay drops two frames, the second this one. */
 const RETURN: number = 0xC0FE;
 /** Three cycles of SHRN's sixteen dots, each five delays of 255 x 255 loops. */
 const MEDITATION_CYCLES: number = 400_000_000;
+/** Polls past the meditation's dots and the flush after them, and short of j_waitkey's timeout. */
+const AFTER_THE_DOTS: number = 300;
 const STATUSES: readonly number[] = [ ROST.status_Good, ROST.status_Good, ROST.status_Poison, ROST.status_Sleep, ROST.status_Dead, 0xC1 ];
 
 
@@ -174,21 +180,23 @@ function viewing(machine: LiftedMachine, random: Random): void {
 }
 
 
-/** A key for a waitkey: a space mostly, any letter sometimes. */
-function anyKey(random: Random): Key {
-  return { code: (random() < 0.8) ? 0x20 : 0x41 + Math.floor(random() * 26), polls: Math.floor(random() * 3) };
-}
-
-
-/** A talk with Lord British: subjects asked, keys between for his pages, and farewell, said until it is heard. */
+/**
+ * A talk with Lord British: subjects asked, enough keys after each for his pages, and farewell,
+ * said until it is heard. SPACE is never one of them: it empties the type-ahead buffer.
+ */
 function conversation(random: Random): readonly Key[] {
   const keys: Key[] = [];
   const count: number = 2 + Math.floor(random() * 6);
 
+  for (let page: number = 0; page < 3; page++) {
+    keys.push({ code: PAGE, polls: Math.floor(random() * 3) });
+  }
   for (let subject: number = 0; subject < count; subject++) {
-    keys.push(...typedWord(pick(random, SUBJECTS), random));
-    for (let page: number = Math.floor(random() * 4); page > 0; page--) {
-      keys.push(anyKey(random));
+    for (const word of pick(random, SUBJECTS)) {
+      keys.push(...typedWord(word, random));
+    }
+    for (let page: number = 0; page < 3; page++) {
+      keys.push({ code: PAGE, polls: Math.floor(random() * 3) });
     }
   }
   for (let bye: number = 0; bye < 4; bye++) {
@@ -213,12 +221,37 @@ function court(machine: LiftedMachine, random: Random): void {
   for (let digit: number = 0; digit < 4; digit++) {
     machine.write(PRTY.move_counter + digit, pick(random, [ 0x00, 0x00, 0x01, 0x10, byte(random) ]));
   }
-  if (random() < 0.5) {
-    for (let virtue: number = 0; virtue < 8; virtue++) {
+  const virtues: number = random();
+
+  for (let virtue: number = 0; virtue < 8; virtue++) {
+    if (virtues < 0.3) {
       machine.write(ROST.party_stats + virtue, pick(random, [ 0x00, 0x00, 0x50 ]));
+    } else if (virtues < 0.5) {
+      machine.write(ROST.party_stats + virtue, (virtue === 7) ? 0x00 : 0x50);
+    } else if (virtues < 0.6) {
+      machine.write(ROST.party_stats + virtue, 0x00);
     }
   }
+  machine.write(ROST.threepartkey, pick(random, [ 0x00, 0x07, 0x07, 0x0F, 0x87, 0x03 ]));
+  machine.write(ROST.stones, pick(random, [ 0x00, 0xFF, byte(random) ]));
+  machine.write(ROST.bell_book_candle, pick(random, [ 0x07, 0x47, 0x03, byte(random) ]));
+  if (random() < 0.3) {
+    lateInTheQuest(machine);
+  }
   machine.write(ZP_MAIN.key_buf_len, 0x00);
+}
+
+
+/** All HELP asks for before the key: runes, the eight partial avatarhoods, stones and items, with companions, past the first thousand moves. */
+function lateInTheQuest(machine: LiftedMachine): void {
+  machine.write(PRTY.move_counter, 0x01);
+  machine.write(PRTY.party_size, 0x08);
+  machine.write(ROST.runes, 0xFF);
+  machine.write(ROST.stones, 0xFF);
+  machine.write(ROST.bell_book_candle, machine.read(ROST.bell_book_candle) | ROST.items_have_all);
+  for (let virtue: number = 0; virtue < 8; virtue++) {
+    machine.write(ROST.party_stats + virtue, 0x00);
+  }
 }
 
 
@@ -230,8 +263,8 @@ function brunInto(machine: LiftedMachine, random: Random): void {
 }
 
 
-/** Shrine `shrineNumber`, its rune held or not, the party rested or weary, its virtue at its height or not. */
-function shrine(shrineNumber: number): (machine: LiftedMachine, random: Random) => void {
+/** Shrine `shrineNumber`, its rune held or not, the party rested or weary, its virtue at its height or not; or set for avatarhood. */
+function shrine(shrineNumber: number, avatar: boolean = false): (machine: LiftedMachine, random: Random) => void {
   return (machine: LiftedMachine, random: Random): void => {
     world(machine, random);
     party(machine, random);
@@ -245,29 +278,39 @@ function shrine(shrineNumber: number): (machine: LiftedMachine, random: Random) 
     machine.write(PRTY.move_counter + 2, byte(random));
     machine.write(PRTY.last_meditated, (random() < 0.2) ? machine.read(PRTY.move_counter + 2) : byte(random));
     machine.write(ROST.party_stats + shrineNumber, pick(random, [ 0x99, 0x99, 0x00, 0x50 ]));
-    machine.write(ROST.party_stats + ROST.virtue_spirituality, pick(random, [ 0x00, 0x01, 0x02, 0x50, 0x97, 0x99 ]));
+    machine.write(ROST.party_stats + ROST.virtue_spirituality, pick(random, [ 0x00, 0x01, 0x02, 0x03, 0x03, 0x50, 0x97, 0x99 ]));
     machine.write(ZP_MAIN.key_buf_len, 0x00);
+    if (avatar) {
+      machine.write(ROST.runes, 0x80 >> shrineNumber);
+      machine.write(PRTY.last_meditated, machine.read(PRTY.move_counter + 2) ^ 0x01);
+      machine.write(ROST.party_stats + shrineNumber, 0x99);
+    }
   };
 }
 
 
-/** A meditation: a virtue, mostly the shrine's, its cycles, mostly its mantra, and keys for the pages. */
-function meditation(shrineNumber: number): (random: Random) => readonly Key[] {
-  return (random: Random): readonly Key[] => meditationKeys(shrineNumber, random);
+/** A meditation: a virtue, mostly the shrine's, its cycles, mostly its mantra, and keys for the pages; or the three right ones. */
+function meditation(shrineNumber: number, avatar: boolean = false): (random: Random) => readonly Key[] {
+  return (random: Random): readonly Key[] => meditationKeys(shrineNumber, avatar, random);
 }
 
 
-function meditationKeys(shrineNumber: number, random: Random): readonly Key[] {
+/** Each mantra's first key waits out the dots, which throw away any key typed during them. */
+function meditationKeys(shrineNumber: number, avatar: boolean, random: Random): readonly Key[] {
   const keys: Key[] = [];
-  const cycles: number = 1 + Math.floor(random() * 3);
+  const cycles: number = avatar ? 3 : 1 + Math.floor(random() * 3);
+  const right: number = avatar ? 1 : 0.7;
 
-  keys.push(...typedWord((random() < 0.7) ? VIRTUES[shrineNumber] : pick(random, [ ...VIRTUES, 'HON', 'X' ]), random));
+  keys.push(...typedWord((avatar || (random() < 0.7)) ? VIRTUES[shrineNumber] : pick(random, [ ...VIRTUES, 'HON', 'X' ]), random));
   if (random() < 0.2) {
     keys.push({ code: 0x37, polls: 0 });
   }
   keys.push({ code: 0x30 + cycles, polls: Math.floor(random() * 3) });
   for (let cycle: number = 0; cycle < cycles; cycle++) {
-    keys.push(...typedWord((random() < 0.85) ? MANTRAS[shrineNumber] : pick(random, MANTRAS), random));
+    const mantra: Key[] = [ ...typedWord((random() < right) ? MANTRAS[shrineNumber] : pick(random, MANTRAS), random) ];
+
+    mantra[0] = { code: mantra[0].code, polls: AFTER_THE_DOTS };
+    keys.push(...mantra);
   }
   for (let page: number = 0; page < 4; page++) {
     keys.push(pageKey(random));
@@ -302,25 +345,32 @@ export const OVERLAY_CASES: Readonly<Record<string, IOverlayCase>> = {
     module: LORD_MODULE,
     modules: [ LORD_MODULE, HELP_MODULE ],
     entry: JUMP_OVERLAY.talk_lord_british,
-    testCase: { ult4: true, stops: STOPS, keys: conversation, setup: loaded('LORD', court) },
+    testCase: { ult4: true, screen: true, stops: STOPS, keys: conversation, setup: loaded('LORD', court) },
   },
   lord_after_help: {
     module: LORD_MODULE,
     modules: [ LORD_MODULE, HELP_MODULE ],
     entry: OVERLAY_ENTRY,
-    testCase: { ult4: true, stops: STOPS, keys: conversation, setup: loaded('LORD', brunInto) },
+    testCase: { ult4: true, screen: true, stops: STOPS, keys: conversation, setup: loaded('LORD', brunInto) },
   },
   help: {
     module: HELP_MODULE,
     modules: [ LORD_MODULE, HELP_MODULE ],
     entry: OVERLAY_ENTRY,
-    testCase: { ult4: true, stops: STOPS, keys: (random: Random): readonly Key[] => [ anyKey(random), anyKey(random), anyKey(random), ...conversation(random) ],
+    testCase: { ult4: true, screen: true, stops: STOPS, keys: conversation,
       setup: loaded('HELP', brunInto) },
   },
   ...Object.fromEntries(VIRTUES.map((_: string, shrineNumber: number): [ string, IOverlayCase ] => [ `shrn_${ shrineNumber }`, {
     module: SHRN_MODULE,
     entry: OVERLAY_ENTRY,
-    testCase: { ult4: true, stops: STOPS, cycles: MEDITATION_CYCLES, keys: meditation(shrineNumber), setup: loaded('SHRN', shrine(shrineNumber)) },
+    testCase: { ult4: true, screen: true, stops: STOPS, cycles: MEDITATION_CYCLES, keys: meditation(shrineNumber), setup: loaded('SHRN', shrine(shrineNumber)) },
+  } ])),
+  ...Object.fromEntries(VIRTUES.map((_: string, shrineNumber: number): [ string, IOverlayCase ] => [ `shrn_avatar_${ shrineNumber }`, {
+    module: SHRN_MODULE,
+    entry: OVERLAY_ENTRY,
+    testCase: {
+      ult4: true, screen: true, stops: STOPS, cycles: MEDITATION_CYCLES, keys: meditation(shrineNumber, true), setup: loaded('SHRN', shrine(shrineNumber, true)),
+    },
   } ])),
   hole: { module: HOLE_MODULE, entry: OVERLAY_ENTRY, testCase: { ult4: true, stops: STOPS, setup: loaded('HOLE', camping) } },
   use: { module: USE_MODULE, entry: OVERLAY_ENTRY, testCase: { ult4: true, stops: STOPS, keys: typed(NOT_ITEMS), setup: loaded('USE', using) } },
