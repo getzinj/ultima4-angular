@@ -979,8 +979,8 @@ export abstract class Ult4Combat extends Ult4 {
     this.lda(this.peek(O.combat_foe_tile_type + this.cpu.x));
     await this.m.call(CL.is_evil);
     if (!this.negative()) {
-      await this.incVirtue(ROST.virtue_compassion, 0x01);
-      await this.incVirtue(ROST.virtue_justice, 0x01);
+      await this.raiseVirtue(ROST.virtue_compassion, 0x01);
+      await this.raiseVirtue(ROST.virtue_justice, 0x01);
     }
     this.lda(0x00);
     this.ldx(this.peek(zp_cur_foe_index));
@@ -992,17 +992,17 @@ export abstract class Ult4Combat extends Ult4 {
   }
 
 
-  protected async incVirtue(virtue: number, amount: number): Promise<void> {
+  protected async raiseVirtue(virtue: number, amount: number): Promise<void> {
     this.ldy(virtue);
     this.lda(amount);
-    await this.m.call(CL.inc_virtue);
+    await this.m.call(E.inc_virtue);
   }
 
 
-  protected async decVirtue(virtue: number, amount: number): Promise<void> {
+  protected async lowerVirtue(virtue: number, amount: number): Promise<void> {
     this.ldy(virtue);
     this.lda(amount);
-    await this.m.call(CL.dec_virtue);
+    await this.m.call(E.dec_virtue);
   }
 
 
@@ -1082,7 +1082,7 @@ export abstract class Ult4Combat extends Ult4 {
     if (this.lda(this.cpu.a & CHANCE_4) === 0) {
       await this.m.call(J.j_rand);
       this.lda(this.cpu.a & 0x3F);
-      await this.m.call(CL.encode_bcd_value);
+      await this.m.call(E.encode_bcd_value);
       this.poke(zp_number1, this.cpu.a);
       this.cpu.setFlag(DECIMAL, true);
       this.setCarry(true);
@@ -1163,10 +1163,10 @@ export abstract class Ult4Combat extends Ult4 {
     await this.m.call(CL.is_evil);
     if (this.negative()) {
       await this.print(CI.battle_lost);
-      await this.decVirtue(ROST.virtue_valor, 0x02);
+      await this.lowerVirtue(ROST.virtue_valor, 0x02);
     } else {
-      await this.incVirtue(ROST.virtue_compassion, 0x02);
-      await this.incVirtue(ROST.virtue_justice, 0x02);
+      await this.raiseVirtue(ROST.virtue_compassion, 0x02);
+      await this.raiseVirtue(ROST.virtue_justice, 0x02);
     }
 
     return C.combat_over;
@@ -1184,7 +1184,7 @@ export abstract class Ult4Combat extends Ult4 {
       this.ldy(ROST.virtue_valor);
       await this.m.call(J.j_rand);
       this.lda(this.cpu.a & 0x01);
-      await this.m.call(CL.inc_virtue);
+      await this.m.call(E.inc_virtue);
     }
     this.lda(this.peek(PRTY.game_mode));
     this.cmp(PRTY.mode_combat_inn);
@@ -1424,12 +1424,12 @@ export abstract class Ult4Combat extends Ult4 {
     this.lda(this.peek(CT.foe_power_table + this.cpu.x));
     this.cpu.a = this.cpu.lsr(this.cpu.lsr(this.cpu.a));
     await this.sub(0x78FA, (): Promise<Exit> => this.randModulo());
-    await this.m.call(CL.encode_bcd_value);
+    await this.m.call(E.encode_bcd_value);
     await this.m.call(CL.dec_player_hp);
     if (this.zero()) {
       await this.m.call(J.j_printname);
       await this.print(CI.is_killed);
-      await this.incVirtue(ROST.virtue_sacrifice, 0x01);
+      await this.raiseVirtue(ROST.virtue_sacrifice, 0x01);
     }
     await this.m.call(CL.invert_player_name);
     await this.m.call(J.j_update_status);
@@ -1647,8 +1647,8 @@ export abstract class Ult4Combat extends Ult4 {
       this.lda(this.peek(ZP_COMBAT.foe_type_encountered));
       await this.m.call(CL.is_evil);
       if (this.negative() && await this.unhurt()) {
-        await this.decVirtue(ROST.virtue_valor, 0x02);
-        await this.decVirtue(ROST.virtue_sacrifice, 0x02);
+        await this.lowerVirtue(ROST.virtue_valor, 0x02);
+        await this.lowerVirtue(ROST.virtue_sacrifice, 0x02);
       }
     }
 
@@ -1891,7 +1891,7 @@ export abstract class Ult4Combat extends Ult4 {
     await this.m.call(J.j_get_stats_ptr);
     this.ldy(ROST.player_dexterity);
     this.lda(this.peek(this.pointer(ZP_MAIN.ptr1) + this.cpu.y));
-    await this.m.call(CL.decode_bcd_value);
+    await this.m.call(E.decode_bcd_value);
     this.cpu.a = this.cpu.asl(this.cpu.a);
     this.add(0x80);
     if (!this.carry()) {
@@ -1910,7 +1910,7 @@ export abstract class Ult4Combat extends Ult4 {
     await this.m.call(J.j_get_stats_ptr);
     this.ldy(ROST.player_strength);
     this.lda(this.peek(this.pointer(ZP_MAIN.ptr1) + this.cpu.y));
-    await this.m.call(CL.decode_bcd_value);
+    await this.m.call(E.decode_bcd_value);
     this.ldx(this.peek(CV.current_weapon));
     this.add(this.peek(CT.weapon_damage_table + this.cpu.x));
     if (this.carry()) {
@@ -1965,7 +1965,7 @@ export abstract class Ult4Combat extends Ult4 {
       this.ldy(this.cpu.a);
       this.div16(this.peek(CT.foe_power_table + this.cpu.y));
       this.add(0x01);
-      await this.m.call(CL.encode_bcd_value);
+      await this.m.call(E.encode_bcd_value);
       await this.m.call(CL.inc_player_exp);
       await this.print(CI.exp);
       this.lda(this.peek(zp_number1));

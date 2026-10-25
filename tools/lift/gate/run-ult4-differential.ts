@@ -18,7 +18,7 @@ const CASES: Readonly<Record<string, readonly [ number, ICase, readonly INativeM
   ...Object.fromEntries(Object.entries({ ...ULT4_CASES, ...COMBAT_CASES, ...SPELL_CASES, ...MONSTER_CASES }).map(([ name, [ entry, testCase ] ]: [ string, readonly [ number, ICase ] ]):
     [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ entry, testCase, [ ULT4_MODULE ] ] ])),
   ...Object.fromEntries(Object.entries(OVERLAY_CASES).map(([ name, overlay ]: [ string, IOverlayCase ]):
-    [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ overlay.entry, overlay.testCase, [ overlay.module ] ] ])),
+    [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ overlay.entry, overlay.testCase, overlay.modules ?? [ overlay.module ] ] ])),
 };
 
 

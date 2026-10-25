@@ -30,6 +30,9 @@ export interface ICase {
   /** Load ULT4 too, for its routines. */
   readonly ult4?: boolean;
 
+  /** The cycles a routine may run without a call or jump, past the default: SHRN's delays are long. */
+  readonly cycles?: number;
+
   /** Where a routine that jumps on rather than returning is stopped: the turn's next steps. */
   readonly stops?: readonly number[] | ((machine: LiftedMachine) => readonly number[]);
 }
@@ -152,7 +155,7 @@ export async function runRoutine(natives: readonly INativeModule[], entry: numbe
   const card: LiftedMachine['apple']['languageCard'] = machine.apple.languageCard;
   let failure: string | null = null;
 
-  machine.maxCyclesPerStep = 50_000_000;
+  machine.maxCyclesPerStep = testCase.cycles ?? 50_000_000;
   const stops: ReadonlySet<number> = new Set<number>((typeof testCase.stops === 'function') ? testCase.stops(machine) : (testCase.stops ?? []));
 
   machine.cpu.pc = entry;

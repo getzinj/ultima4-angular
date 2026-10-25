@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds eight, written from the remaster's source:
+`scenarios.py` holds ten, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -75,6 +75,14 @@ Monitor would have left, which nothing here reproduces and the game does not use
 - **`monsters`:** a new game on Britain's shore with a strong avatar, a pirate ship to the west, a
   twister to the east and an orc to the south, passing turn after turn: the twister strikes, the
   orcs attack and die, then the pirate sails in and attacks, and the avatar flees its crew.
+- **`shrines`:** a new game by the shrine of Honesty: turned away without its rune, then a vision
+  after one cycle, too weary to meditate again, a wrong mantra with spirituality spent, three cycles
+  with honesty at 99 for the partial avatarhood and the rune drawn, and no focus on another virtue.
+  Each key waits for the type-ahead buffer to empty, since keys typed during the dots are lost.
+- **`lord-british`:** a new game into Lord British's castle, with him placed beside the party
+  (`Session.poke` into a townsperson's slot): the newcomer's welcome, every subject he answers
+  (healing declined and taken, HELP early in the game), one he cannot, and farewell; then a level
+  gained and the help that asks for runes; then his greeting to a party of four.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

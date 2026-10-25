@@ -1,7 +1,10 @@
 import type { INativeModule } from '../lifted-runtime/native-module';
+import { HELP_MODULE } from './program/britannia/help';
 import { HOLE_MODULE } from './program/britannia/hole';
+import { LORD_MODULE } from './program/britannia/lord';
 import { SAVE_MODULE } from './program/britannia/save';
 import { SEAR_MODULE } from './program/britannia/sear';
+import { SHRN_MODULE } from './program/britannia/shrn';
 import { TMAP_MODULE } from './program/britannia/tmap';
 import { USE_MODULE } from './program/britannia/use';
 import { BOOT_MODULE } from './program/boot-module';
@@ -19,9 +22,12 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   SEL_MODULE,
   SUBS_MODULE,
   ULT4_MODULE,
+  HELP_MODULE,
   HOLE_MODULE,
+  LORD_MODULE,
   SAVE_MODULE,
   SEAR_MODULE,
+  SHRN_MODULE,
   TMAP_MODULE,
   USE_MODULE,
 ];

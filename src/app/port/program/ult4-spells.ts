@@ -324,7 +324,7 @@ export abstract class Ult4Spells extends Ult4Combat {
         this.lda(0x19);
         await this.sub(0x4C79, (): Promise<Exit> => this.randModulo());
         this.add(0x4B);
-        await this.m.call(COMBAT_LIFTED.encode_bcd_value);
+        await this.m.call(E.encode_bcd_value);
         await this.m.call(SL.inc_player_hp);
         exit = E.done_done;
       }

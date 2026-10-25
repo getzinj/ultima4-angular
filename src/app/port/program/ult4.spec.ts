@@ -228,4 +228,64 @@ describe('ULT4, ported in part', (): void => {
 
     expect((await command(machine, E.end_turn, 0x8102)).read(PRTY.move_counter + 3)).toBe(0x10);
   });
+
+  describe('encode_bcd_value', (): void => {
+    it('writes 42 as $42', async (): Promise<void> => {
+      expect((await call(ult4Machine(), E.encode_bcd_value, 42)).cpu.a).toBe(0x42);
+    });
+
+    it('holds 99 and up at $99', async (): Promise<void> => {
+      expect((await call(ult4Machine(), E.encode_bcd_value, 200)).cpu.a).toBe(0x99);
+    });
+  });
+
+  it('reads $42 as 42', async (): Promise<void> => {
+    expect((await call(ult4Machine(), E.decode_bcd_value, 0x42)).cpu.a).toBe(42);
+  });
+
+  describe('a virtue', (): void => {
+    const VALOR: number = ROST.party_stats + ROST.virtue_valor;
+
+    function withValor(value: number): LiftedMachine {
+      const machine: LiftedMachine = ult4Machine();
+
+      machine.write(VALOR, value);
+      machine.cpu.y = ROST.virtue_valor;
+
+      return machine;
+    }
+
+    it('rises in BCD', async (): Promise<void> => {
+      expect((await call(withValor(0x48), E.inc_virtue, 0x05)).read(VALOR)).toBe(0x53);
+    });
+
+    it('rises no higher than 99', async (): Promise<void> => {
+      expect((await call(withValor(0x97), E.inc_virtue, 0x05)).read(VALOR)).toBe(0x99);
+    });
+
+    it('stays at zero, an eighth of avatarhood, when it would rise', async (): Promise<void> => {
+      expect((await call(withValor(0x00), E.inc_virtue, 0x05)).read(VALOR)).toBe(0x00);
+    });
+
+    it('falls in BCD', async (): Promise<void> => {
+      expect((await call(withValor(0x53), E.dec_virtue, 0x05)).read(VALOR)).toBe(0x48);
+    });
+
+    it('falls no lower than 1', async (): Promise<void> => {
+      expect((await call(withValor(0x03), E.dec_virtue, 0x05)).read(VALOR)).toBe(0x01);
+    });
+
+    it('loses its eighth at zero, and falls from 99', async (): Promise<void> => {
+      expect((await call(withValor(0x00), E.dec_virtue, 0x05)).read(VALOR)).toBe(0x94);
+    });
+  });
+
+  it('counts one more of a party stat in BCD', async (): Promise<void> => {
+    const machine: LiftedMachine = ult4Machine();
+
+    machine.write(ROST.party_stats + ROST.party_stat_gems, 0x09);
+    machine.cpu.y = ROST.party_stat_gems;
+
+    expect((await call(machine, E.inc_stat)).read(ROST.party_stats + ROST.party_stat_gems)).toBe(0x10);
+  });
 });

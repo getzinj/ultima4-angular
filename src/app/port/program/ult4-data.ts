@@ -118,7 +118,12 @@ export const ULT4_ENTRIES = {
   print_west: 0x83D9,
   input_char: 0x848D,
   run_file_dead: 0x84BC,
+  encode_bcd_value: 0x851E,
+  decode_bcd_value: 0x8536,
+  inc_stat: 0x8546,
   dec_stat: 0x8554,
+  inc_virtue: 0x8562,
+  dec_virtue: 0x8576,
   print_newline: 0x86E5,
   check_enter_moongate: 0x8764,
   gate_to_gate: 0x8788,
@@ -134,6 +139,7 @@ function text(address: number, value: string): IInlineData {
 const PROMPT: readonly number[] = [ 0x8D, 0x1E ];
 
 export const ULT4_INLINE = {
+  lost_an_eighth: text(0x8591, '\nTHOU HAST LOST\nAN EIGHTH!\n'),
   bload_prty: text(0x4036, '\u0004BLOAD PRTY,A$0\n'),
   no_active_game: text(0x404E, '\nNO ACTIVE GAME!\n'),
   bload_list_rost: text(0x4066, '\u0004BLOAD LIST,A$EE00\n\u0004BLOAD ROST,A$EC00\n'),

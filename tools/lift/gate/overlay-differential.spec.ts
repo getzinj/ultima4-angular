@@ -14,7 +14,7 @@ describe('the Britannia overlays, ported, against the lifted originals', (): voi
     const found: string[] = [];
 
     for (let seed: number = 1; seed <= SEEDS; seed++) {
-      found.push(...differences(await runRoutine([], overlay.entry, seed, overlay.testCase), await runRoutine([ overlay.module ], overlay.entry, seed, overlay.testCase)));
+      found.push(...differences(await runRoutine([], overlay.entry, seed, overlay.testCase), await runRoutine(overlay.modules ?? [ overlay.module ], overlay.entry, seed, overlay.testCase)));
     }
 
     expect(found).toEqual([]);

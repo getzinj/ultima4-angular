@@ -8,6 +8,7 @@ import { DECIMAL } from '../../lifted-runtime/cpu';
 import { APPLE, CARDS, CHAR, JUMP_SUBS, JUMP_SYSTEM, MUSIC, PRTY, ROST, SUPER_PACKER, TABLES, ZP_MAIN } from '../../state/symbols';
 import type { IInlineData } from '../inline-data';
 import { PortProgram } from '../port-program';
+import { SuperPacker } from './super-packer';
 import { NEWGAME_INLINE, NEWGAME_STRING, NEWGAME_TABLES, NEWGAME_VARIABLES } from './newgame-data';
 
 const V = NEWGAME_VARIABLES;
@@ -45,7 +46,6 @@ const PORTAL_VANISH: number = 0x23;
 const MUSIC_TOWNE: number = 0x2C;
 const THE_TABLE: number = 0x35;
 
-type SpkStep = 'read_byte' | 'set_repeat' | 'set_pattern' | 'do_repeat' | 'do_pattern' | 'next_pattern' | 'rts';
 
 
 export class Newgame extends PortProgram {
@@ -577,6 +577,8 @@ export class Newgame extends PortProgram {
 
   /** Super-Packer: the picture packed at $4000 onto the screen, column by column from the right, each from the bottom up. */
   private spkUnpack(): void {
+    const packer: SuperPacker = new SuperPacker(this.m, false);
+
     this.poke(ZP_MAIN.ptr2 + 1, this.lda(APPLE.screen_HGR2 >> 8));
     this.ldx(0x00);
     this.poke(SPK.spk_repeat_flag, this.cpu.x);
@@ -594,7 +596,7 @@ export class Newgame extends PortProgram {
       do {
         this.poke(ZP_MAIN.ptr1, this.lda(this.peek(TABLES.bmplineaddr_lo + this.cpu.x)));
         this.poke(ZP_MAIN.ptr1 + 1, this.lda(this.peek(TABLES.bmplineaddr_hi + this.cpu.x)));
-        this.spkWriteByte();
+        packer.writeByte();
         this.dec(SPK.spk_row);
         this.ldx(this.peek(SPK.spk_row));
         this.cpu.compare(this.cpu.x, 0xFF);
@@ -604,122 +606,4 @@ export class Newgame extends PortProgram {
     } while (!this.zero());
   }
 
-
-  /** One byte of the picture at (ptr1),Y: a literal, or the next of a run or a repeated pattern. */
-  private spkWriteByte(): void {
-    let step: SpkStep = 'read_byte';
-
-    this.ldx(0x00);
-    this.cpu.bit(this.peek(SPK.spk_repeat_flag));
-    if (this.negative()) {
-      step = 'do_repeat';
-    } else {
-      this.cpu.bit(this.peek(SPK.spk_pattern_flag));
-      if (this.negative()) {
-        step = 'do_pattern';
-      }
-    }
-    while (step !== 'rts') {
-      step = this.spkStep(step);
-    }
-  }
-
-
-  private spkStep(step: SpkStep): SpkStep {
-    let next: SpkStep = 'rts';
-
-    if (step === 'read_byte') {
-      this.poke(SPK.spk_byte, this.lda(this.peek(this.pointer(ZP_MAIN.ptr2))));
-      this.cmp(this.peek(SPK.spk_repeat_code));
-      if (this.zero()) {
-        next = 'set_repeat';
-      } else {
-        this.cmp(this.peek(SPK.spk_pattern_code));
-        if (this.zero()) {
-          next = 'set_pattern';
-        } else {
-          this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(this.peek(SPK.spk_byte)));
-          this.incPtr2();
-        }
-      }
-    } else if (step === 'set_repeat') {
-      this.incPtr2();
-      this.poke(SPK.spk_repeat_count, this.lda(this.peek(this.pointer(ZP_MAIN.ptr2))));
-      this.incPtr2();
-      this.poke(SPK.spk_byte, this.lda(this.peek(this.pointer(ZP_MAIN.ptr2))));
-      this.incPtr2();
-      this.poke(SPK.spk_repeat_flag, this.lda(0x80));
-      next = 'do_repeat';
-    } else if (step === 'set_pattern') {
-      this.incPtr2();
-      this.lda(this.peek(this.pointer(ZP_MAIN.ptr2)));
-      this.poke(SPK.spk_pattern_length, this.cpu.a);
-      this.poke(SPK.spk_pattern_len_cur, this.cpu.a);
-      this.incPtr2();
-      this.poke(SPK.spk_pattern_count, this.lda(this.peek(this.pointer(ZP_MAIN.ptr2))));
-      this.incPtr2();
-      this.poke(SPK.spk_pattern_ptr, this.lda(this.peek(ZP_MAIN.ptr2)));
-      this.poke(SPK.spk_pattern_ptr + 1, this.lda(this.peek(ZP_MAIN.ptr2 + 1)));
-      this.poke(SPK.spk_pattern_flag, this.lda(0x80));
-      next = 'do_pattern';
-    } else if (step === 'do_repeat') {
-      next = this.repeatByte();
-    } else if (step === 'do_pattern') {
-      next = this.patternByte();
-    } else if (step === 'next_pattern') {
-      this.nextPattern();
-    }
-
-    return next;
-  }
-
-
-  private repeatByte(): SpkStep {
-    let next: SpkStep = 'rts';
-
-    this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(this.peek(SPK.spk_byte)));
-    if (this.dec(SPK.spk_repeat_count) === 0) {
-      this.poke(SPK.spk_repeat_flag, this.lda(0x00));
-      this.cpu.bit(this.peek(SPK.spk_pattern_flag));
-      if (this.negative()) {
-        this.dec(SPK.spk_pattern_len_cur);
-        next = (this.dec(SPK.spk_pattern_len_cur) !== 0) ? 'next_pattern' : 'do_pattern';
-      }
-    }
-
-    return next;
-  }
-
-
-  private patternByte(): SpkStep {
-    let next: SpkStep = 'next_pattern';
-
-    this.lda(this.peek(this.pointer(ZP_MAIN.ptr2)));
-    this.cmp(this.peek(SPK.spk_repeat_code));
-    if (this.zero()) {
-      if (this.lda(this.peek(SPK.spk_pattern_len_cur)) === 0) {
-        this.poke(ZP_MAIN.ptr2, this.lda(this.peek(SPK.spk_pattern_ptr)));
-        this.poke(ZP_MAIN.ptr2 + 1, this.lda(this.peek(SPK.spk_pattern_ptr + 1)));
-      }
-      next = 'set_repeat';
-    } else {
-      this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.cpu.a);
-      this.incPtr2();
-    }
-
-    return next;
-  }
-
-
-  private nextPattern(): void {
-    if (this.dec(SPK.spk_pattern_len_cur) === 0) {
-      this.poke(SPK.spk_pattern_len_cur, this.lda(this.peek(SPK.spk_pattern_length)));
-      if (this.dec(SPK.spk_pattern_count) === 0) {
-        this.poke(SPK.spk_pattern_flag, this.lda(0x00));
-      } else {
-        this.poke(ZP_MAIN.ptr2, this.lda(this.peek(SPK.spk_pattern_ptr)));
-        this.poke(ZP_MAIN.ptr2 + 1, this.lda(this.peek(SPK.spk_pattern_ptr + 1)));
-      }
-    }
-  }
 }

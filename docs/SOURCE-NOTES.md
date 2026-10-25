@@ -535,3 +535,31 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **`MIX` is filler on the smoke Britannia disk**, so the Mix command's case puts the towne disk in
   the drive, whose lifted `MIX` runs and is left with ESC.
 
+## Phase 9c-1 findings
+
+- **9c is split.** LORD, HELP and SHRN are about 2,200 lines, and the ULT4 commands no phase named
+  (Attack, Enter, Fire, Get, Ignite, Jimmy, Locate, New order, Open, Quit, Ready, Wear, Ztats) about
+  as many again, so 9c-1 ports the overlays and 9c-2 the commands.
+- **LORD and HELP BRUN each other.** LORD's HELP subject does `jsr j_primm_cout` with `BRUN HELP`,
+  which never returns; HELP drops the two frames that leaves (primm_cout's and DOS's own) and ends
+  with `BRUN LORD`, which enters LORD at $8800 to drop them again and ask the next question. Their
+  ports push primm_cout's return address and return its address as the Exit, a JSR that ends the
+  native routine, so no call is left waiting. LORD keeps a second entry, `talk_lord_british`
+  ($8807), for ULT4's talk command.
+- **The originals' quirks, kept:** SHRN's check for no cycles reads the flags of its `cmp #$04`,
+  not the count, so none is never refused and meditates 256 times (`shrines` does not ask for it);
+  LORD's level comes from halving the experience's high byte (in binary, after decoding it from BCD)
+  until it is empty, plus one; the stats a level raises gain one more than `rand & 7`, in BCD, by an
+  `adc` after `sec`; LORD, SHRN and ULT4 each carry their own copies of `decode_bcd_value` or the
+  virtue routines.
+- **SHRN's delays count nothing.** `short_delay` is 255 × 255 empty loops ending on the keyboard
+  strobe; the port does only the strobe reads, so the native game skips the waits. The lifted code
+  spends 26 million cycles on one cycle's dots, past the differential harness's 50 million-cycle
+  step limit over three cycles, so its cases may set their own (`ICase.cycles`).
+- **Keys typed during meditation are thrown away.** SUBS's `scankey` takes a key from the latch into
+  the type-ahead buffer as it prints each dot, and SHRN empties the buffer after the dots. A
+  machine `press` returns once the key is in the buffer, not when the game uses it, so specs and
+  cases that type ahead lose the mantra: `runOverlay` now waits for the buffer to empty after each
+  key, as the scenarios do, and the cases' pages take a letter, never SPACE, which empties the
+  buffer of whatever is still in it.
+

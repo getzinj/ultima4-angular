@@ -24,6 +24,10 @@ const J = JUMP_SUBS;
 /** ULT4.s's own uses of zero page. */
 const ZP_INDEX2: number = 0xEA;
 const ZP_SAVE_REG1: number = 0xD8;
+const zp_inc_amount: number = 0xD9;
+const zp_dec_amount: number = 0xDA;
+const zp_save_reg2: number = 0xD9;
+const BCD_MAX: number = 0x63;
 const ZP_TRANSPORT: number = 0xD8;
 const ANIMATION_MASK: number = 0xFC;
 const CHANCE_4: number = 0x03;
@@ -1698,6 +1702,99 @@ export abstract class Ult4 extends PortProgram {
     this.cpu.sp = this.cpu.x;
 
     return E.cmd_done;
+  }
+
+
+  /** ULT4.s encode_bcd_value: A in BCD, 99 at most. */
+  public encodeBcdValue(): Exit {
+    this.cmp(0x00);
+    if (!this.zero()) {
+      this.cmp(BCD_MAX);
+      if (this.carry()) {
+        this.lda(0x99);
+      } else {
+        this.cpu.setFlag(DECIMAL, true);
+        this.ldx(this.cpu.a);
+        this.lda(0x00);
+        do {
+          this.add(0x01);
+        } while (this.dex() !== 0);
+      }
+    }
+    this.cpu.setFlag(DECIMAL, false);
+
+    return null;
+  }
+
+
+  /** ULT4.s decode_bcd_value: A from BCD, by counting it down in decimal mode. */
+  public decodeBcdValue(): Exit {
+    this.cmp(0x00);
+    if (!this.zero()) {
+      this.ldx(0x00);
+      this.cpu.setFlag(DECIMAL, true);
+      do {
+        this.inx();
+        this.subtract(0x01);
+      } while (!this.zero());
+      this.lda(this.cpu.x);
+      this.cpu.setFlag(DECIMAL, false);
+    }
+
+    return null;
+  }
+
+
+  /** One more of a party stat (Y), in BCD, unless it is at 99. */
+  public incStat(): Exit {
+    this.cpu.setFlag(DECIMAL, true);
+    this.lda(this.peek(ROST.party_stats + this.cpu.y));
+    this.add(0x01);
+    if (!this.carry()) {
+      this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
+    }
+    this.cpu.setFlag(DECIMAL, false);
+
+    return null;
+  }
+
+
+  /** ULT4.s inc_virtue: A more of virtue Y, in BCD, at most 99; a virtue at zero, an eighth of avatarhood, stays there. */
+  public incVirtue(): Exit {
+    this.poke(zp_inc_amount, this.cpu.a);
+    this.cpu.setFlag(DECIMAL, true);
+    this.setCarry(false);
+    if (this.lda(this.peek(ROST.party_stats + this.cpu.y)) !== 0) {
+      this.cpu.adc(this.peek(zp_inc_amount));
+      if (this.carry()) {
+        this.lda(0x99);
+      }
+    }
+    this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
+    this.cpu.setFlag(DECIMAL, false);
+
+    return null;
+  }
+
+
+  /** ULT4.s dec_virtue: A less of virtue Y, at least 1; a virtue at zero loses its eighth, and starts again from 99. */
+  public async decVirtue(): Promise<Exit> {
+    this.poke(zp_dec_amount, this.cpu.a);
+    this.poke(zp_save_reg2, this.cpu.y);
+    if (this.lda(this.peek(ROST.party_stats + this.cpu.y)) === 0) {
+      await this.print(I.lost_an_eighth);
+      this.ldy(this.peek(zp_save_reg2));
+      this.lda(0x99);
+    }
+    this.cpu.setFlag(DECIMAL, true);
+    this.subtract(this.peek(zp_dec_amount));
+    if (this.zero() || !this.carry()) {
+      this.lda(0x01);
+    }
+    this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
+    this.cpu.setFlag(DECIMAL, false);
+
+    return null;
   }
 
 

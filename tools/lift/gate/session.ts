@@ -49,6 +49,17 @@ const PLAYER_1_MP: number = 0xEC16;
 const PLAYER_1_HP_HI: number = 0xEC18;
 const PLAYER_1_MAX_HP_HI: number = 0xEC1A;
 const STATUS_POISON: number = 0xD0;
+const RUNES: number = 0xED0D;
+const RUNE_HONESTY: number = 0x80;
+const LAST_MEDITATED: number = 0x19;
+const VIRTUE_HONESTY: number = 0xED00;
+const VIRTUE_SPIRITUALITY: number = 0xED06;
+const NPC_MOVEMENT_AI: number = 0xEEC0;
+const TILE_LORD_BRITISH: number = 0x5E;
+const PARTY_SIZE: number = 0x0F;
+const PLAYER_1_EXPERIENCE_HI: number = 0xEC1C;
+const MOVE_COUNTER: number = 0x1C;
+const BACKSPACE: number = 0x08;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -397,6 +408,95 @@ export async function monsters(session: Session): Promise<void> {
 }
 
 
+/** Keys, each 10 polls after the game has taken the last from its type-ahead buffer, with no wait after. */
+async function keys(session: Session, ...pressed: readonly Key[]): Promise<void> {
+  for (const key of pressed) {
+    await session.press(key, 10);
+    await session.machine.runUntil(session.memoryIs(KEY_BUF_LEN, 0));
+  }
+}
+
+
+/** A word typed and entered. */
+function word(text: string): Key[] {
+  return [ ...text, RETURN ];
+}
+
+
+/** A visit to the shrine: E, then the keys at each of its prompts, and back to Britannia. */
+async function visitShrine(session: Session, ...pressed: readonly Key[]): Promise<void> {
+  await keys(session, 'E', ...pressed);
+  await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+}
+
+
+/**
+ * A new game by the shrine of Honesty: turned away without its rune, then with it a vision after
+ * one cycle, too weary to meditate again, a wrong mantra with spirituality spent (an eighth lost),
+ * three cycles with honesty at its height for the partial avatarhood and the rune, then no focus
+ * on the wrong virtue. (No cycles is not offered: the check reads the flags of a compare, not the
+ * count, so it meditates 256 times.)
+ */
+export async function shrines(session: Session): Promise<void> {
+  await newGameAt(session, 0xE9, 0x43);
+  await inBritannia(session);
+  await command(session, UP);
+  await visitShrine(session);
+  session.poke(RUNES, RUNE_HONESTY);
+  session.poke(LAST_MEDITATED, 0xFF);
+  await visitShrine(session, ...word('HONESTY'), '1', ...word('AHM'), ' ', ' ');
+  await visitShrine(session, ...word('HON'), '2', ' ');
+  session.poke(LAST_MEDITATED, 0xFF);
+  session.poke(VIRTUE_SPIRITUALITY, 0x00);
+  await visitShrine(session, ...'HONX', BACKSPACE, ...word('E'), '7', '2', ...word('OM'));
+  session.poke(LAST_MEDITATED, 0xFF);
+  session.poke(VIRTUE_HONESTY, 0x99);
+  await visitShrine(session, ...word('HONE'), '3', ...word('AHM'), ...word('AHM'), ...word('AHM'), ' ', ' ');
+  session.poke(LAST_MEDITATED, 0xFF);
+  await visitShrine(session, ...word('VALOR'), '1', ' ');
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
+/** A talk with Lord British, brought beside the party: T, north, the disk he is on, and the keys after. */
+async function talkToLordBritish(session: Session, ...pressed: readonly Key[]): Promise<void> {
+  await keys(session, 'T', UP, ESC, ...pressed);
+  await session.pressUntil([ ESC ], session.entered('ULT4', 'next_turn'), 10);
+}
+
+
+/**
+ * A new game into Lord British's castle, with him beside the party: his welcome to a newcomer, then
+ * every subject he answers (healing declined and taken, help early in the game), one he cannot,
+ * and farewell; then, with the avatar more experienced and a companion, a level gained and help
+ * that asks for runes; and with four in the party, his greeting to them all.
+ */
+export async function lordBritish(session: Session): Promise<void> {
+  await newGameAt(session, 0x56, 0x6C);
+  await inBritannia(session);
+  await command(session, UP);
+  await keys(session, 'E');
+  await session.pressUntil([ ESC ], session.entered('ULT4', 'next_turn'), 10);
+  placeObject(session, 0x1F, TILE_LORD_BRITISH, 0x0F, 0x1D);
+  session.poke(NPC_MOVEMENT_AI + 0x1F, 0x00);
+  await talkToLordBritish(session, ' ', ' ', ' ',
+    ...word('NAME'), ...word('LOOK'), ...word('JOB'), ...word('HEAL'), ...word('Y'), ...word('HEAL'), ...word('N'), ...word('HEAL'), ...word('MAYBE'),
+    ...word('TRUTH'), ...word('LOVE'), ...word('COURAGE'), ...word('HONESTY'), ...word('COMPASSION'), ...word('VALOR'), ...word('JUSTICE'),
+    ...word('SACRIFICE'), ...word('HONOR'), ...word('SPIRITUALITY'), ...word('HUMILITY'), ' ', ...word('PRIDE'), ' ', ...word('AVATAR'), ' ',
+    ...word('QUEST'), ' ', ...word('BRITANNIA'), ' ', ' ', ...word('ANKH'), ...word('HELP'), ' ', ' ', ...word('ABYSS'), ' ', ' ',
+    ...word('MONDAIN'), ...word('MINAX'), ...word('EXODUS'), ...word('VIRTUE'), ' ', ...word('XYZZY'), BACKSPACE, ...word('BYE'));
+  session.poke(PLAYER_1_EXPERIENCE_HI, 0x04);
+  session.poke(PARTY_SIZE, 0x02);
+  session.poke(MOVE_COUNTER + 1, 0x01);
+  await talkToLordBritish(session, ...word('HELP'), ' ', ' ', ' ', ...word('BYE'));
+  session.poke(PARTY_SIZE, 0x04);
+  await talkToLordBritish(session, ...word('BYE'));
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -406,4 +506,6 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   combat,
   spells,
   monsters,
+  shrines,
+  'lord-british': lordBritish,
 };

@@ -29,6 +29,11 @@ TILE_TWISTER = 0x8E
 MIXTURES, SPELLS_MAX = 0xED40, 0x1A
 PLAYER_1_MP, PLAYER_1_HP_HI, PLAYER_1_MAX_HP_HI = 0xEC16, 0xEC18, 0xEC1A
 STATUS_POISON = 0xD0
+RUNES, RUNE_HONESTY, LAST_MEDITATED = 0xED0D, 0x80, 0x19
+VIRTUE_HONESTY, VIRTUE_SPIRITUALITY = 0xED00, 0xED06
+NPC_MOVEMENT_AI, TILE_LORD_BRITISH = 0xEEC0, 0x5E
+PARTY_SIZE, PLAYER_1_EXPERIENCE_HI, MOVE_COUNTER = 0x0F, 0xEC1C, 0x1C
+BACKSPACE = 0x08
 
 
 class ScenarioError(Exception):
@@ -306,6 +311,87 @@ def monsters(session):
     session.checkpoint()
 
 
+def keys(session, *pressed):
+    """Keys, each 10 polls after the game has taken the last from its type-ahead buffer, with no wait
+    after."""
+    for key in pressed:
+        session.press(key, polls=10)
+        session.run_until(session.memory_is(KEY_BUF_LEN, 0))
+
+
+def word(text):
+    """A word typed and entered."""
+    return (*text, RETURN)
+
+
+def visit_shrine(session, *pressed):
+    """A visit to the shrine: E, then the keys at each of its prompts, and back to Britannia."""
+    keys(session, 'E', *pressed)
+    session.run_until(session.entered('ULT4', 'next_turn'))
+
+
+def shrines(session):
+    """A new game by the shrine of Honesty: turned away without its rune, then with it a vision after
+    one cycle, too weary to meditate again, a wrong mantra with spirituality spent (an eighth lost),
+    three cycles with honesty at its height for the partial avatarhood and the rune, then no focus
+    on the wrong virtue. (No cycles is not offered: the check reads the flags of a compare, not the
+    count, so it meditates 256 times.)"""
+    new_game_at(session, 0xE9, 0x43)
+    in_britannia(session)
+    command(session, UP)
+    visit_shrine(session)
+    session.poke(RUNES, RUNE_HONESTY)
+    session.poke(LAST_MEDITATED, 0xFF)
+    visit_shrine(session, *word('HONESTY'), '1', *word('AHM'), ' ', ' ')
+    visit_shrine(session, *word('HON'), '2', ' ')
+    session.poke(LAST_MEDITATED, 0xFF)
+    session.poke(VIRTUE_SPIRITUALITY, 0x00)
+    visit_shrine(session, *'HONX', BACKSPACE, *word('E'), '7', '2', *word('OM'))
+    session.poke(LAST_MEDITATED, 0xFF)
+    session.poke(VIRTUE_HONESTY, 0x99)
+    visit_shrine(session, *word('HONE'), '3', *word('AHM'), *word('AHM'), *word('AHM'), ' ', ' ')
+    session.poke(LAST_MEDITATED, 0xFF)
+    visit_shrine(session, *word('VALOR'), '1', ' ')
+    session.idle(140)
+    session.checkpoint()
+
+
+def talk_to_lord_british(session, *pressed):
+    """A talk with Lord British, brought beside the party: T, north, the disk he is on, and the keys
+    after."""
+    keys(session, 'T', UP, ESC, *pressed)
+    session.press_until([ESC], session.entered('ULT4', 'next_turn'), limit=10)
+
+
+def lord_british(session):
+    """A new game into Lord British's castle, with him beside the party: his welcome to a newcomer,
+    then every subject he answers (healing declined and taken, help early in the game), one he
+    cannot, and farewell; then, with the avatar more experienced and a companion, a level gained and
+    help that asks for runes; and with four in the party, his greeting to them all."""
+    new_game_at(session, 0x56, 0x6C)
+    in_britannia(session)
+    command(session, UP)
+    keys(session, 'E')
+    session.press_until([ESC], session.entered('ULT4', 'next_turn'), limit=10)
+    place_object(session, 0x1F, TILE_LORD_BRITISH, 0x0F, 0x1D)
+    session.poke(NPC_MOVEMENT_AI + 0x1F, 0x00)
+    talk_to_lord_british(
+        session, ' ', ' ', ' ',
+        *word('NAME'), *word('LOOK'), *word('JOB'), *word('HEAL'), *word('Y'), *word('HEAL'), *word('N'), *word('HEAL'), *word('MAYBE'),
+        *word('TRUTH'), *word('LOVE'), *word('COURAGE'), *word('HONESTY'), *word('COMPASSION'), *word('VALOR'), *word('JUSTICE'),
+        *word('SACRIFICE'), *word('HONOR'), *word('SPIRITUALITY'), *word('HUMILITY'), ' ', *word('PRIDE'), ' ', *word('AVATAR'), ' ',
+        *word('QUEST'), ' ', *word('BRITANNIA'), ' ', ' ', *word('ANKH'), *word('HELP'), ' ', ' ', *word('ABYSS'), ' ', ' ',
+        *word('MONDAIN'), *word('MINAX'), *word('EXODUS'), *word('VIRTUE'), ' ', *word('XYZZY'), BACKSPACE, *word('BYE'))
+    session.poke(PLAYER_1_EXPERIENCE_HI, 0x04)
+    session.poke(PARTY_SIZE, 0x02)
+    session.poke(MOVE_COUNTER + 1, 0x01)
+    talk_to_lord_british(session, *word('HELP'), ' ', ' ', ' ', *word('BYE'))
+    session.poke(PARTY_SIZE, 0x04)
+    talk_to_lord_british(session, *word('BYE'))
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
@@ -315,4 +401,6 @@ SCENARIOS = {
     'combat': combat,
     'spells': spells,
     'monsters': monsters,
+    'shrines': shrines,
+    'lord-british': lord_british,
 }

@@ -162,6 +162,26 @@ export const ULT4_CASES: Readonly<Record<string, readonly [ number, ICase ]>> = 
     machine.cpu.y = Math.floor(random() * 0x10);
     machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ 0x00, 0x01, 0x10, 0x99 ]));
   }),
+  encode_bcd_value: routine(E.encode_bcd_value, (machine: LiftedMachine, random: Random): void => {
+    machine.cpu.a = pick(random, [ 0x00, 0x01, 0x09, 0x0A, 0x62, 0x63, 0x64, byte(random) ]);
+  }),
+  decode_bcd_value: routine(E.decode_bcd_value, (machine: LiftedMachine, random: Random): void => {
+    machine.cpu.a = pick(random, [ 0x00, 0x01, 0x09, 0x10, 0x99, byte(random) ]);
+  }),
+  inc_stat: routine(E.inc_stat, (machine: LiftedMachine, random: Random): void => {
+    machine.cpu.y = Math.floor(random() * 0x10);
+    machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ 0x00, 0x09, 0x98, 0x99 ]));
+  }),
+  inc_virtue: routine(E.inc_virtue, (machine: LiftedMachine, random: Random): void => {
+    machine.cpu.y = Math.floor(random() * 8);
+    machine.cpu.a = pick(random, [ 0x01, 0x02, 0x05, 0x10 ]);
+    machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ 0x00, 0x01, 0x50, 0x95, 0x99 ]));
+  }),
+  dec_virtue: routine(E.dec_virtue, (machine: LiftedMachine, random: Random): void => {
+    machine.cpu.y = Math.floor(random() * 8);
+    machine.cpu.a = pick(random, [ 0x01, 0x02, 0x03, 0x05, 0x10 ]);
+    machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ 0x00, 0x01, 0x02, 0x03, 0x05, 0x50, 0x99 ]));
+  }),
   print_newline: routine(E.print_newline),
   check_enter_moongate: routine(E.check_enter_moongate, (machine: LiftedMachine, random: Random): void => {
     machine.cpu.a = pick(random, [ 0x43, 0x43, 0x04 ]);
