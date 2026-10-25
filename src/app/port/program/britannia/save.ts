@@ -8,7 +8,7 @@ import { CHAR, DISKS, JUMP_SUBS, MAP_OBJECTS, PLACES, PRTY, ROST, TILES, VIEW_MA
 import type { IInlineData } from '../../inline-data';
 import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
-import { OVERLAY_ENTRY, overlayModule, text } from './overlay';
+import { OVERLAY_ENTRY, overlayModule, text } from '../overlay';
 
 const J = JUMP_SUBS;
 /** delay_long: ldx #$0a round ldy #$ff round a count down from $ff. */
@@ -136,4 +136,4 @@ export class Save extends PortProgram {
 }
 
 
-export const SAVE_MODULE = overlayModule('SAVE', OVERLAY_ENTRY, SAVE_DATA, (machine: LiftedMachine): Save => new Save(machine), (program: Save): Promise<Exit> => program.run());
+export const SAVE_MODULE = overlayModule('britannia', 'SAVE', OVERLAY_ENTRY, SAVE_DATA, (machine: LiftedMachine): Save => new Save(machine), (program: Save): Promise<Exit> => program.run());

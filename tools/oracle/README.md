@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds twelve, written from the remaster's source:
+`scenarios.py` holds thirteen, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -95,6 +95,13 @@ Monitor would have left, which nothing here reproduces and the game does not use
   `britannia_x` and `_y` before leaving, out to Deceit (on a horse, then on foot, and up its
   ladder), Paws, Magincia, the Lycaeum and the Abyss (shut, then opened), and Enter in a balloon
   and where nothing is. Each disk prompt is answered with one ESC once the game waits at it.
+- **`townsfolk`:** a new game into Moonglow, its own people placed beside the party with their
+  records on the real towne disk: Talk to no one and to one with nothing to say; Cromwell asked
+  everything, his words, and his question; Patric's question of humility answered no and yes; a
+  beggar given gold, too much, and the last of it; Mariah asked to join, short of experience and
+  then with it; a townsperson turned hostile and fought; the rune of honesty found twice; the horn
+  and the skull used; then the Lycaeum's book, and its telescope turned to Moonglow (once TMAP is
+  up, the key that dismisses it) and to a letter it lacks.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

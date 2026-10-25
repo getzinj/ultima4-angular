@@ -7,9 +7,9 @@ import type { LiftedMachine } from '../../../lifted-runtime/lifted-machine';
 import { JUMP_SUBS, PRTY, ROST, ZP_MAIN } from '../../../state/symbols';
 import { inline } from '../../inline-data';
 import type { IInlineData } from '../../inline-data';
-import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
-import { OVERLAY_ENTRY, overlayModule, text } from './overlay';
+import { OVERLAY_ENTRY, overlayModule, text } from '../overlay';
+import { SearchOverlay } from '../search-overlay';
 
 const J = JUMP_SUBS;
 const ITEM_COUNT: number = 10;
@@ -70,7 +70,7 @@ export class SearError extends Error {
 }
 
 
-export class Sear extends PortProgram {
+export class Sear extends SearchOverlay {
   public async run(): Promise<Exit> {
     let found: boolean = false;
 
@@ -123,22 +123,6 @@ export class Sear extends PortProgram {
   }
 
 
-  /** A find is worth five points of honour, if any is left to add to. */
-  private async youFind(): Promise<void> {
-    await this.callWith(J.j_primm, I.you_find);
-    this.cpu.setFlag(DECIMAL, true);
-    this.setCarry(false);
-    if (this.lda(this.peek(ROST.party_stats + ROST.virtue_honor)) !== 0) {
-      this.cpu.adc(0x05);
-      if (this.carry()) {
-        this.lda(0x99);
-      }
-    }
-    this.poke(ROST.party_stats + ROST.virtue_honor, this.cpu.a);
-    this.cpu.setFlag(DECIMAL, false);
-  }
-
-
   private darkMoons(): boolean {
     this.lda(this.peek(PRTY.moon_phase_trammel) | this.peek(PRTY.moon_phase_felucca));
 
@@ -157,7 +141,7 @@ export class Sear extends PortProgram {
     }
     if (found) {
       this.poke(PRTY.last_found_reagent, this.cpu.a);
-      await this.youFind();
+      await this.youFind(I.you_find);
       await this.callWith(J.j_primm, block);
       this.ldy(reagent);
       await this.awardReagent();
@@ -226,7 +210,7 @@ export class Sear extends PortProgram {
 
 
   private async found(block: IInlineData, hundreds: number): Promise<void> {
-    await this.youFind();
+    await this.youFind(I.you_find);
     await this.callWith(J.j_primm, block);
     this.lda(hundreds);
     await this.addXp100();
@@ -246,29 +230,7 @@ export class Sear extends PortProgram {
     this.lda(here ? 0x00 : 0xFF);
   }
 
-
-  /** A hundreds of experience to player 1, in BCD, up to 9999. */
-  private async addXp100(): Promise<void> {
-    this.cpu.push(this.cpu.a);
-    this.poke(ZP_MAIN.curr_player, this.lda(0x01));
-    await this.m.call(J.j_get_stats_ptr);
-    const player: number = this.pointer(ZP_MAIN.ptr1);
-
-    this.ldy(ROST.player_experience_hi);
-    this.cpu.setFlag(DECIMAL, true);
-    this.setCarry(false);
-    this.lda(this.cpu.pull());
-    this.cpu.adc(this.peek(player + this.cpu.y));
-    this.cpu.setFlag(DECIMAL, false);
-    if (this.carry()) {
-      this.lda(0x99);
-      this.iny();
-      this.poke(player + this.cpu.y, this.cpu.a);
-      this.dey();
-    }
-    this.poke(player + this.cpu.y, this.cpu.a);
-  }
 }
 
 
-export const SEAR_MODULE = overlayModule('SEAR', OVERLAY_ENTRY, SEAR_DATA, (machine: LiftedMachine): Sear => new Sear(machine), (program: Sear): Promise<Exit> => program.run());
+export const SEAR_MODULE = overlayModule('britannia', 'SEAR', OVERLAY_ENTRY, SEAR_DATA, (machine: LiftedMachine): Sear => new Sear(machine), (program: Sear): Promise<Exit> => program.run());

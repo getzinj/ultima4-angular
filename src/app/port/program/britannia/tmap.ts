@@ -8,7 +8,7 @@ import { inline } from '../../inline-data';
 import type { IInlineData } from '../../inline-data';
 import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
-import { overlayModule } from './overlay';
+import { overlayModule } from '../overlay';
 
 const VIEW_MAX: number = 0x20;
 const LINE_MIN: number = 0x08;
@@ -20,7 +20,7 @@ const BLACK_CELL: number = 13;
 
 const TILE_PATTERN_TABLE: number = 0x9316;
 
-const TILE_PATTERNS: readonly number[] = [
+export const TILE_PATTERNS: readonly number[] = [
   0x0C, 0x0B, 0x0A, 0x01, 0x01, 0x09, 0x02, 0x08, 0x07, 0x05, 0x05, 0x05, 0x05, 0x04, 0x04, 0x04,
   0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x04, 0x05, 0x04, 0x04, 0x05, 0x05, 0x06, 0x06, 0x05,
   0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
@@ -64,6 +64,11 @@ const WHOLE_CELL: readonly number[] = [
 
 
 export class Tmap extends PortProgram {
+  constructor(machine: LiftedMachine, private readonly patternTable: number = TILE_PATTERN_TABLE) {
+    super(machine);
+  }
+
+
   public async run(): Promise<Exit> {
     let key: number = 0;
 
@@ -109,7 +114,7 @@ export class Tmap extends PortProgram {
       let index: number = 0;
 
       this.ldx(this.cpu.a);
-      this.ldy(this.peek(TILE_PATTERN_TABLE + this.cpu.x));
+      this.ldy(this.peek(this.patternTable + this.cpu.x));
       while (!this.zero() && (index < BLACK_CELL - 1)) {
         this.dey();
         index++;
@@ -215,7 +220,7 @@ export class Tmap extends PortProgram {
   }
 
 
-  private flashLocation(): void {
+  protected flashLocation(): void {
     for (const pixel of WHOLE_CELL) {
       this.lda(pixel);
       const address: number = this.cellPixel(pixel);
@@ -226,4 +231,4 @@ export class Tmap extends PortProgram {
 }
 
 
-export const TMAP_MODULE = overlayModule('TMAP', VIEW_MAP.j_viewmap, TMAP_DATA, (machine: LiftedMachine): Tmap => new Tmap(machine), (program: Tmap): Promise<Exit> => program.run());
+export const TMAP_MODULE = overlayModule('britannia', 'TMAP', VIEW_MAP.j_viewmap, TMAP_DATA, (machine: LiftedMachine): Tmap => new Tmap(machine), (program: Tmap): Promise<Exit> => program.run());

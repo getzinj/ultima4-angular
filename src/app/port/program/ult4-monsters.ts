@@ -1,7 +1,7 @@
 // ULT4.s's wandering monsters in Britannia, ported: where they spawn, how they move, sail and shoot,
-// the whirlpools and twisters, and their attacks on the party. The townes' and the dungeons' monsters
-// are still lifted. Like the rest of ULT4's port, each entry leaves the registers and flags as the
-// original does, and returns where control goes next.
+// the whirlpools and twisters, and their attacks on the party. The townsfolk move in Ult4Townes;
+// the dungeons' monsters are still lifted. Like the rest of ULT4's port, each entry leaves the
+// registers and flags as the original does, and returns where control goes next.
 
 import { CHAR, JUMP_SUBS, MAP_OBJECTS, PRTY, SOUND, TILES, TRAINERS, ZP_COMBAT, ZP_MAIN } from '../../state/symbols';
 import type { Exit } from '../routine';
@@ -178,6 +178,10 @@ export abstract class Ult4Monsters extends Ult4Spells {
 
   // --- the monsters' turns (ULT4.s:4975-5310) -----------------------------------------------
 
+  /** Ult4Townes's mobs_act_towne. */
+  public abstract mobsActTowne(): Promise<Exit>;
+
+
   public async mobsAct(): Promise<Exit> {
     let exit: Exit = null;
 
@@ -188,7 +192,7 @@ export abstract class Ult4Monsters extends Ult4Spells {
     } else {
       this.cmp(PRTY.mode_towne);
       if (this.zero()) {
-        await this.jmp(ML.mobs_act_towne);
+        exit = await this.mobsActTowne();
       } else {
         this.cmp(PRTY.mode_dungeon);
         if (this.zero()) {

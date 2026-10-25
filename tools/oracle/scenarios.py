@@ -47,6 +47,12 @@ TILE_WALK, TILE_GRASS, TILE_BALLOON, TILE_HUMAN_PRONE, TILE_DOOR_LOCKED = 0x1F, 
 STATUS_GOOD, PLAYER_STATUS, PLAYER_SIZE, MODE_COMBAT = 0xC7, 0xEC12, 0x20, 0x80
 TOWNE_MAP, BRITANNIA_X, BRITANNIA_Y, ITEMS_OPENED_ABYSS = 0xE800, 0x08, 0x09, 0x77
 DISK_PROMPT = 300
+GOLD_HI, GOLD_LO, PLAYER_1_CLASS, CLASS_SHEPHERD = 0xED13, 0xED14, 0xEC11, 0x07
+NPC_DIALOGUE, TILE_FLOOR_BRICK, TILE_VILLAGER, TILE_BEGGAR, AI_HOSTILE = 0xEEE0, 0x3E, 0x20, 0x58, 0xFF
+# Moonglow's townsfolk, by their records on the towne disk's track 4, numbered from one.
+MARIAH, CROMWELL, PATRIC, CALABRINI = 0x01, 0x03, 0x06, 0x0D
+# TMAP's entry, which SEAR's telescope calls once the map is loaded.
+VIEW_MAP = 0x9000
 
 
 class ScenarioError(Exception):
@@ -594,6 +600,87 @@ def townes(session):
     session.checkpoint()
 
 
+def talk_to(session, direction, *pressed):
+    """T, a direction, the keys said, and on to the next turn."""
+    keys(session, 'T', direction, *pressed)
+    session.run_until(session.entered('ULT4', 'next_turn'))
+
+
+def place_townsperson(session, slot, tile, x, y, dialogue):
+    """A townsperson, still, on floor at (x, y), with the record `dialogue` on the towne disk's track
+    for the towne."""
+    place_object(session, slot, tile, x, y)
+    session.poke(NPC_MOVEMENT_AI + slot, 0x00)
+    session.poke(NPC_DIALOGUE + slot, dialogue)
+    session.poke(TOWNE_MAP + y * 0x20 + x, TILE_FLOOR_BRICK)
+
+
+def townsfolk(session):
+    """A new game into Moonglow, the party at (0F,0F): Talk to no one, to one with nothing to say, and
+    to Cromwell, asked everything, his own words, and his question answered after an answer that is
+    neither; Patric's question of humility answered no and yes; a beggar given gold, more than there
+    is, and the last of it; Mariah asked to join, short of experience and then with it; a townsman
+    turned hostile, fought; the rune found and not found again; the horn and the skull used; then
+    the Lycaeum, its book found and its telescope turned to Moonglow, and to a letter it lacks."""
+    new_game_at(session, 0xE8, 0x87)
+    session.poke(GOLD_HI, 0x00)
+    session.poke(GOLD_LO, 0x30)
+    session.poke(PLAYER_1_CLASS, CLASS_SHEPHERD)
+    session.poke(PARTY_STATS, 0x50)
+    in_britannia(session)
+    enter(session)
+    session.poke(PLAYER_XPOS, 0x0F)
+    session.poke(PLAYER_YPOS, 0x0F)
+    for x, y in ((0x10, 0x0F), (0x0E, 0x0F), (0x0F, 0x0E), (0x0F, 0x10)):
+        session.poke(TOWNE_MAP + y * 0x20 + x, TILE_FLOOR_BRICK)
+    command(session, ' ')
+    talk_to(session, DOWN)
+    place_townsperson(session, 0x10, TILE_VILLAGER, 0x0F, 0x10, 0x00)
+    talk_to(session, DOWN)
+    place_townsperson(session, 0x10, TILE_VILLAGER, 0x10, 0x0F, CROMWELL)
+    talk_to(session, RIGHT, *word('NAME'), *word('LOOK'), *word('JOB'), *word('HEAL'), *word('MANTRA'), *word('XYZZY'),
+            *word('HONESTY'), RETURN, *word('MAYBE'), *word('YES'), *word('BYE'))
+    place_townsperson(session, 0x10, TILE_VILLAGER, 0x10, 0x0F, PATRIC)
+    talk_to(session, RIGHT, *word('HUMILITY'), RETURN, *word('N'), *word('HUMI'), RETURN, *word('Y'), *word('BYE'))
+    place_townsperson(session, 0x10, TILE_BEGGAR, 0x10, 0x0F, CALABRINI)
+    talk_to(session, RIGHT, *word('GIVE'), *word('5'), *word('GIVE'), *word('99'), *word('GIVE'), *word('25'), *word('BYE'))
+    place_townsperson(session, 0x1F, TILE_VILLAGER, 0x0F, 0x0E, MARIAH)
+    session.poke(PLAYER_1_MAX_HP_HI, 0x01)
+    talk_to(session, UP, *word('JOIN'), *word('BYE'))
+    session.poke(PLAYER_1_MAX_HP_HI, 0x02)
+    talk_to(session, UP, *word('JOIN'))
+    for player in range(2):
+        for address, value in ((PLAYER_STATUS, STATUS_GOOD), (PLAYER_1_STRENGTH, 0x50), (PLAYER_1_DEXTERITY, 0x50), (PLAYER_1_WEAPON, WEAPON_SWORD)):
+            session.poke(address + player * PLAYER_SIZE, value)
+    place_townsperson(session, 0x10, TILE_BEGGAR, 0x0F, 0x0E, CALABRINI)
+    session.poke(NPC_MOVEMENT_AI + 0x10, AI_HOSTILE)
+    combat_turn(session, ' ')
+    fight(session)
+    session.poke(PLAYER_XPOS, 0x08)
+    session.poke(PLAYER_YPOS, 0x06)
+    command(session, 'S')
+    command(session, 'S')
+    session.poke(HORN, 0x01)
+    session.poke(SKULL, 0x01)
+    command(session, 'U', *word('HORN'))
+    command(session, 'U', *word('SKULL'))
+    walk_off_towne(session, 0xDA, 0x6B)
+    enter(session)
+    session.poke(PLAYER_XPOS, 0x06)
+    session.poke(PLAYER_YPOS, 0x06)
+    command(session, 'S')
+    session.poke(PLAYER_XPOS, 0x16)
+    session.poke(PLAYER_YPOS, 0x03)
+    keys(session, 'S', 'E')
+    session.run_until(lambda: session.machine.mpu.pc == VIEW_MAP)
+    session.idle(40)
+    keys(session, RETURN)
+    session.run_until(session.entered('ULT4', 'next_turn'))
+    command(session, 'S', 'Q')
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
@@ -607,4 +694,5 @@ SCENARIOS = {
     'lord-british': lord_british,
     'commands': commands,
     'townes': townes,
+    'townsfolk': townsfolk,
 }

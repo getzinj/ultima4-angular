@@ -7,7 +7,6 @@ import { encode } from '../text';
 /** The labels the monsters jump to or call that are still lifted. */
 export const MONSTER_LIFTED = {
   spawn_dungeon: 0x67D7,
-  mobs_act_towne: 0x6AA8,
   mobs_act_dungeon: 0x6B70,
 } as const;
 

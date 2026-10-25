@@ -12,6 +12,10 @@ import { INIT_MODULE } from './program/init-module';
 import { NEWGAME_MODULE } from './program/newgame-module';
 import { SEL_MODULE } from './program/sel-module';
 import { SUBS_MODULE } from './program/subs-module';
+import { TALK_MODULE } from './program/towne/talk';
+import { TOWNE_SEAR_MODULE } from './program/towne/sear';
+import { TOWNE_TMAP_MODULE } from './program/towne/tmap';
+import { TOWNE_USE_MODULE } from './program/towne/use';
 import { ULT4_MODULE } from './program/ult4-module';
 
 /** Every program ported so far; the machine runs them in place of their lifted modules. */
@@ -30,4 +34,8 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   SHRN_MODULE,
   TMAP_MODULE,
   USE_MODULE,
+  TALK_MODULE,
+  TOWNE_SEAR_MODULE,
+  TOWNE_TMAP_MODULE,
+  TOWNE_USE_MODULE,
 ];

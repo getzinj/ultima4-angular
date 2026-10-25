@@ -232,7 +232,11 @@ export class Subs extends PortProgram {
 
   // --- the keyboard and the idle loop (SUBS.s:493-561, 1963-2002) --------------------------
 
-  /** SUBS.s:493 waitkey: a key, or zero after 128 idle ticks. Returns it in A, with flags from `cmp #$00`. */
+  /**
+   * SUBS.s:493 waitkey: a key, or zero after 128 idle ticks. Returns it in A, with flags from `cmp
+   * #$00`. A key taken from the type-ahead buffer is a checkpoint, as the 6502 stops between the
+   * instructions there: a caller such as getnumber may poll again before calling out.
+   */
   public async waitkey(): Promise<void> {
     let key: number | null = null;
 
@@ -243,6 +247,7 @@ export class Subs extends PortProgram {
       this.getkey();
       if (this.negative()) {
         key = this.cpu.a;
+        await this.m.checkpoint();
       } else {
         await this.idle();
         if (this.dec(V.idletimeout) === 0) {

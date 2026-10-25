@@ -13,7 +13,7 @@ import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
 import { encode } from '../../text';
 import { SuperPacker } from '../super-packer';
-import { OVERLAY_ENTRY, overlayModule, text } from './overlay';
+import { OVERLAY_ENTRY, overlayModule, text } from '../overlay';
 
 const J = JUMP_SUBS;
 const SPK = SUPER_PACKER;
@@ -583,5 +583,5 @@ export class Shrn extends PortProgram {
 }
 
 
-export const SHRN_MODULE = overlayModule('SHRN', OVERLAY_ENTRY, SHRN_DATA, (machine: LiftedMachine): Shrn => new Shrn(machine),
+export const SHRN_MODULE = overlayModule('britannia', 'SHRN', OVERLAY_ENTRY, SHRN_DATA, (machine: LiftedMachine): Shrn => new Shrn(machine),
   (program: Shrn): Promise<Exit> => program.run());

@@ -7,7 +7,7 @@ import { JUMP_SUBS, JUMP_SYSTEM, MUSIC, PRTY, ROST } from '../../../state/symbol
 import type { IInlineData } from '../../inline-data';
 import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
-import { OVERLAY_ENTRY, overlayModule, text } from './overlay';
+import { OVERLAY_ENTRY, overlayModule, text } from '../overlay';
 
 const J = JUMP_SUBS;
 
@@ -159,5 +159,5 @@ export class Help extends PortProgram {
 }
 
 
-export const HELP_MODULE = overlayModule('HELP', OVERLAY_ENTRY, HELP_DATA, (machine: LiftedMachine): Help => new Help(machine),
+export const HELP_MODULE = overlayModule('britannia', 'HELP', OVERLAY_ENTRY, HELP_DATA, (machine: LiftedMachine): Help => new Help(machine),
   (program: Help): Promise<Exit> => program.run());

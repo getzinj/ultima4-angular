@@ -1,7 +1,7 @@
 import type { LiftedMachine } from '../../../lifted-runtime/lifted-machine';
 import { PRTY, ROST } from '../../../state/symbols';
 import { overlayMachine, runOverlay } from '../../testing/overlay-machine';
-import { OVERLAY_ENTRY } from './overlay';
+import { OVERLAY_ENTRY } from '../overlay';
 import { SEAR_MODULE } from './sear';
 
 const HORN: readonly [ number, number ] = [ 0x2D, 0xAD ];

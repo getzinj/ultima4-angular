@@ -101,6 +101,22 @@ const BRITANNIA_X: number = 0x08;
 const BRITANNIA_Y: number = 0x09;
 const ITEMS_OPENED_ABYSS: number = 0x77;
 const DISK_PROMPT: number = 300;
+const GOLD_HI: number = 0xED13;
+const GOLD_LO: number = 0xED14;
+const PLAYER_1_CLASS: number = 0xEC11;
+const CLASS_SHEPHERD: number = 0x07;
+const NPC_DIALOGUE: number = 0xEEE0;
+const TILE_FLOOR_BRICK: number = 0x3E;
+const TILE_VILLAGER: number = 0x20;
+const TILE_BEGGAR: number = 0x58;
+const AI_HOSTILE: number = 0xFF;
+/** Moonglow's townsfolk, by their records on the towne disk's track 4, numbered from one. */
+const MARIAH: number = 0x01;
+const CROMWELL: number = 0x03;
+const PATRIC: number = 0x06;
+const CALABRINI: number = 0x0D;
+/** TMAP's entry, which SEAR's telescope calls once the map is loaded. */
+const VIEW_MAP: number = 0x9000;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -747,6 +763,94 @@ export async function townes(session: Session): Promise<void> {
 }
 
 
+/** T, a direction, the keys said, and on to the next turn. */
+async function talkTo(session: Session, direction: Key, ...pressed: readonly Key[]): Promise<void> {
+  await keys(session, 'T', direction, ...pressed);
+  await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+}
+
+
+/** A townsperson, still, on floor at (x, y), with the record `dialogue` on the towne disk's track for the towne. */
+function placeTownsperson(session: Session, slot: number, tile: number, x: number, y: number, dialogue: number): void {
+  placeObject(session, slot, tile, x, y);
+  session.poke(NPC_MOVEMENT_AI + slot, 0x00);
+  session.poke(NPC_DIALOGUE + slot, dialogue);
+  session.poke(TOWNE_MAP + (y * 0x20) + x, TILE_FLOOR_BRICK);
+}
+
+
+/**
+ * A new game into Moonglow, the party at (0F,0F): Talk to no one, to one with nothing to say, and
+ * to Cromwell, asked everything, his own words, and his question answered after an answer that is
+ * neither; Patric's question of humility answered no and yes; a beggar given gold, more than there
+ * is, and the last of it; Mariah asked to join, short of experience and then with it; a townsman
+ * turned hostile, fought; the rune found and not found again; the horn and the skull used; then
+ * the Lycaeum, its book found and its telescope turned to Moonglow, and to a letter it lacks.
+ */
+export async function townsfolk(session: Session): Promise<void> {
+  await newGameAt(session, 0xE8, 0x87);
+  session.poke(GOLD_HI, 0x00);
+  session.poke(GOLD_LO, 0x30);
+  session.poke(PLAYER_1_CLASS, CLASS_SHEPHERD);
+  session.poke(PARTY_STATS, 0x50);
+  await inBritannia(session);
+  await enter(session);
+  session.poke(PLAYER_XPOS, 0x0F);
+  session.poke(PLAYER_YPOS, 0x0F);
+  for (const [ x, y ] of [ [ 0x10, 0x0F ], [ 0x0E, 0x0F ], [ 0x0F, 0x0E ], [ 0x0F, 0x10 ] ]) {
+    session.poke(TOWNE_MAP + (y * 0x20) + x, TILE_FLOOR_BRICK);
+  }
+  await command(session, ' ');
+  await talkTo(session, DOWN);
+  placeTownsperson(session, 0x10, TILE_VILLAGER, 0x0F, 0x10, 0x00);
+  await talkTo(session, DOWN);
+  placeTownsperson(session, 0x10, TILE_VILLAGER, 0x10, 0x0F, CROMWELL);
+  await talkTo(session, RIGHT, ...word('NAME'), ...word('LOOK'), ...word('JOB'), ...word('HEAL'), ...word('MANTRA'), ...word('XYZZY'),
+    ...word('HONESTY'), RETURN, ...word('MAYBE'), ...word('YES'), ...word('BYE'));
+  placeTownsperson(session, 0x10, TILE_VILLAGER, 0x10, 0x0F, PATRIC);
+  await talkTo(session, RIGHT, ...word('HUMILITY'), RETURN, ...word('N'), ...word('HUMI'), RETURN, ...word('Y'), ...word('BYE'));
+  placeTownsperson(session, 0x10, TILE_BEGGAR, 0x10, 0x0F, CALABRINI);
+  await talkTo(session, RIGHT, ...word('GIVE'), ...word('5'), ...word('GIVE'), ...word('99'), ...word('GIVE'), ...word('25'), ...word('BYE'));
+  placeTownsperson(session, 0x1F, TILE_VILLAGER, 0x0F, 0x0E, MARIAH);
+  session.poke(PLAYER_1_MAX_HP_HI, 0x01);
+  await talkTo(session, UP, ...word('JOIN'), ...word('BYE'));
+  session.poke(PLAYER_1_MAX_HP_HI, 0x02);
+  await talkTo(session, UP, ...word('JOIN'));
+  for (let player: number = 0; player < 2; player++) {
+    for (const [ address, value ] of [ [ PLAYER_STATUS, STATUS_GOOD ], [ PLAYER_1_STRENGTH, 0x50 ], [ PLAYER_1_DEXTERITY, 0x50 ], [ PLAYER_1_WEAPON, WEAPON_SWORD ] ]) {
+      session.poke(address + (player * PLAYER_SIZE), value);
+    }
+  }
+  placeTownsperson(session, 0x10, TILE_BEGGAR, 0x0F, 0x0E, CALABRINI);
+  session.poke(NPC_MOVEMENT_AI + 0x10, AI_HOSTILE);
+  await combatTurn(session, ' ');
+  await fight(session);
+  session.poke(PLAYER_XPOS, 0x08);
+  session.poke(PLAYER_YPOS, 0x06);
+  await command(session, 'S');
+  await command(session, 'S');
+  session.poke(HORN, 0x01);
+  session.poke(SKULL, 0x01);
+  await command(session, 'U', ...word('HORN'));
+  await command(session, 'U', ...word('SKULL'));
+  await walkOffTowne(session, 0xDA, 0x6B);
+  await enter(session);
+  session.poke(PLAYER_XPOS, 0x06);
+  session.poke(PLAYER_YPOS, 0x06);
+  await command(session, 'S');
+  session.poke(PLAYER_XPOS, 0x16);
+  session.poke(PLAYER_YPOS, 0x03);
+  await keys(session, 'S', 'E');
+  await session.machine.runUntil((): boolean => session.machine.cpu.pc === VIEW_MAP);
+  await session.idle(40);
+  await keys(session, RETURN);
+  await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+  await command(session, 'S', 'Q');
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -760,4 +864,5 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   'lord-british': lordBritish,
   commands,
   townes,
+  townsfolk,
 };

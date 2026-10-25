@@ -610,3 +610,52 @@ on the developer's machine. The images, and anything built from them, stay out o
   The rest, 63 of 65, are caught: for those that needed it the cases weight their setups (the
   objects an attack makes over, places' own tiles, a ship with targets all round, sleep traps in a
   fight) and rig the generator for the bridge trolls, as the monsters' cases do.
+
+## Phase 10a findings
+
+- **The townes' half of ULT4 is native.** `Ult4Townes` (`ult4-townes.ts`, its data in
+  `ult4-townes-data.ts`) sits under `Ult4Commands` and is what the module builds now: Talk and
+  `mobs_act_towne`. Only the dungeons' code is still lifted in ULT4 (`spawn_dungeon`,
+  `mobs_act_dungeon`, `dng_check_attacked`, the rooms), for phase 11.
+- **A shop is found by the row talked across.** `input_direction` leaves the target square's row in
+  `dest_y`, and `check_shop` compares it with the towne's eight rows in SHPS (loaded at $8800, eight
+  bytes a towne); row 24 in Paws is the horse seller (SHP8) and row 25 in the castle is Hawkwind
+  (SHP9). Only a shopkeeper across a sign (tiles $60 to $7D) is a shop; anyone else is talked to
+  directly.
+- **The dialogue is one sector, read by ULT4 before TALK loads.** Track = location − 1, sector =
+  `npc_dialogue` − 1, into $EF00: ten strings each ended by a character without its high bit, the
+  two four-letter words at $EFF5, the string their question follows at $EFFD (5 or 6, the person's
+  first or second word), humility at $EFFE and the chance of turning away at $EFFF. A companion is
+  always record 0 and the last object slot, which is how `check_join` recognises one.
+- **TALK's quirks, kept:** `start_combat` turns hostile the object at `zp_index`, which
+  `compare_keywords` overwrites with the word's index, so a fight drawn after a word may turn the
+  wrong slot; `print_string` never carries into the pointer's high byte; `dec_virtue` leaves a
+  wrapped value when a virtue below the amount borrows (only an exact borrow to nothing leaves one);
+  a question waits for a key before it is asked.
+- **The telescope suspends the game.** SEAR sets `game_mode` to 0 while TMAP is up, and the towne's
+  TMAP is Britannia's but for `flash_location`, which returns at once then, so the party's cell is
+  not marked. A key typed while SEAR loads the map goes into SUBS's type-ahead buffer, which TMAP
+  never reads, so the harness holds TMAP's key back 5,000 polls.
+- **Shared overlay code.** USE's, SEAR's and the word input TALK and USE use are each the same in
+  Britannia's and the townes' copies but for where they live, so they are base classes now
+  (`use-overlay.ts`, `search-overlay.ts`, `keyword-overlay.ts`), each overlay passing its addresses.
+  `overlay.ts` moved up from `britannia/` and takes the disk.
+- **A native waitkey must stop where the 6502 would.** A scenario waits for the type-ahead buffer to
+  empty before pressing the next key. The lifted code is stopped between instructions right after
+  `getkey` empties it; native SUBS ran on inside `getnumber` to the next poll first, so the scenario's
+  next key came one poll later and the towne's animation drew one more line (the beggar's amount, the
+  first `getnumber` from native code in any scenario). `waitkey` is now a checkpoint when it takes a
+  key from the buffer.
+- **The harness's towne disk.** The smoke towne disk now carries SHPS (a filler of rows within the
+  towne) and a townsperson's record in every sector of its raw tracks, from `dialogue.ts`, which the
+  TALK cases also put at $EF00 themselves. The trainers are loaded for Talk, whose first call is the
+  teleport trainer. A beggar's `j_getnumber` waits for a digit, so every GIVE in the cases' keys is
+  followed by an amount, and the shops' keys end with the answers most of them take to leave.
+- **Eight mutants survive.** Seven cannot be caught: the music Talk and the shops set (the
+  harness's `music_ctl` is an RTS), three `sub`/`jsrOut` JSR sites (the stack is not compared),
+  `check_direct`'s dungeon test, which `get_mob_at_temp_xy` makes unreachable by finding no one in a
+  dungeon, and `decline_reason`'s loop bound, which changes only X before the next print overwrites
+  it. One is out of the random states' reach: the prompt's fight margin, whose roll comes after the
+  idle animation has consumed the generator. The other 56 of 64 are caught, some only once the cases
+  put the party on a shop's row, weighted the companion's experience and the near-Avatar's last
+  virtue, and rigged the first roll for the meeting's fight margin.

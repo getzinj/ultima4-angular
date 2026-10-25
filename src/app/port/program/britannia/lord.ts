@@ -10,7 +10,7 @@ import { inline } from '../../inline-data';
 import type { IInlineData } from '../../inline-data';
 import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
-import { OVERLAY_ENTRY, overlayModule, text } from './overlay';
+import { OVERLAY_ENTRY, overlayModule, text } from '../overlay';
 
 const J = JUMP_SUBS;
 const zp_level: number = 0xEA;
@@ -586,6 +586,6 @@ export class Lord extends PortProgram {
 }
 
 
-export const LORD_MODULE = overlayModule('LORD', OVERLAY_ENTRY, LORD_DATA, (machine: LiftedMachine): Lord => new Lord(machine),
+export const LORD_MODULE = overlayModule('britannia', 'LORD', OVERLAY_ENTRY, LORD_DATA, (machine: LiftedMachine): Lord => new Lord(machine),
   (program: Lord): Promise<Exit> => program.run(),
   [ [ JUMP_OVERLAY.talk_lord_british, (program: Lord): Promise<Exit> => program.talkLordBritish() ] ]);

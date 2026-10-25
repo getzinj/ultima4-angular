@@ -78,6 +78,8 @@ export const SUBS_CASES: Readonly<Record<string, readonly [ number, ICase ]>> = 
   } } ],
   update_view_combat: [ 0x0857, {} ],
   getnumber: [ 0x085A, { setup: (machine: LiftedMachine, random: Random): void => digits(machine, digitKeys(random)) } ],
+  getnumber_typed: [ 0x085A, { keys: (random: Random): readonly { code: number; polls: number }[] =>
+    digitKeys(random).map((code: number): { code: number; polls: number } => ({ code: code & 0x7F, polls: Math.floor(random() * 12) })) } ],
   getplayernum: [ 0x085D, { setup: (machine: LiftedMachine, random: Random): void => digits(machine, [ 0xB0 + Math.floor(random() * 10) ]) } ],
   update_wind: [ 0x0860, {} ],
   animate_view: [ 0x0863, { key: KEY } ],

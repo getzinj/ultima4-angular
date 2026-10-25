@@ -1,9 +1,9 @@
 // ULT4.s's remaining Britannia commands, ported: Attack, Enter and the places it loads, Fire, Get
 // chest and its traps, Ignite, Jimmy, Locate, New order, Open, Quit, Ready, Volume, Music, Wear and
 // Ztats; the turn's tile effects, food and magic; and the party's health and the screen effects
-// that go with them. The townes' and the dungeons' own commands are still lifted. Like the rest of
-// ULT4's port, each entry leaves the registers and flags as the original does, and returns where
-// control goes next.
+// that go with them. Talk is in Ult4Townes; the dungeons' own commands are still lifted. Like the
+// rest of ULT4's port, each entry leaves the registers and flags as the original does, and returns
+// where control goes next.
 
 import { DECIMAL } from '../../lifted-runtime/cpu';
 import {
@@ -59,7 +59,7 @@ const VIEW_ROWS: number = 0xAE;
 const VIEW_COLUMNS: number = 0x16;
 
 
-export class Ult4Commands extends Ult4Monsters {
+export abstract class Ult4Commands extends Ult4Monsters {
   // --- Attack (ULT4.s:1023-1146) ------------------------------------------------------------
 
   public async cmdAttack(): Promise<Exit> {

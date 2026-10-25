@@ -1,13 +1,15 @@
-import type { LiftedMachine } from '../../../lifted-runtime/lifted-machine';
-import type { INativeModule, NativeRoutine } from '../../../lifted-runtime/native-module';
-import { inline } from '../../inline-data';
-import type { IInlineData } from '../../inline-data';
-import { exitRoutine } from '../../routine';
-import type { Exit } from '../../routine';
-import { encode } from '../../text';
+import type { UltimaDiskName } from '../../data/ultima-disks';
+import type { LiftedMachine } from '../../lifted-runtime/lifted-machine';
+import type { INativeModule, NativeRoutine } from '../../lifted-runtime/native-module';
+import { inline } from '../inline-data';
+import type { IInlineData } from '../inline-data';
+import { exitRoutine } from '../routine';
+import type { Exit } from '../routine';
+import { encode } from '../text';
 
-// A Britannia overlay as a native module: one program at $8800 (or $9000 for TMAP) with the entry
-// ULT4 calls when it has loaded the file (LORD has a second), and the bytes it reads as data.
+// An overlay as a native module: one program of the Britannia or towne disk at $8800 (or $9000 for
+// TMAP) with the entry ULT4 calls when it has loaded the file (LORD has a second), and the bytes it
+// reads as data.
 
 export const OVERLAY_ENTRY: number = 0x8800;
 
@@ -23,6 +25,7 @@ export type OverlayEntry<T> = readonly [ number, (program: T) => Exit | Promise<
 
 
 export function overlayModule<T>(
+  disk: UltimaDiskName,
   name: string,
   load: number,
   data: readonly IInlineData[],
@@ -31,7 +34,7 @@ export function overlayModule<T>(
   more: readonly OverlayEntry<T>[] = [],
 ): INativeModule {
   return {
-    disk: 'britannia',
+    disk,
     name,
     load,
     install: (machine: LiftedMachine): void => {

@@ -6,6 +6,7 @@ import { Dos33Disk, formatDos33 } from '../../../src/app/data/dos33';
 import { RAW_TRACKS } from '../../../src/app/data/ultima-disks';
 import type { UltimaDiskName } from '../../../src/app/data/ultima-disks';
 import type { DiskSet } from '../../../src/app/lifted-runtime/lifted-machine';
+import { dialogue, seeded } from './dialogue';
 
 type Files = Readonly<Record<string, readonly [ number, Uint8Array ]>>;
 
@@ -60,6 +61,22 @@ function maps(prefix: string, first: number, count: number, address: number, len
 }
 
 
+/** SHPS: each towne's eight rows of shop counters, a filler of rows within the towne. */
+function shops(): Uint8Array {
+  return Uint8Array.from({ length: 0x80 }, (_: unknown, at: number): number => ((at * 5) + 3) & 0x1F);
+}
+
+
+/** A townsperson's record in each sector of the towne disk's raw tracks, where Talk reads it. */
+function townsfolk(towne: Dos33Disk): void {
+  for (let track: number = 0; track < RAW_TRACKS.towne; track++) {
+    for (let sector: number = 0; sector < 16; sector++) {
+      towne.image.writeSector(track, sector, dialogue(seeded((track * 16) + sector + 1)));
+    }
+  }
+}
+
+
 function disk(name: UltimaDiskName, files: Files): Dos33Disk {
   const result: Dos33Disk = new Dos33Disk(formatDos33());
 
@@ -100,10 +117,14 @@ export function smokeDisks(): DiskSet {
     britannia[file] = [ 0x8800, new Uint8Array(16) ];
   }
 
+  const towne: Dos33Disk = disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], SHPS: [ 0x8800, shops() ], ...maps('MAP', 0x40, 17, 0x8B00, 0x500), ...towneArenas() });
+
+  townsfolk(towne);
+
   return {
     program: disk('program', program),
     britannia: disk('britannia', britannia),
-    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], ...maps('MAP', 0x40, 17, 0x8B00, 0x500), ...towneArenas() }),
+    towne,
     underworld: disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ], ...maps('DNG', 0x30, 8, 0xE800, 0x200) }),
   };
 }

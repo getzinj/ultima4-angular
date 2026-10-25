@@ -9,7 +9,7 @@ import { inline } from '../../inline-data';
 import type { IInlineData } from '../../inline-data';
 import { PortProgram } from '../../port-program';
 import type { Exit } from '../../routine';
-import { OVERLAY_ENTRY, overlayModule, text } from './overlay';
+import { OVERLAY_ENTRY, overlayModule, text } from '../overlay';
 
 const J = JUMP_SUBS;
 const zp_number: number = 0xDA;
@@ -299,4 +299,4 @@ export class Hole extends PortProgram {
 }
 
 
-export const HOLE_MODULE = overlayModule('HOLE', OVERLAY_ENTRY, HOLE_DATA, (machine: LiftedMachine): Hole => new Hole(machine), (program: Hole): Promise<Exit> => program.run());
+export const HOLE_MODULE = overlayModule('britannia', 'HOLE', OVERLAY_ENTRY, HOLE_DATA, (machine: LiftedMachine): Hole => new Hole(machine), (program: Hole): Promise<Exit> => program.run());

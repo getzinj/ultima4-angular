@@ -1,7 +1,7 @@
 import type { LiftedMachine } from '../../../lifted-runtime/lifted-machine';
 import { PRTY, ROST } from '../../../state/symbols';
 import { overlayMachine, runOverlay } from '../../testing/overlay-machine';
-import { OVERLAY_ENTRY } from './overlay';
+import { OVERLAY_ENTRY } from '../overlay';
 import { SHRN_MODULE } from './shrn';
 
 const SPIRITUALITY: number = ROST.party_stats + ROST.virtue_spirituality;

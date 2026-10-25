@@ -1,21 +1,29 @@
-// The differential cases for the ported Britannia overlays: each loaded at its address and run from
-// its entry, with the inventory, the party and the place drawn at random from the values that
-// reach each branch: an item's spot, the Abyss's entrance, dark moons, a sleeping party.
+// The differential cases for the ported Britannia and towne overlays: each loaded at its address and
+// run from its entry, with the inventory, the party and the place drawn at random from the values
+// that reach each branch: an item's spot, the Abyss's entrance, dark moons, a sleeping party, a
+// townsperson's record.
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import type { INativeModule } from '../../../src/app/lifted-runtime/native-module';
 import { HELP_MODULE } from '../../../src/app/port/program/britannia/help';
 import { HOLE_MODULE } from '../../../src/app/port/program/britannia/hole';
 import { LORD_MODULE } from '../../../src/app/port/program/britannia/lord';
-import { OVERLAY_ENTRY } from '../../../src/app/port/program/britannia/overlay';
+import { OVERLAY_ENTRY } from '../../../src/app/port/program/overlay';
 import { SAVE_MODULE } from '../../../src/app/port/program/britannia/save';
 import { SEAR_MODULE } from '../../../src/app/port/program/britannia/sear';
 import { SHRN_MODULE } from '../../../src/app/port/program/britannia/shrn';
 import { TMAP_MODULE } from '../../../src/app/port/program/britannia/tmap';
 import { USE_MODULE } from '../../../src/app/port/program/britannia/use';
-import { DISKS, JUMP_OVERLAY, PLACES, PRTY, ROST, VIEW_MAP, ZP_MAIN } from '../../../src/app/state/symbols';
+import { TOWNE_SEAR_MODULE } from '../../../src/app/port/program/towne/sear';
+import { DIALOG, TALK_MODULE } from '../../../src/app/port/program/towne/talk';
+import { TOWNE_TMAP_MODULE } from '../../../src/app/port/program/towne/tmap';
+import { TOWNE_USE_MODULE } from '../../../src/app/port/program/towne/use';
+import type { UltimaDiskName } from '../../../src/app/data/ultima-disks';
+import { DISKS, JUMP_OVERLAY, MAP_OBJECTS, PLACES, PRTY, ROST, TILES, VIEW_MAP, ZP_MAIN } from '../../../src/app/state/symbols';
+import { DIALOGUE_WORDS, dialogue } from './dialogue';
 import { byte } from './differential';
 import type { ICase, Random } from './differential';
+import { rigRand } from './monster-cases';
 import { ESCAPE, STOPS, pick, world } from './ult4-cases';
 
 export interface IOverlayCase {
@@ -49,6 +57,23 @@ const RETURN: number = 0xC0FE;
 const MEDITATION_CYCLES: number = 400_000_000;
 /** Polls past the meditation's dots and the flush after them, and short of j_waitkey's timeout. */
 const AFTER_THE_DOTS: number = 300;
+const MAP_POLLS: number = 5000;
+const D = DIALOG;
+const TOWNE_SEAR_X: readonly number[] = [ 0x08, 0x19, 0x1E, 0x0D, 0x1C, 0x02, 0x11, 0x1D, 0x06, 0x16, 0x16, 0x16, 0x08 ];
+const TOWNE_SEAR_Y: readonly number[] = [ 0x06, 0x01, 0x1E, 0x06, 0x1E, 0x1D, 0x08, 0x1D, 0x06, 0x01, 0x03, 0x04, 0x0F ];
+const TOWNE_SEAR_LOCATION: readonly number[] = [ 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x01, 0x0D, 0x02, 0x10, 0x02, 0x03, 0x04 ];
+const TALK_WORDS: readonly string[] = [
+  'NAME', 'LOOK', 'JOB', 'HEAL', 'JOIN', 'JOIN', 'GIVE', 'GIVE', 'Y', 'N', 'YES', 'MAYBE', 'XYZZY', '', '5', 'ORBS', 'RUNE', ...DIALOGUE_WORDS,
+];
+const AMOUNTS: readonly string[] = [ '0', '5', '12', '99' ];
+/** Each kind of meeting, and the words said at it. */
+const MEETINGS: Readonly<Record<string, readonly string[]>> = {
+  anyone: TALK_WORDS,
+  companion: [ 'JOIN', 'JOIN', 'NAME', 'GIVE' ],
+  asks: [ 'ORBS', 'RUNE', 'JOB', 'JOB', 'LOOK', 'GIVE' ],
+  beggar: [ 'GIVE', 'GIVE', 'NAME', 'GIVE' ],
+  hostile: TALK_WORDS,
+};
 const STATUSES: readonly number[] = [ ROST.status_Good, ROST.status_Good, ROST.status_Poison, ROST.status_Sleep, ROST.status_Dead, 0xC1 ];
 
 
@@ -326,10 +351,141 @@ function pageKey(random: Random): Key {
 }
 
 
-function loaded(name: string, setup: (machine: LiftedMachine, random: Random) => void): (machine: LiftedMachine, random: Random) => void {
+function loaded(name: string, setup: (machine: LiftedMachine, random: Random) => void, disk: UltimaDiskName = 'britannia'): (machine: LiftedMachine, random: Random) => void {
   return (machine: LiftedMachine, random: Random): void => {
     setup(machine, random);
-    machine.bload('britannia', name);
+    machine.bload(disk, name);
+  };
+}
+
+
+/** At the spot of the towne SEAR's `item` in its place, or of none; for the mystic arms, an Avatar or nearly. */
+function searchingTowne(item: number | null): (machine: LiftedMachine, random: Random) => void {
+  return (machine: LiftedMachine, random: Random): void => {
+    world(machine, random);
+    party(machine, random);
+    inventory(machine, random);
+    machine.write(PRTY.game_mode, PRTY.mode_towne);
+    machine.write(ZP_MAIN.currdisk_drive1, DISKS.disk_towne);
+    machine.insertDisk(1, 'towne');
+    machine.write(ROST.runes, pick(random, [ 0x00, 0xFF, byte(random) ]));
+    machine.write(ROST.armour_mystic, pick(random, [ 0x00, 0x00, 0x08 ]));
+    machine.write(ROST.weapon_mystic, pick(random, [ 0x00, 0x00, 0x08 ]));
+    machine.write(ZP_MAIN.key_buf_len, 0x00);
+    if (random() < 0.5) {
+      for (let virtue: number = 0; virtue < 8; virtue++) {
+        machine.write(ROST.party_stats + virtue, 0x00);
+      }
+      if (random() < 0.5) {
+        machine.write(ROST.party_stats + pick(random, [ ROST.virtue_humility, Math.floor(random() * 8) ]), 0x01);
+      }
+    }
+    if (item != null) {
+      machine.write(PRTY.player_xpos, TOWNE_SEAR_X[item]);
+      machine.write(PRTY.player_ypos, (random() < 0.9) ? TOWNE_SEAR_Y[item] : byte(random));
+      machine.write(PRTY.current_location, (random() < 0.9) ? TOWNE_SEAR_LOCATION[item] : byte(random) & 0x1F);
+    }
+  };
+}
+
+
+/**
+ * The telescope's letter, A to P or not, then a key for the map it shows, held back past the
+ * loads: SUBS would take a key typed during them into its type-ahead buffer, which TMAP never reads.
+ */
+function telescope(random: Random): readonly Key[] {
+  return [
+    { code: pick(random, [ 0x41, 0x42, 0x48, 0x50, 0x51, 0x40, 0x31 ]), polls: Math.floor(random() * 3) },
+    { code: pick(random, [ 0x0D, 0x41, 0x1B ]), polls: MAP_POLLS + Math.floor(random() * 5) },
+  ];
+}
+
+
+/** Using in a towne: townsfolk about, Lord British among them, or in a fight. */
+function usingInTowne(machine: LiftedMachine, random: Random): void {
+  using(machine, random);
+  machine.write(PRTY.game_mode, pick(random, [ PRTY.mode_towne, PRTY.mode_towne, 0x80, 0x82 ]));
+  for (let slot: number = 0; slot <= MAP_OBJECTS.object_max; slot++) {
+    machine.write(MAP_OBJECTS.object_tile_type + slot, pick(random, [ 0x00, TILES.tile_lord_british, TILES.tile_guard, 0x50, byte(random) ]));
+  }
+}
+
+
+/** Who is met: anyone, a companion in their towne, one who asks a question, a beggar, or one quick to turn away or fight, the first roll rigged to the margin between. */
+type Meeting = 'anyone' | 'companion' | 'asks' | 'beggar' | 'hostile';
+
+
+/**
+ * A townsperson's record, the party asked to join or give or answer, a beggar or not, the towne
+ * one a companion may come from, and the person's slot TALK fights from.
+ */
+function meeting(kind: Meeting): (machine: LiftedMachine, random: Random) => void {
+  return (machine: LiftedMachine, random: Random): void => {
+    world(machine, random);
+    party(machine, random);
+    dialogue(random).forEach((value: number, index: number): void => machine.write(D.dialog_strings + index, value));
+    machine.write(PRTY.game_mode, PRTY.mode_towne);
+    machine.write(PRTY.current_location, (kind === 'companion') ? pick(random, [ 0x05, 0x06, 0x09, 0x0B, 0x0C, 0x0C, 0x0D ]) : pick(random, [ 0x01, 0x05, 0x06, 0x0A, 0x0C, 0x0D, 0x10 ]));
+    machine.write(ZP_MAIN.diskio_sector, (kind === 'companion') ? pick(random, [ 0x00, 0x00, 0x00, 0x01 ]) : pick(random, [ 0x00, 0x01, 0x07 ]));
+    const person: number = Math.floor(random() * (MAP_OBJECTS.object_max + 1));
+
+    machine.write(0xEA, person);
+    machine.write(MAP_OBJECTS.object_tile_type + person, (kind === 'beggar') ? TILES.tile_beggar : pick(random, [ TILES.tile_beggar, TILES.tile_guard, 0x50, 0x54 ]));
+    for (let player: number = 0; player < 8; player++) {
+      machine.write(ROST.player_stats + (player * 0x20) + ROST.player_class_index, pick(random, [ player, Math.floor(random() * 8) ]));
+    }
+    if (random() < 0.3) {
+      machine.write(ROST.player_stats + ROST.player_class_index, (machine.read(PRTY.current_location) - 5) & 0xFF);
+    }
+    machine.write(PRTY.party_size, pick(random, [ 0x01, 0x02, 0x05, 0x07 ]));
+    machine.write(ROST.player_stats + ROST.player_max_hp_hi, machine.read(PRTY.party_size) + pick(random, [ 0x00, 0x01, 0x01, 0x01, 0x02 ]));
+    machine.write(ROST.gold_hi, pick(random, [ 0x00, 0x00, 0x01, 0x99 ]));
+    machine.write(ROST.gold_lo, pick(random, [ 0x00, 0x05, 0x12, 0x99, bcd(random) ]));
+    machine.write(PRTY.move_counter + 3, byte(random));
+    machine.write(PRTY.last_humility_check, (random() < 0.3) ? (machine.read(PRTY.move_counter + 3) & 0xF0) : byte(random));
+    if (kind === 'companion') {
+      machine.write(ROST.party_stats + machine.read(PRTY.current_location) - 5, pick(random, [ 0x00, 0x20, 0x40, 0x99 ]));
+    } else if (kind === 'asks') {
+      [ ...'ORBSRUNE' ].forEach((character: string, index: number): void => machine.write(D.dialog_keyword_1 + index, character.charCodeAt(0)));
+      machine.write(D.dialog_question_trigger, pick(random, [ 0x03, 0x05, 0x06 ]));
+      machine.write(D.dialog_humility, pick(random, [ 0x00, 0x01, 0x01 ]));
+      machine.write(ROST.party_stats + ROST.virtue_humility, pick(random, [ 0x00, 0x03, 0x03, 0x50, 0x95 ]));
+    }
+    machine.write(D.dialog_turns_away_probability, (kind === 'hostile') ? pick(random, [ 0x80, 0xC0, 0xFF ]) : pick(random, [ 0x00, 0x00, 0x00, 0x10 ]));
+    if (kind === 'hostile') {
+      const margin: number = machine.read(D.dialog_turns_away_probability) - pick(random, [ 0x3F, 0x40, 0x41, 0x80 ]);
+
+      rigRand(machine, random, (value: number): boolean => value === margin);
+    }
+    machine.write(ZP_MAIN.key_buf_len, 0x00);
+  };
+}
+
+
+/**
+ * What is said to a townsperson: interests from `words`, answers, an amount after each GIVE (a
+ * beggar's j_getnumber waits for a digit), and farewell, said until it is heard.
+ */
+function talk(words: readonly string[]): (random: Random) => readonly Key[] {
+  return (random: Random): readonly Key[] => {
+    const keys: Key[] = [];
+
+    for (let interest: number = 2 + Math.floor(random() * 6); interest > 0; interest--) {
+      const word: string = pick(random, words);
+
+      keys.push(...typedWord(word, random));
+      if (word === 'GIVE') {
+        keys.push(...typedWord(pick(random, AMOUNTS), random));
+      }
+      if (random() < 0.3) {
+        keys.push({ code: 0x0D, polls: 0 }, ...typedWord(pick(random, [ 'Y', 'N', 'NO', 'MAYBE' ]), random));
+      }
+    }
+    for (let bye: number = 0; bye < 16; bye++) {
+      keys.push(...typedWord(pick(random, [ 'BYE', 'N', 'Y' ]), random));
+    }
+
+    return keys;
   };
 }
 
@@ -387,6 +543,33 @@ export const OVERLAY_CASES: Readonly<Record<string, IOverlayCase>> = {
       party(machine, random);
       machine.write(ZP_MAIN.key_buf_len, 0x00);
     }) },
+  },
+  towne_sear: { module: TOWNE_SEAR_MODULE, entry: OVERLAY_ENTRY, testCase: { ult4: true, stops: STOPS, keys: telescope, setup: loaded('SEAR', searchingTowne(null), 'towne') } },
+  ...Object.fromEntries(TOWNE_SEAR_X.map((_: number, item: number): [ string, IOverlayCase ] => [ `towne_sear_${ item }`, {
+    module: TOWNE_SEAR_MODULE,
+    modules: [ TOWNE_SEAR_MODULE, TOWNE_TMAP_MODULE ],
+    entry: OVERLAY_ENTRY,
+    testCase: { ult4: true, stops: STOPS, keys: telescope, setup: loaded('SEAR', searchingTowne(item), 'towne') },
+  } ])),
+  towne_use: { module: TOWNE_USE_MODULE, entry: OVERLAY_ENTRY, testCase: { ult4: true, stops: STOPS, keys: typed(NOT_ITEMS), setup: loaded('USE', usingInTowne, 'towne') } },
+  ...Object.fromEntries(ITEMS.map((item: string): [ string, IOverlayCase ] => [ `towne_use_${ item.toLowerCase() }`, {
+    module: TOWNE_USE_MODULE,
+    entry: OVERLAY_ENTRY,
+    testCase: { ult4: true, stops: STOPS, keys: typed([ item ]), setup: loaded('USE', usingInTowne, 'towne') },
+  } ])),
+  ...Object.fromEntries(Object.entries(MEETINGS).map(([ kind, words ]: [ string, readonly string[] ]): [ string, IOverlayCase ] => [ `talk_${ kind }`, {
+    module: TALK_MODULE,
+    entry: OVERLAY_ENTRY,
+    testCase: { ult4: true, screen: true, stops: STOPS, keys: talk(words), setup: loaded('TALK', meeting(kind as Meeting), 'towne') },
+  } ])),
+  towne_tmap: {
+    module: TOWNE_TMAP_MODULE,
+    entry: VIEW_MAP.j_viewmap,
+    testCase: { ult4: true, stops: STOPS, key: (random: Random): Key => ({ code: 0x41, polls: Math.floor(random() * 5) }), setup: loaded('TMAP', (machine: LiftedMachine, random: Random): void => {
+      viewing(machine, random);
+      machine.write(PRTY.current_location, pick(random, [ 0x00, 0x05 ]));
+      machine.write(PRTY.game_mode, pick(random, [ PRTY.mode_suspended, PRTY.mode_towne ]));
+    }, 'towne') },
   },
   tmap: {
     module: TMAP_MODULE,

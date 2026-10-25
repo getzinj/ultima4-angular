@@ -6,6 +6,10 @@ import { BRITANNIA_SEAR } from '../../../src/app/lifted/britannia/sear';
 import { BRITANNIA_SHRN } from '../../../src/app/lifted/britannia/shrn';
 import { BRITANNIA_TMAP } from '../../../src/app/lifted/britannia/tmap';
 import { BRITANNIA_USE } from '../../../src/app/lifted/britannia/use';
+import { TOWNE_SEAR } from '../../../src/app/lifted/towne/sear';
+import { TOWNE_TALK } from '../../../src/app/lifted/towne/talk';
+import { TOWNE_TMAP } from '../../../src/app/lifted/towne/tmap';
+import { TOWNE_USE } from '../../../src/app/lifted/towne/use';
 import type { ILiftedModule } from '../../../src/app/lifted-runtime/lifted-module';
 import type { IInlineData } from '../../../src/app/port/inline-data';
 import { HELP_DATA } from '../../../src/app/port/program/britannia/help';
@@ -16,6 +20,10 @@ import { SEAR_DATA } from '../../../src/app/port/program/britannia/sear';
 import { SHRN_DATA } from '../../../src/app/port/program/britannia/shrn';
 import { TMAP_DATA } from '../../../src/app/port/program/britannia/tmap';
 import { USE_DATA } from '../../../src/app/port/program/britannia/use';
+import { TOWNE_SEAR_DATA } from '../../../src/app/port/program/towne/sear';
+import { TALK_DATA } from '../../../src/app/port/program/towne/talk';
+import { TOWNE_TMAP_DATA } from '../../../src/app/port/program/towne/tmap';
+import { TOWNE_USE_DATA } from '../../../src/app/port/program/towne/use';
 
 // Every byte the overlay ports install, against the image the lifter took from the build. Local
 // only, like the rest of the gate: the lifted modules are generated, not committed.
@@ -41,10 +49,14 @@ const OVERLAYS: readonly [ string, ILiftedModule, readonly IInlineData[] ][] = [
   [ 'SHRN', BRITANNIA_SHRN, SHRN_DATA ],
   [ 'TMAP', BRITANNIA_TMAP, TMAP_DATA ],
   [ 'USE', BRITANNIA_USE, USE_DATA ],
+  [ 'towne SEAR', TOWNE_SEAR, TOWNE_SEAR_DATA ],
+  [ 'towne TALK', TOWNE_TALK, TALK_DATA ],
+  [ 'towne TMAP', TOWNE_TMAP, TOWNE_TMAP_DATA ],
+  [ 'towne USE', TOWNE_USE, TOWNE_USE_DATA ],
 ];
 
 
-describe('the Britannia overlays\' data', (): void => {
+describe('the Britannia and towne overlays\' data', (): void => {
   describe.each(OVERLAYS)('%s', (_: string, module: ILiftedModule, data: readonly IInlineData[]): void => {
     it.each(data.map((block: IInlineData): [ string, IInlineData ] => [ `$${ block.address.toString(16) }`, block ]))(
       'holds the bytes at %s as the image does',

@@ -1,7 +1,7 @@
 import type { LiftedMachine } from '../../../lifted-runtime/lifted-machine';
 import { MAP_OBJECTS, PLACES, PRTY, ROST, TILES, ZP_MAIN } from '../../../state/symbols';
 import { overlayMachine, runOverlay } from '../../testing/overlay-machine';
-import { OVERLAY_ENTRY } from './overlay';
+import { OVERLAY_ENTRY } from '../overlay';
 import { USE_MODULE } from './use';
 
 const RETURN: string = '\r';

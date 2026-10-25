@@ -138,7 +138,7 @@ function about(machine: LiftedMachine, random: Random): void {
 
 
 /** The party somewhere, its belongings, the objects about it, and the commands' own state. */
-function commanding(machine: LiftedMachine, random: Random): void {
+export function commanding(machine: LiftedMachine, random: Random): void {
   world(machine, random);
   const mode: number = pick(random, [ PRTY.mode_world, PRTY.mode_world, PRTY.mode_world, PRTY.mode_towne, PRTY.mode_towne, 0x80, PRTY.mode_dungeon ]);
 
@@ -193,7 +193,7 @@ function onDisk(disk: UltimaDiskName, number: number): (machine: LiftedMachine, 
 
 
 /** Two drives, the towne disk in the first and Britannia's in the second, as the towne's loads ask for them. */
-function twoDrives(machine: LiftedMachine, random: Random): void {
+export function twoDrives(machine: LiftedMachine, random: Random): void {
   commanding(machine, random);
   machine.write(ZP_MAIN.numdrives, 0x02);
   machine.write(ZP_MAIN.currdisk_drive1, DISKS.disk_towne);
@@ -379,7 +379,7 @@ function paging(first: readonly number[]): (random: Random) => readonly Key[] {
 const DISK_PROMPTS: (random: Random) => readonly Key[] = keys([ ESC ], [ ESC ], [ ESC ], [ ESC ]);
 
 /** Where a command goes next: the turn's end or a refusal, the fight it starts, the game lost. */
-const COMMAND_STOPS: readonly number[] = [ ...STOPS, COMBAT_ENTRIES.init_combat, E.run_file_dead, COMBAT_ENTRIES.combat_cmd_done ];
+export const COMMAND_STOPS: readonly number[] = [ ...STOPS, COMBAT_ENTRIES.init_combat, E.run_file_dead, COMBAT_ENTRIES.combat_cmd_done ];
 
 
 function commandCase(entry: number, extra?: Partial<ICase>): readonly [ number, ICase ] {
