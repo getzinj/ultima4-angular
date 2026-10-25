@@ -8,13 +8,14 @@ import { CHAR, DUNGEON, JUMP_OVERLAY, JUMP_SUBS, JUMP_SYSTEM, MAP_OBJECTS, MUSIC
 import type { IInlineData } from '../inline-data';
 import type { Exit } from '../routine';
 import { Ult4Combat } from './ult4-combat';
-import { COMBAT_ENTRIES, COMBAT_LIFTED } from './ult4-combat-data';
+import { COMBAT_ENTRIES } from './ult4-combat-data';
 import { ULT4_ENTRIES, ULT4_TABLES } from './ult4-data';
-import { SPELL_ENTRIES, SPELL_INLINE, SPELL_LIFTED, SPELL_TABLES, SPELL_VARIABLES } from './ult4-spells-data';
+import { SPELL_ENTRIES, SPELL_INLINE, SPELL_TABLES, SPELL_VARIABLES } from './ult4-spells-data';
+import { COMMAND_ENTRIES } from './ult4-commands-data';
 
+const CE = COMMAND_ENTRIES;
 const S = SPELL_ENTRIES;
 const SI = SPELL_INLINE;
-const SL = SPELL_LIFTED;
 const ST = SPELL_TABLES;
 const SV = SPELL_VARIABLES;
 const C = COMBAT_ENTRIES;
@@ -74,7 +75,7 @@ export abstract class Ult4Spells extends Ult4Combat {
     await this.m.call(J.j_clearstatwindow);
     await this.m.call(J.j_update_status);
     if (this.lda(this.peek(PRTY.game_mode)) & 0x80) {
-      await this.m.call(COMBAT_LIFTED.invert_player_name);
+      await this.m.call(CE.invert_player_name);
     }
     this.lda(this.cpu.pull());
     this.subtract(CHAR.char_alpha_first);
@@ -325,7 +326,7 @@ export abstract class Ult4Spells extends Ult4Combat {
         await this.sub(0x4C79, (): Promise<Exit> => this.randModulo());
         this.add(0x4B);
         await this.m.call(E.encode_bcd_value);
-        await this.m.call(SL.inc_player_hp);
+        await this.m.call(CE.inc_player_hp);
         exit = E.done_done;
       }
 
@@ -904,7 +905,7 @@ export abstract class Ult4Spells extends Ult4Combat {
           }
         }
       }
-    }, (): Promise<void> => this.m.call(SL.shake_screen));
+    }, (): Promise<void> => this.m.call(CE.shake_screen));
   }
 
 
@@ -1010,7 +1011,7 @@ export abstract class Ult4Spells extends Ult4Combat {
 
       if (!(this.lda(this.peek(PRTY.game_mode)) & 0x80)) {
         this.poke(ZP_MAIN.curr_player, this.lda(0x00));
-        exit = SL.try_get_chest;
+        exit = CE.try_get_chest;
       }
 
       return Promise.resolve(exit);

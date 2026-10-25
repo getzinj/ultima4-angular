@@ -60,6 +60,47 @@ const PARTY_SIZE: number = 0x0F;
 const PLAYER_1_EXPERIENCE_HI: number = 0xEC1C;
 const MOVE_COUNTER: number = 0x1C;
 const BACKSPACE: number = 0x08;
+const TILE_XPOS: number = 0x02;
+const TILE_YPOS: number = 0x03;
+const WORLD_MAP: number = 0xE800;
+const PARTY_STATS: number = 0xED00;
+const TORCHES: number = 0xED08;
+const KEYS: number = 0xED0A;
+const SEXTANT: number = 0xED0B;
+const STONES: number = 0xED0C;
+const BELL_BOOK_CANDLE: number = 0xED0E;
+const THREEPARTKEY: number = 0xED0F;
+const FOOD_HI: number = 0xED10;
+const FOOD_LO: number = 0xED11;
+const FOOD_FRAC: number = 0xED12;
+const STATUS_GOOD: number = 0xC7;
+const PLAYER_STATUS: number = 0xEC12;
+const PLAYER_SIZE: number = 0x20;
+const MODE_COMBAT: number = 0x80;
+const WHEEL: number = 0xED16;
+const SKULL: number = 0xED17;
+const ARMOUR: number = PARTY_STATS + 0x18;
+const WEAPONS: number = PARTY_STATS + 0x20;
+const CTRL_V: number = 0x16;
+const TILE_CHEST: number = 0x3C;
+const TILE_WHIRLPOOL: number = 0x8C;
+const TILE_RAT: number = 0x90;
+const TILE_SWAMP: number = 0x03;
+const TILE_BRIDGE_NARROW: number = 0x17;
+const TILE_FIELD_POISON: number = 0x44;
+const TILE_FIELD_FIRE: number = 0x46;
+const TILE_FIELD_SLEEP: number = 0x47;
+const TILE_LAVA: number = 0x4C;
+const TILE_WALK: number = 0x1F;
+const TILE_GRASS: number = 0x04;
+const TILE_BALLOON: number = 0x18;
+const TILE_HUMAN_PRONE: number = 0x38;
+const TILE_DOOR_LOCKED: number = 0x3A;
+const TOWNE_MAP: number = 0xE800;
+const BRITANNIA_X: number = 0x08;
+const BRITANNIA_Y: number = 0x09;
+const ITEMS_OPENED_ABYSS: number = 0x77;
+const DISK_PROMPT: number = 300;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -497,6 +538,215 @@ export async function lordBritish(session: Session): Promise<void> {
 }
 
 
+/** Attack to the north until the fight is over. */
+async function fight(session: Session): Promise<void> {
+  for (let turn: number = 0; (turn < 60) && ((session.machine.read(GAME_MODE) & MODE_COMBAT) !== 0); turn++) {
+    await combatTurn(session, 'A', UP);
+  }
+}
+
+
+/** The tile under the party, in the world's four chunks held, as SUBS's gettile_britannia finds it. */
+function setWorldTile(session: Session, tile: number): void {
+  const x: number = session.machine.read(TILE_XPOS);
+  const y: number = session.machine.read(TILE_YPOS);
+
+  session.poke(WORLD_MAP + ((((y & 0x10) << 1) | x) >> 4 << 8) + (((y & 0x0F) << 4) | (x & 0x0F)), tile);
+}
+
+
+/**
+ * A new game by Britain, with three in the party, a sextant, a torch and arms: Locate; Ignite, then
+ * with none left; Ztats through every page each way; Ready and Wear, each taken, refused, lacking and
+ * aborted; New order; the volume and music off and on; starving; four chests, trapped and not; Attack
+ * where nothing is, at a whirlpool and at a rat, fought with Ztats and Ready in the fight; on a ship,
+ * Fire not broadside and broadside at pirates; Fire on foot; then a turn each on swamp, fire, sleep,
+ * poison and lava, three on a bridge; and Quit.
+ */
+export async function commands(session: Session): Promise<void> {
+  await newGameAt(session, 0xE7, 0x88);
+  for (const [ address, value ] of [
+    [ PARTY_SIZE, 0x03 ], [ TORCHES, 0x01 ], [ SEXTANT, 0x01 ], [ STONES, 0x81 ], [ RUNES, 0x42 ], [ BELL_BOOK_CANDLE, 0x07 ],
+    [ THREEPARTKEY, 0x05 ], [ HORN, 0x01 ], [ WHEEL, 0x01 ], [ SKULL, 0x01 ], [ WEAPONS + 2, 0x02 ], [ WEAPONS + 3, 0x01 ],
+    [ WEAPONS + 4, 0x01 ], [ WEAPONS + 7, 0x12 ], [ ARMOUR + 1, 0x01 ], [ ARMOUR + 2, 0x01 ], [ PLAYER_1_DEXTERITY, 0x01 ],
+  ]) {
+    session.poke(address, value);
+  }
+  await inBritannia(session);
+  await command(session, 'L');
+  await command(session, 'I');
+  await command(session, 'I');
+  await command(session, 'Z', '0', RIGHT, RIGHT, RIGHT, RIGHT, RIGHT, RIGHT, RIGHT, RIGHT, RIGHT, LEFT, LEFT, LEFT, LEFT, LEFT, 'X');
+  await command(session, 'Z', '5');
+  for (const keys of [ [ '1', 'C' ], [ '1', 'E' ], [ '1', 'G' ], [ '1', 'H' ], [ '1', 'A' ], [ '1', 'Z' ], [ '7' ] ]) {
+    await command(session, 'R', ...keys);
+  }
+  for (const keys of [ [ '1', 'C' ], [ '1', 'A' ], [ '1', 'B' ], [ '1', 'Q' ], [ '4' ] ]) {
+    await command(session, 'W', ...keys);
+  }
+  for (const keys of [ [ '2', '3' ], [ '1' ], [ '2', '2' ], [ '4' ], [ '3', '1' ], [ 'X' ] ]) {
+    await command(session, 'N', ...keys);
+  }
+  await command(session, 'V');
+  await command(session, 'V');
+  await command(session, CTRL_V);
+  await command(session, CTRL_V);
+  session.poke(FOOD_HI, 0x00);
+  session.poke(FOOD_LO, 0x00);
+  session.poke(FOOD_FRAC, 0x00);
+  await command(session, ' ');
+  session.poke(FOOD_LO, 0x50);
+  for (let chest: number = 0; chest < 4; chest++) {
+    placeObject(session, 0x10 + chest, TILE_CHEST, 0xE7, 0x88);
+    await command(session, ' ');
+    await command(session, 'G', '1');
+    for (let player: number = 0; player < 3; player++) {
+      session.poke(PLAYER_STATUS + (player * PLAYER_SIZE), STATUS_GOOD);
+    }
+  }
+  await command(session, 'G', '4');
+  await command(session, 'G', 'X');
+  for (let player: number = 0; player < 3; player++) {
+    for (const [ address, value ] of [
+      [ PLAYER_1_STRENGTH, 0x50 ], [ PLAYER_1_DEXTERITY, 0x50 ], [ PLAYER_1_HP_HI, 0x09 ], [ PLAYER_1_MAX_HP_HI, 0x09 ], [ PLAYER_1_WEAPON, WEAPON_SWORD ],
+    ]) {
+      session.poke(address + (player * PLAYER_SIZE), value);
+    }
+  }
+  await combatTurn(session, 'A', UP);
+  placeObject(session, 0x00, TILE_WHIRLPOOL, 0xE7, 0x87);
+  await combatTurn(session, 'A', UP);
+  placeObject(session, 0x00, TILE_RAT, 0xE7, 0x87);
+  await combatTurn(session, 'A', UP);
+  await combatTurn(session, 'Z', RIGHT, 'X');
+  await combatTurn(session, 'R', 'B');
+  await fight(session);
+  session.poke(PLAYER_TRANSPORT, TILE_SHIP_WEST);
+  await command(session, 'F', LEFT);
+  await command(session, 'F', UP);
+  placeObject(session, 0x08, TILE_PIRATE, 0xE7, 0x86);
+  await command(session, 'F', UP);
+  placeObject(session, 0x01, TILE_PIRATE, 0xE7, 0x8A);
+  await command(session, 'F', DOWN);
+  await command(session, 'F', DOWN);
+  session.poke(PLAYER_TRANSPORT, TILE_WALK);
+  await command(session, 'F');
+  for (const tile of [ TILE_SWAMP, TILE_FIELD_FIRE, TILE_FIELD_SLEEP, TILE_FIELD_POISON, TILE_LAVA ]) {
+    setWorldTile(session, tile);
+    await combatTurn(session, ' ');
+  }
+  setWorldTile(session, TILE_BRIDGE_NARROW);
+  await combatTurns(session, 3, ' ');
+  setWorldTile(session, TILE_GRASS);
+  await command(session, 'Q');
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
+/** E at a place, and its disk. */
+async function enter(session: Session): Promise<void> {
+  await keys(session, 'E');
+  await answerDiskPrompt(session);
+}
+
+
+/** ESC once the game waits at its disk prompt, and on to the next turn. */
+async function answerDiskPrompt(session: Session): Promise<void> {
+  await session.idle(DISK_PROMPT);
+  await keys(session, ESC);
+  await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+}
+
+
+/** Off a towne's west edge, or up a dungeon's ladder, to (x, y) in Britannia, its disk asked for. */
+async function leaveTo(session: Session, x: number, y: number, ...pressed: readonly Key[]): Promise<void> {
+  session.poke(BRITANNIA_X, x);
+  session.poke(BRITANNIA_Y, y);
+  await keys(session, ...pressed);
+  await answerDiskPrompt(session);
+}
+
+
+async function walkOffTowne(session: Session, x: number, y: number): Promise<void> {
+  session.poke(PLAYER_XPOS, 0x00);
+  session.poke(PLAYER_YPOS, 0x0F);
+  await leaveTo(session, x, y, LEFT);
+}
+
+
+/**
+ * A new game by Moonglow with eight in the party and a key: into the towne, where Mariah, who has
+ * joined, is not; a door opened and left to close, a wall, a locked door that will not open, jimmied,
+ * jimmied again, and with no key; three of the towne's chests and one dropped; a sleeper attacked
+ * and fought; then out to Deceit, entered on a horse and on foot and climbed out of to Paws, a
+ * village; Magincia, a ruin; the Lycaeum, a castle; the Abyss, shut and opened; and Enter in a
+ * balloon and where nothing is.
+ */
+export async function townes(session: Session): Promise<void> {
+  await newGameAt(session, 0xE8, 0x87);
+  session.poke(PARTY_SIZE, 0x08);
+  session.poke(KEYS, 0x01);
+  await inBritannia(session);
+  await enter(session);
+  session.poke(PLAYER_XPOS, 0x19);
+  session.poke(PLAYER_YPOS, 0x02);
+  await command(session, 'O', RIGHT);
+  await combatTurns(session, 5, ' ');
+  await command(session, 'O', UP);
+  session.poke(TOWNE_MAP + (0x02 * 0x20) + 0x1A, TILE_DOOR_LOCKED);
+  await command(session, 'O', RIGHT);
+  await command(session, 'J', RIGHT);
+  await command(session, 'J', RIGHT);
+  session.poke(TOWNE_MAP + (0x02 * 0x20) + 0x1A, TILE_DOOR_LOCKED);
+  await command(session, 'J', RIGHT);
+  await command(session, 'J', LEFT);
+  for (const [ x, y, player ] of [ [ 0x1C, 0x01, '1' ], [ 0x1D, 0x01, '2' ], [ 0x1E, 0x02, '3' ] ]) {
+    session.poke(PLAYER_XPOS, x as number);
+    session.poke(PLAYER_YPOS, y as number);
+    await command(session, ' ');
+    await command(session, 'G', player);
+  }
+  placeObject(session, 0x1E, TILE_CHEST, 0x1B, 0x02);
+  session.poke(PLAYER_XPOS, 0x1B);
+  session.poke(PLAYER_YPOS, 0x02);
+  await command(session, ' ');
+  await command(session, 'G', '4');
+  for (let player: number = 0; player < 8; player++) {
+    for (const [ address, value ] of [ [ PLAYER_STATUS, STATUS_GOOD ], [ PLAYER_1_STRENGTH, 0x50 ], [ PLAYER_1_DEXTERITY, 0x50 ], [ PLAYER_1_WEAPON, WEAPON_SWORD ] ]) {
+      session.poke(address + (player * PLAYER_SIZE), value);
+    }
+  }
+  placeObject(session, 0x1E, TILE_HUMAN_PRONE, 0x1C, 0x02);
+  session.poke(NPC_MOVEMENT_AI + 0x1E, 0x00);
+  await combatTurn(session, 'A', RIGHT);
+  await fight(session);
+  await walkOffTowne(session, 0xF0, 0x49);
+  session.poke(PLAYER_TRANSPORT, TILE_HORSE_WEST);
+  await command(session, 'E');
+  session.poke(PLAYER_TRANSPORT, TILE_WALK);
+  await enter(session);
+  await leaveTo(session, 0x62, 0x91, 'K');
+  await enter(session);
+  await walkOffTowne(session, 0xBB, 0xA9);
+  await enter(session);
+  await walkOffTowne(session, 0xDA, 0x6B);
+  await enter(session);
+  await walkOffTowne(session, 0xE9, 0xE9);
+  await command(session, 'E');
+  session.poke(BELL_BOOK_CANDLE, ITEMS_OPENED_ABYSS);
+  await enter(session);
+  await leaveTo(session, 0xE9, 0xE9, 'K');
+  session.poke(PLAYER_TRANSPORT, TILE_BALLOON);
+  await command(session, 'E');
+  session.poke(PLAYER_TRANSPORT, TILE_WALK);
+  await command(session, UP);
+  await command(session, 'E');
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -508,4 +758,6 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   monsters,
   shrines,
   'lord-british': lordBritish,
+  commands,
+  townes,
 };

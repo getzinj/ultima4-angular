@@ -13,7 +13,9 @@ import { Ult4 } from './ult4';
 import { COMBAT_ENTRIES, COMBAT_INLINE, COMBAT_LIFTED, COMBAT_TABLES, COMBAT_VARIABLES } from './ult4-combat-data';
 import { ULT4_ENTRIES } from './ult4-data';
 import { SPELL_ENTRIES } from './ult4-spells-data';
+import { COMMAND_ENTRIES } from './ult4-commands-data';
 
+const CE = COMMAND_ENTRIES;
 const C = COMBAT_ENTRIES;
 const CL = COMBAT_LIFTED;
 const CI = COMBAT_INLINE;
@@ -380,7 +382,7 @@ export abstract class Ult4Combat extends Ult4 {
   /** The player's name lit, its weapon, the prompt, and its key. */
   private async playerCommand(): Promise<Exit> {
     await this.m.call(JUMP_TRAINERS.j_active_char_check);
-    await this.m.call(CL.invert_player_name);
+    await this.m.call(CE.invert_player_name);
     await this.sub(0x7239, (): Promise<Exit> => this.printNewline());
     await this.m.call(J.j_printname);
     await this.print(CI.weapon);
@@ -457,8 +459,8 @@ export abstract class Ult4Combat extends Ult4 {
     let exit: Exit = C.combat_end_turn;
 
     this.poke(ZP_MAIN.curr_player, this.lda(this.peek(ZP_COMBAT.curr_player_turn)));
-    await this.m.call(CL.invert_player_name);
-    await this.m.call(CL.tile_effect);
+    await this.m.call(CE.invert_player_name);
+    await this.m.call(CE.tile_effect);
     await this.m.call(J.j_update_status);
     this.lda(this.peek(ZP_MAIN.magic_aura));
     this.cmp(ZP_MAIN.aura_quickness);
@@ -977,7 +979,7 @@ export abstract class Ult4Combat extends Ult4 {
     await this.print(CI.flees);
     this.ldx(this.peek(zp_cur_foe_index));
     this.lda(this.peek(O.combat_foe_tile_type + this.cpu.x));
-    await this.m.call(CL.is_evil);
+    await this.m.call(CE.is_evil);
     if (!this.negative()) {
       await this.raiseVirtue(ROST.virtue_compassion, 0x01);
       await this.raiseVirtue(ROST.virtue_justice, 0x01);
@@ -1047,7 +1049,7 @@ export abstract class Ult4Combat extends Ult4 {
   public async endFoesTurn(): Promise<Exit> {
     let exit: Exit = C.start_players_turn;
 
-    await this.m.call(CL.recover_mp);
+    await this.m.call(CE.recover_mp);
     await this.m.call(J.j_update_view_combat);
     this.inc(ZP_MAIN.turn_counter);
     const over: Exit = await this.sub(0x7645, (): Promise<Exit> => this.checkSceneOver());
@@ -1068,7 +1070,7 @@ export abstract class Ult4Combat extends Ult4 {
   /** ULT4.s steal_food: a gremlin eats 25 of the party's food. */
   public async stealFood(): Promise<Exit> {
     this.lda(0x25);
-    await this.m.call(CL.eat_food);
+    await this.m.call(CE.eat_food);
     await this.m.call(J.j_update_status);
     await this.playsfx(SOUND.sound_alert);
 
@@ -1160,7 +1162,7 @@ export abstract class Ult4Combat extends Ult4 {
   /** ULT4.s combat_players_fled: running from evil costs valour; from the innocent it is compassion and justice. */
   public async combatPlayersFled(): Promise<Exit> {
     this.lda(this.peek(ZP_COMBAT.foe_type_encountered));
-    await this.m.call(CL.is_evil);
+    await this.m.call(CE.is_evil);
     if (this.negative()) {
       await this.print(CI.battle_lost);
       await this.lowerVirtue(ROST.virtue_valor, 0x02);
@@ -1179,7 +1181,7 @@ export abstract class Ult4Combat extends Ult4 {
   public async foesVanquished(): Promise<Exit> {
     await this.print(CI.victory);
     this.lda(this.peek(ZP_COMBAT.foe_type_encountered));
-    await this.m.call(CL.is_evil);
+    await this.m.call(CE.is_evil);
     if (this.negative()) {
       this.ldy(ROST.virtue_valor);
       await this.m.call(J.j_rand);
@@ -1412,7 +1414,7 @@ export abstract class Ult4Combat extends Ult4 {
   /** ULT4.s player_injured: up to a quarter of the foe's power off the player's hit points, in BCD. */
   public async playerInjured(): Promise<Exit> {
     this.poke(O.attack_sprite, this.lda(TILES.tile_attack_red));
-    await this.m.call(CL.invert_player_name);
+    await this.m.call(CE.invert_player_name);
     await this.m.call(J.j_update_view_combat);
     await this.playsfx(SOUND.sound_firewalk);
     this.poke(O.attack_sprite, this.lda(0x00));
@@ -1425,13 +1427,13 @@ export abstract class Ult4Combat extends Ult4 {
     this.cpu.a = this.cpu.lsr(this.cpu.lsr(this.cpu.a));
     await this.sub(0x78FA, (): Promise<Exit> => this.randModulo());
     await this.m.call(E.encode_bcd_value);
-    await this.m.call(CL.dec_player_hp);
+    await this.m.call(CE.dec_player_hp);
     if (this.zero()) {
       await this.m.call(J.j_printname);
       await this.print(CI.is_killed);
       await this.raiseVirtue(ROST.virtue_sacrifice, 0x01);
     }
-    await this.m.call(CL.invert_player_name);
+    await this.m.call(CE.invert_player_name);
     await this.m.call(J.j_update_status);
 
     return null;
@@ -1645,7 +1647,7 @@ export abstract class Ult4Combat extends Ult4 {
     this.cmp(PRTY.mode_combat_wandering);
     if (this.zero()) {
       this.lda(this.peek(ZP_COMBAT.foe_type_encountered));
-      await this.m.call(CL.is_evil);
+      await this.m.call(CE.is_evil);
       if (this.negative() && await this.unhurt()) {
         await this.lowerVirtue(ROST.virtue_valor, 0x02);
         await this.lowerVirtue(ROST.virtue_sacrifice, 0x02);
@@ -1966,7 +1968,7 @@ export abstract class Ult4Combat extends Ult4 {
       this.div16(this.peek(CT.foe_power_table + this.cpu.y));
       this.add(0x01);
       await this.m.call(E.encode_bcd_value);
-      await this.m.call(CL.inc_player_exp);
+      await this.m.call(CE.inc_player_exp);
       await this.print(CI.exp);
       this.lda(this.peek(zp_number1));
       this.cmp(0x10);
@@ -2126,7 +2128,7 @@ export abstract class Ult4Combat extends Ult4 {
           this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(0x00));
         }
       }
-      exit = CL.do_get_chest;
+      exit = CE.do_get_chest;
     }
 
     return exit;
@@ -2136,14 +2138,14 @@ export abstract class Ult4Combat extends Ult4 {
   public async combatCmdReady(): Promise<Exit> {
     await this.print(CI.ready_weapon);
 
-    return CL.ask_weapon;
+    return CE.ask_weapon;
   }
 
 
   public async combatCmdZtats(): Promise<Exit> {
     await this.print(CI.ztats);
 
-    return CL.zstats_for_player;
+    return CE.zstats_for_player;
   }
 
 
@@ -2577,12 +2579,12 @@ export abstract class Ult4Combat extends Ult4 {
 
 
   public async effectPoisonSleep(): Promise<Exit> {
-    await this.m.call(CL.invert_player_name);
+    await this.m.call(CE.invert_player_name);
     this.poke(O.target_x, this.lda(this.peek(PRTY.dest_x)));
     this.poke(O.target_y, this.lda(this.peek(PRTY.dest_y)));
     await this.m.call(J.j_update_view_combat);
     await this.playsfx(SOUND.sound_firewalk);
-    await this.m.call(CL.invert_player_name);
+    await this.m.call(CE.invert_player_name);
     this.poke(O.attack_sprite, this.lda(0x00));
 
     return null;

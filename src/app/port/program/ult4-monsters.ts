@@ -5,10 +5,11 @@
 
 import { CHAR, JUMP_SUBS, MAP_OBJECTS, PRTY, SOUND, TILES, TRAINERS, ZP_COMBAT, ZP_MAIN } from '../../state/symbols';
 import type { Exit } from '../routine';
-import { COMBAT_LIFTED } from './ult4-combat-data';
 import { MONSTER_INLINE, MONSTER_LIFTED } from './ult4-monsters-data';
 import { Ult4Spells } from './ult4-spells';
+import { COMMAND_ENTRIES } from './ult4-commands-data';
 
+const CE = COMMAND_ENTRIES;
 const MI = MONSTER_INLINE;
 const ML = MONSTER_LIFTED;
 const J = JUMP_SUBS;
@@ -38,7 +39,7 @@ const WHIRLPOOL_Y: number = 0x4E;
 type Sailing = 'e_w' | 'n_s' | 'turn_or_sail';
 
 
-export class Ult4Monsters extends Ult4Spells {
+export abstract class Ult4Monsters extends Ult4Spells {
   // --- spawning (ULT4.s:4790-4890) ----------------------------------------------------------
 
   public async spawnMonsters(): Promise<Exit> {
@@ -271,7 +272,7 @@ export class Ult4Monsters extends Ult4Spells {
       this.poke(ZP_MAIN.temp_y, this.lda(this.peek(O.object_ypos + this.cpu.x)));
       this.dropReturn();
       this.dropReturn();
-      exit = ML.do_attack;
+      exit = CE.do_attack;
     }
 
     return exit;
@@ -524,7 +525,7 @@ export class Ult4Monsters extends Ult4Spells {
     if (!this.zero()) {
       this.cmp(TILES.tile_twister);
       if (!this.zero()) {
-        await this.m.call(COMBAT_LIFTED.is_evil);
+        await this.m.call(CE.is_evil);
         if (this.negative()) {
           toward = true;
         } else {
@@ -701,7 +702,7 @@ export class Ult4Monsters extends Ult4Spells {
     this.poke(PRTY.player_xpos, this.lda(WHIRLPOOL_X));
     this.poke(PRTY.player_ypos, this.lda(WHIRLPOOL_Y));
     await this.playsfx(SOUND.sound_drown);
-    await this.m.call(ML.damage_party);
+    await this.m.call(CE.damage_party);
     this.ldx(this.peek(zp_save_reg1));
     this.poke(PRTY.player_transport, this.lda(TILES.tile_ship_west));
     await this.m.call(J.j_player_teleport);
@@ -718,7 +719,7 @@ export class Ult4Monsters extends Ult4Spells {
     await this.m.call(J.j_update_view);
     await this.playsfx(SOUND.sound_twister);
     for (let blow: number = 0; blow < 4; blow++) {
-      await this.m.call(ML.damage_party);
+      await this.m.call(CE.damage_party);
     }
     this.poke(PRTY.player_transport, this.lda(this.cpu.pull()));
     this.ldx(this.peek(zp_save_reg1));
@@ -746,7 +747,7 @@ export class Ult4Monsters extends Ult4Spells {
       this.cpu.push(this.cpu.a);
       this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(TILES.tile_attack_red));
       await this.m.call(J.j_animate_view);
-      await this.m.call(ML.damage_party);
+      await this.m.call(CE.damage_party);
       await this.m.call(J.j_gettile_opposite);
       this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(this.cpu.pull()));
     }

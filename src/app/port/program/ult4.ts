@@ -14,7 +14,9 @@ import type { IInlineData } from '../inline-data';
 import { PortProgram } from '../port-program';
 import type { Exit } from '../routine';
 import { ULT4_ENTRIES, ULT4_INLINE, ULT4_LIFTED, ULT4_TABLES, ULT4_VARIABLES } from './ult4-data';
+import { COMMAND_ENTRIES } from './ult4-commands-data';
 
+const CE = COMMAND_ENTRIES;
 const E = ULT4_ENTRIES;
 const L = ULT4_LIFTED;
 const I = ULT4_INLINE;
@@ -55,6 +57,8 @@ export abstract class Ult4 extends PortProgram {
   public abstract checkWaterHazards(): Promise<Exit>;
   public abstract spawnMonsters(): Promise<Exit>;
   public abstract mobsAct(): Promise<Exit>;
+  /** Ult4Commands's tile_effect, which drops the turn's return for the bridge trolls' fight. */
+  public abstract tileEffect(): Promise<Exit>;
 
 
   // --- calls and jumps ----------------------------------------------------------------------
@@ -158,7 +162,7 @@ export abstract class Ult4 extends PortProgram {
       this.lda(0x00);
       this.poke(PRTY.game_mode, this.cpu.a);
       this.poke(ZP_MAIN.wind_direction, this.cpu.a);
-      await this.m.call(L.load_dungeon);
+      await this.m.call(CE.load_dungeon);
       exit = E.cmd_done;
     } else {
       this.lda(0x00);
@@ -182,15 +186,16 @@ export abstract class Ult4 extends PortProgram {
   /** ULT4.s next_turn: the view, what the tile does, and the prompt for a command. */
   public async nextTurn(): Promise<Exit> {
     await this.m.call(J.j_update_view);
-    await this.m.call(L.tile_effect);
-    await this.m.call(L.anyone_awake);
-    let exit: Exit;
+    let exit: Exit = await this.sub(0x40C8, (): Promise<Exit> => this.tileEffect());
 
-    if (this.negative()) {
-      exit = E.cmd_timeout;
-    } else {
-      await this.print(I.prompt);
-      exit = await this.command();
+    if (exit == null) {
+      await this.m.call(CE.anyone_awake);
+      if (this.negative()) {
+        exit = E.cmd_timeout;
+      } else {
+        await this.print(I.prompt);
+        exit = await this.command();
+      }
     }
 
     return exit;
@@ -215,7 +220,7 @@ export abstract class Ult4 extends PortProgram {
       [ CHAR.char_slash, E.cmd_direction_down ],
       [ CHAR.char_left_arrow, E.cmd_direction_left ],
       [ CHAR.char_right_arrow, E.cmd_direction_right ],
-      [ CHAR.char_ctrl_V, L.cmd_music ],
+      [ CHAR.char_ctrl_V, CE.cmd_music ],
     ];
     let exit: Exit = null;
 
@@ -1272,7 +1277,7 @@ export abstract class Ult4 extends PortProgram {
           this.poke(PRTY.britannia_x, this.lda(PLACES.xpos_hythloth));
           this.poke(PRTY.britannia_y, this.lda(PLACES.ypos_hythloth));
           this.poke(PRTY.current_location, this.lda(PRTY.loc_dng_hythloth));
-          exit = L.begin_dng_load;
+          exit = CE.begin_dng_load;
         } else {
           await this.print(I.first_floor);
           exit = await this.changeFloor(CHAR.char_A);
@@ -1288,7 +1293,7 @@ export abstract class Ult4 extends PortProgram {
   private async changeFloor(letter: number): Promise<Exit> {
     await this.musicCtl(MUSIC.music_off);
     this.lda(letter);
-    await this.m.call(L.load_letter_location);
+    await this.m.call(CE.load_letter_location);
     await this.musicCtl(MUSIC.music_castle);
 
     return E.cmd_done;
@@ -1385,7 +1390,7 @@ export abstract class Ult4 extends PortProgram {
 
   /** ULT4.s cmd_done: the ship mends, the party heals or suffers, eats, and the world moves. */
   public async cmdDone(): Promise<Exit> {
-    await this.m.call(L.anyone_awake);
+    await this.m.call(CE.anyone_awake);
     let exit: Exit;
 
     if (this.lda(this.peek(PRTY.game_mode)) & 0x80) {
@@ -1426,19 +1431,19 @@ export abstract class Ult4 extends PortProgram {
         this.cmp(ROST.status_Poison);
         if (this.zero()) {
           this.lda(0x02);
-          await this.m.call(L.dec_player_hp);
-          await this.m.call(L.invert_player_name);
+          await this.m.call(CE.dec_player_hp);
+          await this.m.call(CE.invert_player_name);
           await this.playsfx(SOUND.sound_damage);
-          await this.m.call(L.invert_player_name);
+          await this.m.call(CE.invert_player_name);
         }
       }
     } while (this.dec(ZP_MAIN.curr_player) !== 0);
     this.lda(this.peek(PRTY.party_size));
-    await this.m.call(L.eat_food);
+    await this.m.call(CE.eat_food);
     if (!this.carry()) {
-      await this.m.call(L.starving);
+      await this.m.call(CE.starving);
     }
-    await this.m.call(L.recover_mp);
+    await this.m.call(CE.recover_mp);
     let exit: Exit = null;
 
     if (!(this.lda(this.peek(PRTY.terrain_occlusion)) & 0x80)) {
@@ -1505,7 +1510,7 @@ export abstract class Ult4 extends PortProgram {
       await this.print(I.dark);
     }
     await this.m.call(J.j_update_status);
-    await this.m.call(L.close_open_door);
+    await this.m.call(CE.close_open_door);
 
     return E.next_turn;
   }
@@ -1836,7 +1841,7 @@ export abstract class Ult4 extends PortProgram {
         this.ldx(0xA0);
         await this.m.call(J.j_playsfx);
         this.poke(PRTY.current_location, this.lda(PRTY.loc_shrine_sacrifice));
-        exit = L.load_shrine;
+        exit = CE.load_shrine;
       } else {
         exit = await this.gateToGate();
       }

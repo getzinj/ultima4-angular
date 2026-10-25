@@ -34,24 +34,11 @@ export const ULT4_TABLES = {
 
 /** The labels the ported routines jump to that are still lifted. */
 export const ULT4_LIFTED = {
-  load_dungeon: 0x5139,
-  begin_dng_load: 0x5123,
-  load_shrine: 0x524C,
-  load_letter_location: 0x52F2,
-  tile_effect: 0x64C5,
-  starving: 0x663B,
-  recover_mp: 0x666A,
-  eat_food: 0x66C4,
   dng_check_attacked: 0x6E79,
   do_dungeon_room: 0x6F0F,
   combat_cmd_done: 0x72B7,
   dng_can_advance: 0x80E0,
   dng_can_retreat: 0x80F2,
-  close_open_door: 0x8102,
-  anyone_awake: 0x849D,
-  dec_player_hp: 0x85B4,
-  invert_player_name: 0x84F7,
-  cmd_music: 0x5D42,
 } as const;
 
 /** ULT4's own entries the port takes over: every label lifted code jumps to or calls. */

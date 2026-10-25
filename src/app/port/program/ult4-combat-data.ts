@@ -34,17 +34,7 @@ export const COMBAT_TABLES = {
 
 /** The labels combat jumps to or calls that are still lifted. */
 export const COMBAT_LIFTED = {
-  do_get_chest: 0x54A3,
-  ask_weapon: 0x5A7D,
-  zstats_for_player: 0x5ED8,
-  tile_effect: 0x64C5,
-  recover_mp: 0x666A,
-  eat_food: 0x66C4,
   combat_exit_room: 0x7701,
-  invert_player_name: 0x84F7,
-  dec_player_hp: 0x85B4,
-  inc_player_exp: 0x8638,
-  is_evil: 0x87BA,
 } as const;
 
 /** Combat's entries: every label lifted code jumps to or calls, and the ones its own code jumps to. */

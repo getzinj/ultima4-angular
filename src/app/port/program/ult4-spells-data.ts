@@ -16,13 +16,6 @@ export const SPELL_TABLES = {
   spell_mp_cost: 0x49AC,
 } as const;
 
-/** The labels the spells jump to or call that are still lifted. */
-export const SPELL_LIFTED = {
-  try_get_chest: 0x542E,
-  inc_player_hp: 0x85EE,
-  shake_screen: 0x86EB,
-} as const;
-
 /** The spells' entries: every label lifted code jumps to or calls, and the ones their own code jumps to. */
 export const SPELL_ENTRIES = {
   cmd_cast: 0x48BD,
