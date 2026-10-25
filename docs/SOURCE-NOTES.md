@@ -430,3 +430,25 @@ on the developer's machine. The images, and anything built from them, stay out o
   are not ported.
 - **Super-Packer's dead code.** In a pattern, a run with no pattern bytes left first resets the
   pointer to the pattern's start, and then reads the run either way; the port keeps both.
+
+## Phase 9a-1 findings
+
+- **ULT4 is ported in part.** It is 9,364 lines, and the plan spreads it over 9a to 11, so its native
+  module keeps the lifted code (`partial: true`) and takes over only the labels ported. Lifted code
+  that runs into a ported label stops there and the native routine runs, since ownership is per
+  address; lifted code that branches into the middle of a ported routine still runs the lifted
+  copy, which stays correct.
+- **Routines end in jumps.** Most commands end `jmp cmd_done`, and the turn loops through
+  `next_turn` → command → `cmd_done` → `end_turn` → `next_turn` by JMPs, so a native entry returns
+  where control goes next and the machine dispatches it; nothing nests, however long the game runs.
+- **`pla` / `pla` leaves A behind.** `@try_move`, `try_walk_exit` and `check_enter_moongate` drop
+  their caller's return address before jumping on; A is left holding its high byte, with its
+  flags, and `try_walk_exit` jumps to `leave_to_world` with it.
+- **`is_wind_favorable` reads zero page $02** (`eor $02`, a SIZE_OPT that meant `eor #$02`), which
+  is `tile_xpos`, so whether a ship sails before the wind depends on where it is on the map.
+- **A blocked move empties the type-ahead buffer** (`done_blocked` clears `key_buf_len`), so a
+  scenario that presses keys faster than the game takes them loses them; `transport` waits for
+  `next_turn` before each key.
+- **The differential harness needs a sane world** for ULT4: the music silenced as INIT leaves it
+  (or SEL's wait for the tune never ends), a party that is alive (or `anyone_awake` runs
+  `run_file_dead`), and the disk asked for already in the drive (or `request_disk` waits for ESC).

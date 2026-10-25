@@ -408,4 +408,46 @@ describe('LiftedMachine', (): void => {
       await expect(jsr(machine, 0x5000)).rejects.toThrow('no lifted code at $5000');
     });
   });
+
+  describe('a native module ported in part', (): void => {
+    // INIT with only its store at $4005 ported: it stores $77 instead, and goes on at $4007.
+    const PART: INativeModule = {
+      disk: 'program',
+      name: 'INIT',
+      load: 0x4000,
+      partial: true,
+      install: (): void => undefined,
+      entries: new Map([
+        [ 0x4005, async (machine: LiftedMachine): Promise<void> => {
+          machine.write(SEEN, 0x77);
+          machine.cpu.pc = 0x4007;
+          await Promise.resolve();
+        } ],
+      ]),
+    };
+
+    function partly(): LiftedMachine {
+      const machine: LiftedMachine = new LiftedMachine(disks(), [ INIT ], null, [ PART ]);
+
+      machine.boot();
+
+      return machine;
+    }
+
+    it('runs its entry in place of the lifted code there', async (): Promise<void> => {
+      const machine: LiftedMachine = partly();
+
+      await machine.press(0x41);
+
+      expect(machine.read(SEEN)).toBe(0x77);
+    });
+
+    it('leaves the rest to the lifted module', async (): Promise<void> => {
+      const machine: LiftedMachine = partly();
+
+      await machine.press(0x41);
+
+      expect(machine.moduleAt(0x4007)?.name).toBe('INIT');
+    });
+  });
 });

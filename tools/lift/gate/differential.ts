@@ -23,6 +23,12 @@ export interface ICase {
 
   /** A key the keyboard delivers after some polls. */
   readonly key?: (random: Random) => { readonly code: number; readonly polls: number } | null;
+
+  /** Load ULT4 too, for its routines. */
+  readonly ult4?: boolean;
+
+  /** Where a routine that jumps on rather than returning is stopped: the turn's next steps. */
+  readonly stops?: readonly number[] | ((machine: LiftedMachine) => readonly number[]);
 }
 
 export interface IOutcome {
@@ -78,6 +84,9 @@ function prepare(natives: readonly INativeModule[], seed: number, testCase: ICas
   machine.bload('program', 'SUBS');
   machine.bload('program', 'TBLS', 0xE000);
   machine.bload('underworld', 'DNGD');
+  if (testCase.ult4 === true) {
+    machine.bload('program', 'ULT4');
+  }
   fill(main, 0x0000, 0x0100, random);
   fill(main, 0x0200, 0x0320, random);
   fill(main, 0x2000, 0x4000, random);
@@ -134,9 +143,11 @@ export async function runRoutine(natives: readonly INativeModule[], entry: numbe
   let failure: string | null = null;
 
   machine.maxCyclesPerStep = 50_000_000;
+  const stops: ReadonlySet<number> = new Set<number>((typeof testCase.stops === 'function') ? testCase.stops(machine) : (testCase.stops ?? []));
+
   machine.cpu.pc = entry;
   try {
-    await machine.runUntil((): boolean => machine.cpu.pc === returnTo);
+    await machine.runUntil((): boolean => (machine.cpu.pc === returnTo) || ((machine.cpu.pc !== entry) && stops.has(machine.cpu.pc)));
   } catch (error: unknown) {
     failure = String(error);
   }

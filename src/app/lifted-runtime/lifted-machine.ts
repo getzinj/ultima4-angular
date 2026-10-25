@@ -11,7 +11,8 @@
 //
 // A program ported by hand (an INativeModule) replaces its lifted module: loading it installs the
 // program's variables (over the lifted image, when there is one, so memory still matches the
-// oracle's byte for byte), and control at one of its entries runs the native routine. Native and
+// oracle's byte for byte), and control at one of its entries runs the native routine. One ported
+// in part keeps its lifted module's code, and only its entries run natively. Native and
 // lifted code call each other freely. The machine runs as a coroutine: `runUntil` resumes it, and
 // it stops at the first instruction boundary, or the first checkpoint a native routine reaches,
 // where the condition holds, as the oracle stops between instructions.
@@ -635,6 +636,9 @@ export class LiftedMachine implements IBus {
           this.copyIn(address, this.images[index]);
         }
         this.natives[nativeIndex].install(this);
+        if ((index >= 0) && (this.natives[nativeIndex].partial === true)) {
+          this.claim(index);
+        }
         this.claimNative(nativeIndex);
       } else {
         this.copyIn(address, this.images[index]);

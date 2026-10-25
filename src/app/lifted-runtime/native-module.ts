@@ -21,4 +21,7 @@ export interface INativeModule {
 
   /** Entries other programs store an opcode over, which the routine there reads to decide what to do. */
   readonly opcodeStores?: readonly number[];
+
+  /** Ported in part: the lifted module still runs everything but these entries. */
+  readonly partial?: boolean;
 }

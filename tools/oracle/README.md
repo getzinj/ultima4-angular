@@ -51,10 +51,14 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds three, written from the remaster's source:
+`scenarios.py` holds four, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
+- **`transport`:** a new game moved, before ULT4 starts, to (E7,88) by Britain, with a horse and a
+  ship placed beside it (`Session.poke`): mount, gallop into the shallows, dismount, board the ship,
+  turn and sail against the wind. Each key waits for the game to come back to `next_turn`, so the
+  type-ahead buffer never holds one (a blocked move empties it).
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

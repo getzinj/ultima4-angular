@@ -1,18 +1,19 @@
 import { syntheticDiskSet } from '../../data/testing/synthetic-disks';
 import { LiftedMachine } from '../../lifted-runtime/lifted-machine';
+import type { INativeModule } from '../../lifted-runtime/native-module';
 import { TABLES } from '../../state/symbols';
 import { SUBS_MODULE } from '../program/subs-module';
 
-// A machine with the ported SUBS loaded and nothing lifted: what the specs run the port on. The
-// hi-res row tables are computed, as TBLS holds them, and the font is a stand-in whose rows are
-// the glyph number.
+// A machine with the ported SUBS loaded, and any other ported programs, and nothing lifted: what
+// the specs run the port on. The hi-res row tables are computed, as TBLS holds them, and the font
+// is a stand-in whose rows are the glyph number.
 
 export const RETURN: number = 0xC0FE;
 export const INLINE: number = 0x9000;
 
 
-export function subsMachine(): LiftedMachine {
-  const machine: LiftedMachine = new LiftedMachine(syntheticDiskSet(), [], null, [ SUBS_MODULE ]);
+export function subsMachine(others: readonly INativeModule[] = []): LiftedMachine {
+  const machine: LiftedMachine = new LiftedMachine(syntheticDiskSet(), [], null, [ SUBS_MODULE, ...others ]);
   const high: Uint8Array = machine.apple.languageCard.contents('high');
 
   for (let row: number = 0; row < 192; row++) {

@@ -12,6 +12,9 @@ LEFT, RIGHT, UP, DOWN = 0x08, 0x15, 0x0B, 0x0A
 LOAD_ADDRESSES = {'BOOT': 0x6000, 'NEWGAME': 0x6400, 'ULT4': 0x4000, 'SUBS': 0x0800}
 MODE_WORLD = 0x01
 GAME_MODE = 0x0B
+PLAYER_XPOS, PLAYER_YPOS = 0x00, 0x01
+OBJECT_TILE_SPRITE, OBJECT_XPOS, OBJECT_YPOS, OBJECT_TILE_TYPE = 0xEE00, 0xEE20, 0xEE40, 0xEE60
+TILE_SHIP_WEST, TILE_HORSE_WEST = 0x10, 0x14
 
 
 class ScenarioError(Exception):
@@ -38,6 +41,9 @@ class Session:
 
     def memory_is(self, address, value):
         return lambda: self.machine.memory.ram[address] == value
+
+    def poke(self, address, value):
+        self.machine.memory[address] = value
 
     def press(self, key, polls=0):
         self.machine.press(ord(key) if isinstance(key, str) else key, polls)
@@ -106,8 +112,36 @@ def first_steps(session):
     session.checkpoint()
 
 
+def place_object(session, slot, tile, x, y):
+    for table, value in ((OBJECT_TILE_TYPE, tile), (OBJECT_TILE_SPRITE, tile), (OBJECT_XPOS, x), (OBJECT_YPOS, y)):
+        session.poke(table + slot, value)
+
+
+def transport(session):
+    """A new game moved, before ULT4 starts, to (E7,88) by Britain, with a horse to the north and a
+    ship to the west: ride, gallop into the shallows, dismount, board the ship and sail."""
+    session.run_until(session.dos_seen('BRUN BOOT'))
+    session.press_until(['I'], session.entered('BOOT', 'input_text'), limit=2000)
+    session.type('AVATAR\n')
+    session.press('M')
+    session.press_until(['A', ESC], session.dos_seen('BRUN ULT4'), limit=400)
+    session.poke(PLAYER_XPOS, 0xE7)
+    session.poke(PLAYER_YPOS, 0x88)
+    place_object(session, 0x1D, TILE_HORSE_WEST, 0xE7, 0x87)
+    place_object(session, 0x1E, TILE_SHIP_WEST, 0xE6, 0x88)
+    session.press_until([ESC], session.memory_is(GAME_MODE, MODE_WORLD), limit=20)
+    session.idle(20)
+    session.checkpoint()
+    for key in ('B', '1', ' ', UP, 'B', 'Y', RIGHT, DOWN, 'Y', LEFT, 'X', LEFT, LEFT, LEFT, 'B', LEFT, DOWN, DOWN, RIGHT, RIGHT, UP, UP, LEFT):
+        session.press(key, polls=10)
+        session.run_until(session.entered('ULT4', 'next_turn'))
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
     'first-steps': first_steps,
+    'transport': transport,
 }

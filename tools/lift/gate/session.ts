@@ -12,6 +12,14 @@ const UP: number = 0x0B;
 const DOWN: number = 0x0A;
 const MODE_WORLD: number = 0x01;
 const GAME_MODE: number = 0x0B;
+const PLAYER_XPOS: number = 0x00;
+const PLAYER_YPOS: number = 0x01;
+const OBJECT_TILE_SPRITE: number = 0xEE00;
+const OBJECT_XPOS: number = 0xEE20;
+const OBJECT_YPOS: number = 0xEE40;
+const OBJECT_TILE_TYPE: number = 0xEE60;
+const TILE_SHIP_WEST: number = 0x10;
+const TILE_HORSE_WEST: number = 0x14;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -57,6 +65,11 @@ export class Session {
 
   public memoryIs(address: number, value: number): Condition {
     return (): boolean => this.machine.apple.read(address) === value;
+  }
+
+
+  public poke(address: number, value: number): void {
+    this.machine.write(address, value);
   }
 
 
@@ -144,8 +157,42 @@ export async function firstSteps(session: Session): Promise<void> {
 }
 
 
+function placeObject(session: Session, slot: number, tile: number, x: number, y: number): void {
+  for (const [ table, value ] of [ [ OBJECT_TILE_TYPE, tile ], [ OBJECT_TILE_SPRITE, tile ], [ OBJECT_XPOS, x ], [ OBJECT_YPOS, y ] ]) {
+    session.poke(table + slot, value);
+  }
+}
+
+
+/**
+ * A new game moved, before ULT4 starts, to (E7,88) by Britain, with a horse to the north and a
+ * ship to the west: ride, gallop into the shallows, dismount, board the ship and sail.
+ */
+export async function transport(session: Session): Promise<void> {
+  await session.machine.runUntil(session.dosSeen('BRUN BOOT'));
+  await session.pressUntil([ 'I' ], session.entered('BOOT', 'input_text'), 2000);
+  await session.type('AVATAR\n');
+  await session.press('M');
+  await session.pressUntil([ 'A', ESC ], session.dosSeen('BRUN ULT4'), 400);
+  session.poke(PLAYER_XPOS, 0xE7);
+  session.poke(PLAYER_YPOS, 0x88);
+  placeObject(session, 0x1D, TILE_HORSE_WEST, 0xE7, 0x87);
+  placeObject(session, 0x1E, TILE_SHIP_WEST, 0xE6, 0x88);
+  await session.pressUntil([ ESC ], session.memoryIs(GAME_MODE, MODE_WORLD), 20);
+  await session.idle(20);
+  session.checkpoint();
+  for (const key of [ 'B', '1', ' ', UP, 'B', 'Y', RIGHT, DOWN, 'Y', LEFT, 'X', LEFT, LEFT, LEFT, 'B', LEFT, DOWN, DOWN, RIGHT, RIGHT, UP, UP, LEFT ]) {
+    await session.press(key, 10);
+    await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+  }
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
   'first-steps': firstSteps,
+  transport,
 };
