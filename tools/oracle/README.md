@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds five, written from the remaster's source:
+`scenarios.py` holds six, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -63,6 +63,10 @@ Monitor would have left, which nothing here reproduces and the game does not use
   moons set to send it to another, two gems and the horn: search where nothing is, step through
   the gate, peer at a gem, use the horn and the bell, camp, then die and wake in Lord British's
   castle. Each key waits for the type-ahead buffer to empty (SPACE flushes it).
+- **`combat`:** a new game by Britain with a strong avatar, in three fights: a sword against two
+  orcs, waiting for them and killing both; a bow against two pythons, killing one and wounding the
+  other, poisoned, then fleeing off the arena's edge; and, on a ship, a bow against a pirate ship's
+  crew. Each turn's keys wait for the next player's turn, or the next turn in Britannia.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

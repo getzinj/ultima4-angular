@@ -13,6 +13,8 @@ const BRITANNIA_FILES: readonly string[] = [
   'CAMP', 'CONB', 'CONC', 'COND', 'CONE', 'CONF', 'CONG', 'CONH', 'CONI', 'CONO', 'CONP', 'CONR', 'CONS',
   'CONT', 'HELP', 'HOLE', 'LORD', 'MIX', 'MUSB', 'MUSO', 'SAVE', 'SEAR', 'SHRI', 'SHRN', 'TMAP', 'USE',
 ];
+/** The arenas a fight in a towne loads, the inn's among them. */
+const TOWNE_ARENAS: readonly string[] = [ 'CONA', 'CONB', 'CONC', 'COND', 'CONF', 'CONG', 'CONH', 'CONO', 'CONR', 'CONS' ];
 const SLIDES: readonly string[] = [ 'FAIR', 'GYPS', 'LOOK', 'PRTL', 'TABL', 'TREE', 'WAGN' ];
 
 
@@ -43,6 +45,11 @@ function blankSlide(): Uint8Array {
   }
 
   return Uint8Array.from(stream);
+}
+
+
+function towneArenas(): Files {
+  return Object.fromEntries(TOWNE_ARENAS.map((name: string): [ string, readonly [ number, Uint8Array ] ] => [ name, [ 0x8800, new Uint8Array(16) ] ]));
 }
 
 
@@ -89,7 +96,7 @@ export function smokeDisks(): DiskSet {
   return {
     program: disk('program', program),
     britannia: disk('britannia', britannia),
-    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], 'MAP@': [ 0x8B00, new Uint8Array(0x500) ] }),
+    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], 'MAP@': [ 0x8B00, new Uint8Array(0x500) ], ...towneArenas() }),
     underworld: disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ] }),
   };
 }

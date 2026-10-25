@@ -479,3 +479,27 @@ on the developer's machine. The images, and anything built from them, stay out o
   `LiftedMachine.insertDisk` now puts the disk the random world asks for in drive 1, the smoke
   towne disk has a blank `MAP@` for SAVE, and a case can type a sequence of keys (USE's item name,
   the ESCs `request_disk` waits for).
+
+## Phase 9b-1 findings
+
+- **9b is split.** Combat is about 2,500 lines of ULT4, spells about 860 and wandering monsters
+  about 1,000, so 9b-1 ports the fight itself and 9b-2 the monsters that start one and the spells
+  cast in one. Dungeon rooms' exits (`combat_exit_room`) wait for the dungeons, phase 11.
+- **Several routines read the caller's N flag, not A**: `foe_index_from_tile`,
+  `print_target_name`, `collide_terrain` and `math_abs` branch on `bpl` first, so their ports test
+  the flag the caller's last `lda` left. In `set_foe_count`, townsfolk reach `foe_index_from_tile`
+  with N clear and A 0, and read index $24 past `foe_max_count`'s monsters (a bug the remaster
+  notes and keeps).
+- **Armour is read through the wrong index.** `do_foe_melee_attack` does `lda #player_armour`
+  then `lda (ptr1),y`, so the armour it weighs is the byte at whatever Y `j_get_stats_ptr` left,
+  not `player_armour`. Kept.
+- **Two more escapes.** `check_scene_over` drops its caller's return for victory or flight, and
+  `do_jinx` pulls the foe index it saved and then its caller's return when a jinxed foe strikes
+  another; both port as an Exit after the pulls.
+- **The differential harness needed a sane battle.** TRAINERS has to be loaded (begin_combat calls
+  its `j_active_char_*` hooks), the arena's disk in the drive, the foe slots cleared before
+  `initialize_arena` (or it loops looking for a free one), and a missile's deltas never both zero
+  (or it never leaves its square); a case stops only at the labels a step jumps to, never at the
+  ones it calls, since the port calls those without dispatching. The smoke towne disk gained its
+  arenas (`CONA`, the inn's, among them).
+

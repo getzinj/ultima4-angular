@@ -21,6 +21,10 @@ TILE_MOONGATE_FULL = 0x43
 GEMS, HORN = 0xED09, 0xED15
 PLAYER_1_STATUS, STATUS_DEAD = 0xEC12, 0xC4
 KEY_BUF_LEN = 0xB8
+PLAYER_TRANSPORT = 0x0E
+PLAYER_1_STRENGTH, PLAYER_1_DEXTERITY, PLAYER_1_WEAPON = 0xEC13, 0xEC14, 0xEC1E
+WEAPON_SWORD, WEAPON_BOW = 0x06, 0x07
+TILE_PIRATE, TILE_ORC, TILE_PYTHON = 0x80, 0xC0, 0xCC
 
 
 class ScenarioError(Exception):
@@ -199,10 +203,60 @@ def transport(session):
     session.checkpoint()
 
 
+def combat_turn(session, *keys):
+    """One turn's keys, each 10 polls after the game has taken the last, and on to the next player's
+    turn in combat or, when the fight is over, the next turn in Britannia."""
+    for key in keys:
+        session.press(key, polls=10)
+        session.run_until(session.memory_is(KEY_BUF_LEN, 0))
+    player_turn = session.entered('ULT4', 'combat_take_turn')
+    next_turn = session.entered('ULT4', 'next_turn')
+    session.run_until(lambda: player_turn() or next_turn())
+
+
+def combat(session):
+    """A new game by Britain with a strong avatar, in three fights: a sword against two orcs to the
+    north, waiting for them and killing both; a bow against two pythons to the east, killing one,
+    wounding the other, poisoned, and fleeing off the arena's south edge; and on a ship, a bow
+    against the crew of a pirate ship to the west."""
+    new_game_at(session, 0xE7, 0x88)
+    session.poke(PLAYER_1_STRENGTH, 0x50)
+    session.poke(PLAYER_1_DEXTERITY, 0x50)
+    session.poke(PLAYER_1_WEAPON, WEAPON_SWORD)
+    place_object(session, 0x00, TILE_ORC, 0xE7, 0x87)
+    in_britannia(session)
+    combat_turn(session, 'A', UP)
+    for _ in range(8):
+        combat_turn(session, ' ')
+    for _ in range(5):
+        combat_turn(session, 'A', UP)
+    place_object(session, 0x01, TILE_PYTHON, 0xE8, 0x88)
+    session.poke(PLAYER_1_WEAPON, WEAPON_BOW)
+    combat_turn(session, 'A', RIGHT)
+    for _ in range(6):
+        combat_turn(session, ' ')
+    for _ in range(3):
+        combat_turn(session, 'A', UP)
+    for _ in range(4):
+        combat_turn(session, DOWN)
+    session.poke(PLAYER_XPOS, 0xE6)
+    session.poke(PLAYER_YPOS, 0x88)
+    session.poke(PLAYER_TRANSPORT, TILE_SHIP_WEST)
+    place_object(session, 0x02, TILE_PIRATE, 0xE5, 0x88)
+    combat_turn(session, 'A', LEFT)
+    for _ in range(4):
+        combat_turn(session, ' ')
+    for _ in range(5):
+        combat_turn(session, 'A', UP)
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
     'first-steps': first_steps,
     'transport': transport,
     'britannia': britannia,
+    'combat': combat,
 }

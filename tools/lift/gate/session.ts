@@ -33,6 +33,15 @@ const HORN: number = 0xED15;
 const PLAYER_1_STATUS: number = 0xEC12;
 const STATUS_DEAD: number = 0xC4;
 const KEY_BUF_LEN: number = 0xB8;
+const PLAYER_TRANSPORT: number = 0x0E;
+const PLAYER_1_STRENGTH: number = 0xEC13;
+const PLAYER_1_DEXTERITY: number = 0xEC14;
+const PLAYER_1_WEAPON: number = 0xEC1E;
+const WEAPON_SWORD: number = 0x06;
+const WEAPON_BOW: number = 0x07;
+const TILE_PIRATE: number = 0x80;
+const TILE_ORC: number = 0xC0;
+const TILE_PYTHON: number = 0xCC;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -263,10 +272,68 @@ export async function transport(session: Session): Promise<void> {
 }
 
 
+/**
+ * One turn's keys, each 10 polls after the game has taken the last, and on to the next player's
+ * turn in combat or, when the fight is over, the next turn in Britannia.
+ */
+async function combatTurn(session: Session, ...keys: readonly Key[]): Promise<void> {
+  const playerTurn: Condition = session.entered('ULT4', 'combat_take_turn');
+  const nextTurn: Condition = session.entered('ULT4', 'next_turn');
+
+  for (const key of keys) {
+    await session.press(key, 10);
+    await session.machine.runUntil(session.memoryIs(KEY_BUF_LEN, 0));
+  }
+  await session.machine.runUntil((): boolean => playerTurn() || nextTurn());
+}
+
+
+async function combatTurns(session: Session, count: number, ...keys: readonly Key[]): Promise<void> {
+  for (let turn: number = 0; turn < count; turn++) {
+    await combatTurn(session, ...keys);
+  }
+}
+
+
+/**
+ * A new game by Britain with a strong avatar, in three fights: a sword against two orcs to the
+ * north, waiting for them and killing both; a bow against two pythons to the east, killing one,
+ * wounding the other, poisoned, and fleeing off the arena's south edge; and on a ship, a bow
+ * against the crew of a pirate ship to the west.
+ */
+export async function combat(session: Session): Promise<void> {
+  await newGameAt(session, 0xE7, 0x88);
+  session.poke(PLAYER_1_STRENGTH, 0x50);
+  session.poke(PLAYER_1_DEXTERITY, 0x50);
+  session.poke(PLAYER_1_WEAPON, WEAPON_SWORD);
+  placeObject(session, 0x00, TILE_ORC, 0xE7, 0x87);
+  await inBritannia(session);
+  await combatTurn(session, 'A', UP);
+  await combatTurns(session, 8, ' ');
+  await combatTurns(session, 5, 'A', UP);
+  placeObject(session, 0x01, TILE_PYTHON, 0xE8, 0x88);
+  session.poke(PLAYER_1_WEAPON, WEAPON_BOW);
+  await combatTurn(session, 'A', RIGHT);
+  await combatTurns(session, 6, ' ');
+  await combatTurns(session, 3, 'A', UP);
+  await combatTurns(session, 4, DOWN);
+  session.poke(PLAYER_XPOS, 0xE6);
+  session.poke(PLAYER_YPOS, 0x88);
+  session.poke(PLAYER_TRANSPORT, TILE_SHIP_WEST);
+  placeObject(session, 0x02, TILE_PIRATE, 0xE5, 0x88);
+  await combatTurn(session, 'A', LEFT);
+  await combatTurns(session, 4, ' ');
+  await combatTurns(session, 5, 'A', UP);
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
   'first-steps': firstSteps,
   transport,
   britannia,
+  combat,
 };

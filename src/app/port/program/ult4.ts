@@ -50,7 +50,7 @@ export class Ult4 extends PortProgram {
   // --- calls and jumps ----------------------------------------------------------------------
 
   /** A JSR from `site` to a routine of ULT4's own, which may drop this return address and jump. */
-  private async sub(site: number, body: () => Promise<Exit>): Promise<Exit> {
+  protected async sub(site: number, body: () => Promise<Exit>): Promise<Exit> {
     this.cpu.pushWord(site + 2);
     const exit: Exit = await body();
 
@@ -63,24 +63,24 @@ export class Ult4 extends PortProgram {
 
 
   /** `pla` / `pla`: the caller's return address dropped, its high byte left in A. */
-  private dropReturn(): void {
+  protected dropReturn(): void {
     this.cpu.pull();
     this.lda(this.cpu.pull());
   }
 
 
-  private print(block: IInlineData): Promise<void> {
+  protected print(block: IInlineData): Promise<void> {
     return this.callWith(J.j_primm, block);
   }
 
 
-  private async playsfx(sound: number): Promise<void> {
+  protected async playsfx(sound: number): Promise<void> {
     this.lda(sound);
     await this.m.call(J.j_playsfx);
   }
 
 
-  private async musicCtl(tune: number): Promise<void> {
+  protected async musicCtl(tune: number): Promise<void> {
     this.lda(tune);
     await this.m.call(JUMP_SYSTEM.music_ctl);
   }
@@ -267,7 +267,7 @@ export class Ult4 extends PortProgram {
 
   // --- the turn's messages (ULT4.s:282-382) -------------------------------------------------
 
-  private async message(block: IInlineData, exit: Exit): Promise<Exit> {
+  protected async message(block: IInlineData, exit: Exit): Promise<Exit> {
     await this.print(block);
 
     return exit;
@@ -475,7 +475,7 @@ export class Ult4 extends PortProgram {
 
 
   /** @try_move for south, west and east: blocked tiles drop the caller's return and say BLOCKED. */
-  private async tryMove(direction: IDirection, dx: number, dy: number): Promise<Exit> {
+  private async tryStep(direction: IDirection, dx: number, dy: number): Promise<Exit> {
     this.lda(this.peek(direction.tile));
     await this.m.call(J.j_blocked_tile);
     let exit: Exit;
@@ -628,7 +628,7 @@ export class Ult4 extends PortProgram {
         } else if (kind === 'turn') {
           exit = await this.turnShip(TILES.tile_ship_south, 0x43F8, 0x43FB, south.print, true);
         } else {
-          exit = await this.walk(0x43CA, south.print, 0x43D1, 0x43D7, (): Promise<Exit> => this.tryMove(south, 0, 1));
+          exit = await this.walk(0x43CA, south.print, 0x43D1, 0x43D7, (): Promise<Exit> => this.tryStep(south, 0, 1));
           exit = exit ?? this.checkShrineHumility();
         }
       }
@@ -726,7 +726,7 @@ export class Ult4 extends PortProgram {
           if (this.zero()) {
             this.poke(PRTY.player_transport, this.lda(facing));
           }
-          exit = await this.walk(sites.walk[0], direction.print, sites.walk[1], sites.walk[2], (): Promise<Exit> => this.tryMove(direction, sites.dx, 0));
+          exit = await this.walk(sites.walk[0], direction.print, sites.walk[1], sites.walk[2], (): Promise<Exit> => this.tryStep(direction, sites.dx, 0));
           exit = exit ?? E.cmd_done;
         }
       }
@@ -1567,7 +1567,7 @@ export class Ult4 extends PortProgram {
   // --- the overlays (ULT4.s:2829-2862, 3164-3200, 3395-3408, 3562-3581, 8886-8911, 8991-8999) ---
 
   /** A JSR from `site` to code that may not return to it, such as an overlay, pushing the 6502's return address. */
-  private jsrOut(site: number, address: number): Promise<void> {
+  protected jsrOut(site: number, address: number): Promise<void> {
     return this.m.callInline(address, site + 3, 0);
   }
 

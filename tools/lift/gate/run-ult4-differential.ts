@@ -9,10 +9,11 @@ import { differences, runRoutine } from './differential';
 import type { ICase, IOutcome } from './differential';
 import { OVERLAY_CASES } from './overlay-cases';
 import type { IOverlayCase } from './overlay-cases';
+import { COMBAT_CASES } from './combat-cases';
 import { ULT4_CASES } from './ult4-cases';
 
 const CASES: Readonly<Record<string, readonly [ number, ICase, readonly INativeModule[] ]>> = {
-  ...Object.fromEntries(Object.entries(ULT4_CASES).map(([ name, [ entry, testCase ] ]: [ string, readonly [ number, ICase ] ]):
+  ...Object.fromEntries(Object.entries({ ...ULT4_CASES, ...COMBAT_CASES }).map(([ name, [ entry, testCase ] ]: [ string, readonly [ number, ICase ] ]):
     [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ entry, testCase, [ ULT4_MODULE ] ] ])),
   ...Object.fromEntries(Object.entries(OVERLAY_CASES).map(([ name, overlay ]: [ string, IOverlayCase ]):
     [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ overlay.entry, overlay.testCase, [ overlay.module ] ] ])),

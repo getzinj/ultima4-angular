@@ -20,6 +20,7 @@ from scenarios import ESC, GAME_MODE, MODE_WORLD, Session
 
 BOOT_COMMANDS = ['BRUN INIT', 'NOMON I,O,C', 'MAXFILES 1', 'BLOAD SEL,A$320', 'BLOAD SUBS', 'BLOAD SHP0', 'BLOAD SHP1',
                  'BLOAD TBLS,A$E000', 'BLOAD HTXT,A$E400', 'BRUN BOOT,A$6000']
+TOWNE_ARENAS = ('CONA', 'CONB', 'CONC', 'COND', 'CONF', 'CONG', 'CONH', 'CONO', 'CONR', 'CONS')
 BRITANNIA_FILES = ['CAMP', 'CONB', 'CONC', 'COND', 'CONE', 'CONF', 'CONG', 'CONH', 'CONI', 'CONO', 'CONP', 'CONR', 'CONS',
                    'CONT', 'HELP', 'HOLE', 'LORD', 'MIX', 'MUSB', 'MUSO', 'SAVE', 'SEAR', 'SHRI', 'SHRN', 'TMAP', 'USE']
 
@@ -58,7 +59,8 @@ def disks(fixed):
                  'LIST': (0xEE00, bytes(256)), 'TLST': (0xEE00, bytes(256))}
     britannia.update({name: (0x8800, bytes(16)) for name in BRITANNIA_FILES})
     return {'program': format_disk(files), 'britannia': format_disk(britannia),
-            'towne': format_disk({'DISK': (0xD0, b'\x03'), 'MAP@': (0x8B00, bytes(0x500))}),
+            'towne': format_disk({'DISK': (0xD0, b'\x03'), 'MAP@': (0x8B00, bytes(0x500)),
+                                  **{name: (0x8800, bytes(16)) for name in TOWNE_ARENAS}}),
             'underworld': format_disk({'DISK': (0xD0, b'\x04')})}
 
 
