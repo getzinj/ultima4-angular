@@ -457,8 +457,8 @@ on the developer's machine. The images, and anything built from them, stay out o
 
 - **An overlay is a native module of its disk.** SEAR and TMAP exist on the towne and underworld
   disks too, with other code, so a module is keyed by disk and name, and only Britannia's are
-  ported. Each installs the bytes it reads as data over the BLOADed file, which a spec checks
-  against the lifted image.
+  ported. Each installs the bytes it reads as data over the BLOADed file, which the local gate
+  checks against the lifted image.
 - **Ported ULT4 calls an overlay with the 6502's own return address** (`callInline` with no data),
   not the machine's: HOLE's ambush pulls it (`pla` / `pla`, then `jmp j_initialize_arena`) and
   leaves its high byte in A.

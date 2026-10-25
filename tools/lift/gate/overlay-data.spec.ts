@@ -1,17 +1,18 @@
-import { BRITANNIA_HOLE } from '../../../lifted/britannia/hole';
-import { BRITANNIA_SAVE } from '../../../lifted/britannia/save';
-import { BRITANNIA_SEAR } from '../../../lifted/britannia/sear';
-import { BRITANNIA_TMAP } from '../../../lifted/britannia/tmap';
-import { BRITANNIA_USE } from '../../../lifted/britannia/use';
-import type { ILiftedModule } from '../../../lifted-runtime/lifted-module';
-import type { IInlineData } from '../../inline-data';
-import { HOLE_DATA } from './hole';
-import { SAVE_DATA } from './save';
-import { SEAR_DATA } from './sear';
-import { TMAP_DATA } from './tmap';
-import { USE_DATA } from './use';
+import { BRITANNIA_HOLE } from '../../../src/app/lifted/britannia/hole';
+import { BRITANNIA_SAVE } from '../../../src/app/lifted/britannia/save';
+import { BRITANNIA_SEAR } from '../../../src/app/lifted/britannia/sear';
+import { BRITANNIA_TMAP } from '../../../src/app/lifted/britannia/tmap';
+import { BRITANNIA_USE } from '../../../src/app/lifted/britannia/use';
+import type { ILiftedModule } from '../../../src/app/lifted-runtime/lifted-module';
+import type { IInlineData } from '../../../src/app/port/inline-data';
+import { HOLE_DATA } from '../../../src/app/port/program/britannia/hole';
+import { SAVE_DATA } from '../../../src/app/port/program/britannia/save';
+import { SEAR_DATA } from '../../../src/app/port/program/britannia/sear';
+import { TMAP_DATA } from '../../../src/app/port/program/britannia/tmap';
+import { USE_DATA } from '../../../src/app/port/program/britannia/use';
 
-// Every byte the overlay ports install, against the image the lifter took from the build.
+// Every byte the overlay ports install, against the image the lifter took from the build. Local
+// only, like the rest of the gate: the lifted modules are generated, not committed.
 
 function image(module: ILiftedModule): Uint8Array {
   return Uint8Array.from(atob(module.image), (character: string): number => character.charCodeAt(0));
