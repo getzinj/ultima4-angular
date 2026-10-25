@@ -503,3 +503,35 @@ on the developer's machine. The images, and anything built from them, stay out o
   ones it calls, since the port calls those without dispatching. The smoke towne disk gained its
   arenas (`CONA`, the inn's, among them).
 
+## Phase 9b-2 findings
+
+- **The spells' guards escape.** `combat_only`, `dungeon_only`, `outdoors_only`, `not_abyss` and
+  `spell_effect` (under a negation) drop their caller's return and jump to `failed`; their ports
+  return that Exit, and each spell runs the rest of itself only when the guard returned. `spell_gate`
+  JMPs to `outdoors_only` rather than calling it, so its two pulls drop whatever the spell's own
+  caller left on the stack. Kept, and since `outdoors_only` is both called and jumped to, the
+  differential cases cannot stop there.
+- **The originals' quirks, kept:** `spell_sleep` compares a foe with `tile_balron` after
+  `is_undead` has left $FF in A, so a balron can be put to sleep; `spell_blink` with no direction
+  steps by nothing and never stops (the differential gives it arrows only); `legal_move_world_twn`
+  onto the party's own square returns with carry set by its compare; `fire_world_missile` leaves X
+  at $FF when nothing is in the way, since `any_obj_at_temp_xy` counts X down; `spawn_world`'s `adc`
+  after two `asl`s can never carry.
+- **A monster's attack no longer leaves a JS frame behind in Britannia.** `player_attacked` pulls
+  `mob_world_take_turn`'s and `mobs_act`'s returns; ULT4's `update_player_health` now calls
+  `mobs_act` with `sub`, so the jump to `do_attack` comes back up as an Exit. The townes' and
+  dungeons' branches still JMP to lifted code, which runs inside a nested call as before.
+- **`Ult4` is abstract.** It declares `check_water_hazards`, `spawn_monsters` and `mobs_act`, which
+  only the last subclass, `Ult4Monsters`, ports; the module instantiates that one. TypeScript's
+  private names share one namespace down the chain, so a subclass's helper cannot reuse a name its
+  ancestors use privately (combat's `try_move` and the monsters' own step are why the latter is
+  `mobTryMove`).
+- **The generator needed rigging.** The differential harness randomizes SUBS's sixteen-byte
+  generator, but `spawn_world` goes on only when the next number is a multiple of sixteen. Its
+  cases work out the next number as `rand` would and pick the `rnd0` that gives one, since `rnd0` is
+  added last. The pirate ships' turns, the missiles and the stepping checks needed setups of their
+  own (a ship in each facing, a monster in line with the party, a square it just left), and a few
+  mutations show only over 150 random states.
+- **`MIX` is filler on the smoke Britannia disk**, so the Mix command's case puts the towne disk in
+  the drive, whose lifted `MIX` runs and is left with ESC.
+

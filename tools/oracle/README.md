@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds six, written from the remaster's source:
+`scenarios.py` holds eight, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -67,6 +67,14 @@ Monitor would have left, which nothing here reproduces and the game does not use
   orcs, waiting for them and killing both; a bow against two pythons, killing one and wounding the
   other, poisoned, then fleeing off the arena's edge; and, on a ship, a bow against a pirate ship's
   crew. Each turn's keys wait for the next player's turn, or the next turn in Britannia.
+- **`spells`:** a new game by Britain, poisoned, with nine of every mixture and the caster's magic
+  topped up before each cast: twenty-one casts in Britannia (light, wind, blink, heal, cure, awake,
+  jinx, gate, view and the rest, with the combat-only and dungeon-only ones refused, a second
+  player's cast, and a negated one), then a fight with two orcs where each attack spell and the
+  others are cast, which ends in victory.
+- **`monsters`:** a new game on Britain's shore with a strong avatar, a pirate ship to the west, a
+  twister to the east and an orc to the south, passing turn after turn: the twister strikes, the
+  orcs attack and die, then the pirate sails in and attacks, and the avatar flees its crew.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

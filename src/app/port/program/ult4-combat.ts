@@ -1,6 +1,6 @@
 // ULT4.s's combat in Britannia, the townes and the inn, ported: the arena and its foes, the
 // players' turns with their moves and attacks, the foes' turns, and the end of a fight. Dungeon
-// rooms and spells are still lifted. Like the rest of ULT4's port, each entry leaves the registers
+// rooms are still lifted; the spells are Ult4Spells'. Like the rest of ULT4's port, each entry leaves the registers
 // and flags as the original does, and returns where control goes next.
 
 import { DECIMAL } from '../../lifted-runtime/cpu';
@@ -12,6 +12,7 @@ import type { Exit } from '../routine';
 import { Ult4 } from './ult4';
 import { COMBAT_ENTRIES, COMBAT_INLINE, COMBAT_LIFTED, COMBAT_TABLES, COMBAT_VARIABLES } from './ult4-combat-data';
 import { ULT4_ENTRIES } from './ult4-data';
+import { SPELL_ENTRIES } from './ult4-spells-data';
 
 const C = COMBAT_ENTRIES;
 const CL = COMBAT_LIFTED;
@@ -43,7 +44,7 @@ const COMPANION_DOUBLE: number = 0x1F;
 const COMPANION: number = 0x07;
 
 
-export class Ult4Combat extends Ult4 {
+export abstract class Ult4Combat extends Ult4 {
   // --- the start of a fight (ULT4.s:5856-5872, 6105-6366) ----------------------------------
 
   /** ULT4.s inn_combat: a rogue in the inn's room comes for the party's leader alone. */
@@ -950,7 +951,7 @@ export class Ult4Combat extends Ult4 {
   /** The undead never sleep; others may, the more likely the fewer their hit points. */
   private async sleepFoe(): Promise<void> {
     this.lda(this.peek(O.combat_foe_tile_type + this.cpu.x));
-    await this.m.call(CL.is_undead);
+    await this.m.call(SPELL_ENTRIES.is_undead);
     if (!this.zero()) {
       await this.m.call(J.j_rand);
       this.cmp(this.peek(O.combat_foe_hp + this.cpu.x));
@@ -2091,7 +2092,7 @@ export class Ult4Combat extends Ult4 {
   public async combatCmdCast(): Promise<Exit> {
     await this.print(CI.cast);
 
-    return CL.choose_spell;
+    return SPELL_ENTRIES.choose_spell;
   }
 
 

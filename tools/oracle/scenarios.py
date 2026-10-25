@@ -25,6 +25,10 @@ PLAYER_TRANSPORT = 0x0E
 PLAYER_1_STRENGTH, PLAYER_1_DEXTERITY, PLAYER_1_WEAPON = 0xEC13, 0xEC14, 0xEC1E
 WEAPON_SWORD, WEAPON_BOW = 0x06, 0x07
 TILE_PIRATE, TILE_ORC, TILE_PYTHON = 0x80, 0xC0, 0xCC
+TILE_TWISTER = 0x8E
+MIXTURES, SPELLS_MAX = 0xED40, 0x1A
+PLAYER_1_MP, PLAYER_1_HP_HI, PLAYER_1_MAX_HP_HI = 0xEC16, 0xEC18, 0xEC1A
+STATUS_POISON = 0xD0
 
 
 class ScenarioError(Exception):
@@ -252,6 +256,56 @@ def combat(session):
     session.checkpoint()
 
 
+def cast(session, *keys):
+    """A spell's keys after C, with the caster's magic topped up first."""
+    session.poke(PLAYER_1_MP, 0x99)
+    combat_turn(session, 'C', *keys)
+
+
+def spells(session):
+    """A new game by Britain, poisoned, with nine of every mixture: each spell cast in Britannia,
+    some refused (combat only, dungeon only, negated), then each attack spell and the others cast
+    in a fight with two orcs, which ends in victory."""
+    new_game_at(session, 0xE7, 0x88)
+    for spell in range(SPELLS_MAX):
+        session.poke(MIXTURES + spell, 0x09)
+    session.poke(PLAYER_1_STATUS, STATUS_POISON)
+    in_britannia(session)
+    for keys in (('1', 'L'), ('1', 'W', UP), ('1', 'B', RIGHT), ('1', 'H', '1'), ('1', 'C', '1'), ('1', 'A', '1'), ('1', 'J'),
+                 ('1', 'M'), ('1', 'X'), ('1', 'E', 'P'), ('1', 'D', UP), ('1', 'G', '3'), ('1', 'V', ' '), ('1', 'R', '1'),
+                 ('1', 'O'), ('1', 'P'), ('1', 'Q'), ('1', 'N'), ('1', 'L'), ('2', 'L'), ('1', 'Z')):
+        cast(session, *keys)
+    place_object(session, 0x00, TILE_ORC, 0x26, 0xDF)
+    combat_turn(session, 'A', UP)
+    for keys in (('M', UP), ('F', UP), ('I', UP), ('S',), ('T',), ('U',), ('K', UP), ('E', 'P', UP), ('D', UP), ('W',), ('O',)):
+        cast(session, *keys)
+    for _ in range(4):
+        combat_turn(session, 'A', UP)
+    session.idle(140)
+    session.checkpoint()
+
+
+def monsters(session):
+    """A new game by Britain's shore, a strong avatar, with a pirate ship to the west, a twister to the
+    east and an orc to the south, passing turn after turn: the twister strikes, the orcs attack and
+    are killed, then the pirate sails in and attacks, and the avatar flees its crew."""
+    new_game_at(session, 0xE7, 0x88)
+    session.poke(PLAYER_1_STRENGTH, 0x50)
+    session.poke(PLAYER_1_DEXTERITY, 0x50)
+    session.poke(PLAYER_1_WEAPON, WEAPON_SWORD)
+    session.poke(PLAYER_1_HP_HI, 0x04)
+    session.poke(PLAYER_1_MAX_HP_HI, 0x04)
+    place_object(session, 0x00, TILE_PIRATE, 0xE4, 0x88)
+    place_object(session, 0x01, TILE_TWISTER, 0xE9, 0x89)
+    place_object(session, 0x02, TILE_ORC, 0xE7, 0x8C)
+    in_britannia(session)
+    for keys, turns in (((' ',), 12), (('A', UP), 3), (('A', LEFT), 4), ((' ',), 17), (('A', UP), 6), ((DOWN,), 5), ((' ',), 6)):
+        for _ in range(turns):
+            combat_turn(session, *keys)
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
@@ -259,4 +313,6 @@ SCENARIOS = {
     'transport': transport,
     'britannia': britannia,
     'combat': combat,
+    'spells': spells,
+    'monsters': monsters,
 }

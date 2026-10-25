@@ -42,6 +42,13 @@ const WEAPON_BOW: number = 0x07;
 const TILE_PIRATE: number = 0x80;
 const TILE_ORC: number = 0xC0;
 const TILE_PYTHON: number = 0xCC;
+const TILE_TWISTER: number = 0x8E;
+const MIXTURES: number = 0xED40;
+const SPELLS_MAX: number = 0x1A;
+const PLAYER_1_MP: number = 0xEC16;
+const PLAYER_1_HP_HI: number = 0xEC18;
+const PLAYER_1_MAX_HP_HI: number = 0xEC1A;
+const STATUS_POISON: number = 0xD0;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -329,6 +336,67 @@ export async function combat(session: Session): Promise<void> {
 }
 
 
+/** A spell's keys after C, with the caster's magic topped up first. */
+async function cast(session: Session, ...keys: readonly Key[]): Promise<void> {
+  session.poke(PLAYER_1_MP, 0x99);
+  await combatTurn(session, 'C', ...keys);
+}
+
+
+/**
+ * A new game by Britain, poisoned, with nine of every mixture: each spell cast in Britannia, some
+ * refused (combat only, dungeon only, negated), then each attack spell and the others cast in a
+ * fight with two orcs, which ends in victory.
+ */
+export async function spells(session: Session): Promise<void> {
+  await newGameAt(session, 0xE7, 0x88);
+  for (let spell: number = 0; spell < SPELLS_MAX; spell++) {
+    session.poke(MIXTURES + spell, 0x09);
+  }
+  session.poke(PLAYER_1_STATUS, STATUS_POISON);
+  await inBritannia(session);
+  for (const keys of [
+    [ '1', 'L' ], [ '1', 'W', UP ], [ '1', 'B', RIGHT ], [ '1', 'H', '1' ], [ '1', 'C', '1' ], [ '1', 'A', '1' ], [ '1', 'J' ], [ '1', 'M' ],
+    [ '1', 'X' ], [ '1', 'E', 'P' ], [ '1', 'D', UP ], [ '1', 'G', '3' ], [ '1', 'V', ' ' ], [ '1', 'R', '1' ], [ '1', 'O' ], [ '1', 'P' ],
+    [ '1', 'Q' ], [ '1', 'N' ], [ '1', 'L' ], [ '2', 'L' ], [ '1', 'Z' ],
+  ]) {
+    await cast(session, ...keys);
+  }
+  placeObject(session, 0x00, TILE_ORC, 0x26, 0xDF);
+  await combatTurn(session, 'A', UP);
+  for (const keys of [ [ 'M', UP ], [ 'F', UP ], [ 'I', UP ], [ 'S' ], [ 'T' ], [ 'U' ], [ 'K', UP ], [ 'E', 'P', UP ], [ 'D', UP ], [ 'W' ], [ 'O' ] ]) {
+    await cast(session, ...keys);
+  }
+  await combatTurns(session, 4, 'A', UP);
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
+/**
+ * A new game by Britain's shore, a strong avatar, with a pirate ship to the west, a twister to the
+ * east and an orc to the south, passing turn after turn: the twister strikes, the orcs attack and
+ * are killed, then the pirate sails in and attacks, and the avatar flees its crew.
+ */
+export async function monsters(session: Session): Promise<void> {
+  await newGameAt(session, 0xE7, 0x88);
+  session.poke(PLAYER_1_STRENGTH, 0x50);
+  session.poke(PLAYER_1_DEXTERITY, 0x50);
+  session.poke(PLAYER_1_WEAPON, WEAPON_SWORD);
+  session.poke(PLAYER_1_HP_HI, 0x04);
+  session.poke(PLAYER_1_MAX_HP_HI, 0x04);
+  placeObject(session, 0x00, TILE_PIRATE, 0xE4, 0x88);
+  placeObject(session, 0x01, TILE_TWISTER, 0xE9, 0x89);
+  placeObject(session, 0x02, TILE_ORC, 0xE7, 0x8C);
+  await inBritannia(session);
+  for (const [ keys, turns ] of [ [ [ ' ' ], 12 ], [ [ 'A', UP ], 3 ], [ [ 'A', LEFT ], 4 ], [ [ ' ' ], 17 ], [ [ 'A', UP ], 6 ], [ [ DOWN ], 5 ], [ [ ' ' ], 6 ] ] as const) {
+    await combatTurns(session, turns, ...keys);
+  }
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -336,4 +404,6 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   transport,
   britannia,
   combat,
+  spells,
+  monsters,
 };

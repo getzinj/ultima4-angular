@@ -46,7 +46,13 @@ interface IDirection {
 }
 
 
-export class Ult4 extends PortProgram {
+export abstract class Ult4 extends PortProgram {
+  /** The wandering monsters' routines, which Ult4Monsters ports; mobs_act may drop its return for a fight. */
+  public abstract checkWaterHazards(): Promise<Exit>;
+  public abstract spawnMonsters(): Promise<Exit>;
+  public abstract mobsAct(): Promise<Exit>;
+
+
   // --- calls and jumps ----------------------------------------------------------------------
 
   /** A JSR from `site` to a routine of ULT4's own, which may drop this return address and jump. */
@@ -1429,14 +1435,18 @@ export class Ult4 extends PortProgram {
       await this.m.call(L.starving);
     }
     await this.m.call(L.recover_mp);
+    let exit: Exit = null;
+
     if (!(this.lda(this.peek(PRTY.terrain_occlusion)) & 0x80)) {
-      await this.m.call(L.check_water_hazards);
-      await this.m.call(L.spawn_monsters);
-      await this.m.call(L.mobs_act);
-      await this.m.call(L.check_water_hazards);
+      await this.sub(0x6494, (): Promise<Exit> => this.checkWaterHazards());
+      await this.sub(0x6497, (): Promise<Exit> => this.spawnMonsters());
+      exit = await this.sub(0x649A, (): Promise<Exit> => this.mobsAct());
+      if (exit == null) {
+        await this.sub(0x649D, (): Promise<Exit> => this.checkWaterHazards());
+      }
     }
 
-    return this.updateDungeon();
+    return exit == null ? this.updateDungeon() : exit;
   }
 
 
@@ -1573,7 +1583,7 @@ export class Ult4 extends PortProgram {
 
 
   /** A BLOAD of an overlay, with the music off while the disk turns. */
-  private async loadOverlay(block: IInlineData): Promise<void> {
+  protected async loadOverlay(block: IInlineData): Promise<void> {
     await this.musicCtl(MUSIC.music_off);
     await this.callWith(J.j_primm_cout, block);
   }
@@ -1745,19 +1755,19 @@ export class Ult4 extends PortProgram {
     this.poke(PRTY.player_xpos, this.lda(this.peek(T.moongate_x + this.cpu.x)));
     this.poke(PRTY.player_ypos, this.lda(this.peek(T.moongate_y + this.cpu.x)));
     await this.m.call(J.j_invertview);
-    await this.spellEffect();
+    await this.gateSound();
     await this.m.call(J.j_invertview);
     await this.m.call(J.j_player_teleport);
     await this.m.call(J.j_update_view);
     await this.m.call(J.j_invertview);
-    await this.spellEffect();
+    await this.gateSound();
     await this.m.call(J.j_invertview);
 
     return E.cmd_done;
   }
 
 
-  private async spellEffect(): Promise<void> {
+  private async gateSound(): Promise<void> {
     this.lda(SOUND.sound_spell_effect);
     this.ldx(0xA0);
     await this.m.call(J.j_playsfx);

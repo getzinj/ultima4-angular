@@ -7,6 +7,7 @@ import type { UltimaDiskName } from '../../../src/app/data/ultima-disks';
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { COMBAT_ENTRIES, COMBAT_LIFTED, COMBAT_VARIABLES } from '../../../src/app/port/program/ult4-combat-data';
 import { ULT4_ENTRIES } from '../../../src/app/port/program/ult4-data';
+import { SPELL_ENTRIES } from '../../../src/app/port/program/ult4-spells-data';
 import { DISKS, MAP_OBJECTS, PRTY, ROST, ZP_COMBAT, ZP_MAIN } from '../../../src/app/state/symbols';
 import { byte } from './differential';
 import type { ICase, Random } from './differential';
@@ -14,6 +15,7 @@ import { STOPS, pick, world } from './ult4-cases';
 
 const C = COMBAT_ENTRIES;
 const CL = COMBAT_LIFTED;
+const S = SPELL_ENTRIES;
 const E = ULT4_ENTRIES;
 const O = MAP_OBJECTS;
 const ARENA_SIZE: number = 11;
@@ -21,7 +23,7 @@ const ZP_CUR_FOE_INDEX: number = 0xEA;
 
 type Key = { code: number; polls: number };
 
-const FOES: readonly number[] = [
+export const FOES: readonly number[] = [
   0x00, 0x00, 0x00, 0xC0, 0xC0, 0xCC, 0xC8, 0xAC, 0xDC, 0xEC, 0xFC, 0xB0, 0xA8, 0x5E, 0x4B, 0xA4, 0xF8, 0x80, 0x88, 0x9C, 0x94, 0xE8, 0xF0, 0x24,
   0x50, 0x90, 0xB4, 0xA0,
 ];
@@ -44,7 +46,7 @@ const BEFORE: readonly (readonly [ number, number, UltimaDiskName ])[] = [
 const DELTAS: readonly (readonly [ number, number ])[] = [
   [ 0x00, 0x01 ], [ 0x00, 0xFF ], [ 0x01, 0x00 ], [ 0xFF, 0x00 ], [ 0x01, 0x01 ], [ 0xFF, 0xFF ], [ 0x01, 0xFF ], [ 0xFF, 0x01 ],
 ];
-const ARROWS: readonly number[] = [ 0x0B, 0x0A, 0x08, 0x15, 0x0D, 0x2F ];
+export const ARROWS: readonly number[] = [ 0x0B, 0x0A, 0x08, 0x15, 0x0D, 0x2F ];
 const COMBAT_KEYS: readonly number[] = [ ...ARROWS, 0x20, 0x41, 0x47, 0x52, 0x5A, 0x43, 0x55, 0x56, 0x42, 0x31, 0x00 ];
 
 
@@ -183,17 +185,17 @@ function clearedArena(machine: LiftedMachine, random: Random): void {
 
 
 /** Where a step of the fight goes next: the labels it jumps to, never the ones it calls. */
-const COMBAT_STOPS: readonly number[] = [
+export const COMBAT_STOPS: readonly number[] = [
   ...STOPS, C.begin_combat, C.combat_take_turn, C.combat_cmd_done, C.combat_end_turn, C.foe_take_turn, C.calc_nearest_player, C.calc_attack_type,
   C.no_range_attack, C.do_foe_move, C.check_tile_effect, C.next_foe, C.fleeing, C.end_foes_turn, C.foes_vanquished, C.player_flee,
   C.combat_players_fled, C.combat_over, C.do_foe_melee_attack, C.combat_move_up, C.combat_move_down, C.combat_move_left, C.combat_move_right,
   C.try_move, C.try_flee, C.do_flee, C.combat_cmd_attack, C.melee_attack, C.did_hit, C.ranged_attack, C.use_weapon, C.last_one, C.check_target,
   C.target_hit, C.missed, C.end_attack, C.combat_cmd_cast, C.combat_cmd_get, C.combat_cmd_ready, C.combat_cmd_ztats, CL.combat_exit_room,
-  CL.choose_spell, CL.ask_weapon, CL.zstats_for_player, CL.do_get_chest, E.cmd_use_item, 0x5D1A, 0xFB0F,
+  S.choose_spell, CL.ask_weapon, CL.zstats_for_player, CL.do_get_chest, E.cmd_use_item, 0x5D1A, 0xFB0F,
 ];
 
 
-function keyOf(keys: readonly number[]): (random: Random) => Key {
+export function keyOf(keys: readonly number[]): (random: Random) => Key {
   return (random: Random): Key => ({ code: pick(random, keys), polls: Math.floor(random() * 4) });
 }
 

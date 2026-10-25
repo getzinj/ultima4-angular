@@ -34,8 +34,6 @@ export const COMBAT_TABLES = {
 
 /** The labels combat jumps to or calls that are still lifted. */
 export const COMBAT_LIFTED = {
-  choose_spell: 0x48EC,
-  is_undead: 0x4F55,
   do_get_chest: 0x54A3,
   ask_weapon: 0x5A7D,
   zstats_for_player: 0x5ED8,
