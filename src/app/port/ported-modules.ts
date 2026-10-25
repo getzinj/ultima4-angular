@@ -1,4 +1,9 @@
 import type { INativeModule } from '../lifted-runtime/native-module';
+import { HOLE_MODULE } from './program/britannia/hole';
+import { SAVE_MODULE } from './program/britannia/save';
+import { SEAR_MODULE } from './program/britannia/sear';
+import { TMAP_MODULE } from './program/britannia/tmap';
+import { USE_MODULE } from './program/britannia/use';
 import { BOOT_MODULE } from './program/boot-module';
 import { INIT_MODULE } from './program/init-module';
 import { NEWGAME_MODULE } from './program/newgame-module';
@@ -14,4 +19,9 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   SEL_MODULE,
   SUBS_MODULE,
   ULT4_MODULE,
+  HOLE_MODULE,
+  SAVE_MODULE,
+  SEAR_MODULE,
+  TMAP_MODULE,
+  USE_MODULE,
 ];

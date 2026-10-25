@@ -10,3 +10,21 @@ export function routine<T>(create: (machine: LiftedMachine) => T, body: (program
     }
   };
 }
+
+
+/** Where an entry goes when it is done: null for its RTS, or the address it jumps to. */
+export type Exit = number | null;
+
+
+/** An entry that returns where it goes: its RTS, or a JMP to the address it gives. */
+export function exitRoutine<T>(create: (machine: LiftedMachine) => T, body: (program: T) => Exit | Promise<Exit>): NativeRoutine {
+  return async (machine: LiftedMachine): Promise<void> => {
+    const exit: Exit = await body(create(machine));
+
+    if (exit == null) {
+      machine.rts();
+    } else {
+      machine.cpu.pc = exit;
+    }
+  };
+}

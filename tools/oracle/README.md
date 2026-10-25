@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds four, written from the remaster's source:
+`scenarios.py` holds five, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -59,6 +59,10 @@ Monitor would have left, which nothing here reproduces and the game does not use
   ship placed beside it (`Session.poke`): mount, gallop into the shallows, dismount, board the ship,
   turn and sail against the wind. Each key waits for the game to come back to `next_turn`, so the
   type-ahead buffer never holds one (a blocked move empties it).
+- **`britannia`:** a new game moved to (E1,85) by Britain, with the moongate beside it open and the
+  moons set to send it to another, two gems and the horn: search where nothing is, step through
+  the gate, peer at a gem, use the horn and the bell, camp, then die and wake in Lord British's
+  castle. Each key waits for the type-ahead buffer to empty (SPACE flushes it).
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

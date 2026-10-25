@@ -207,6 +207,12 @@ export class LiftedMachine implements IBus {
   }
 
 
+  /** A disk put in a drive outside the game, for tests and tools. */
+  public insertDisk(drive: number, disk: UltimaDiskName): void {
+    this.drives.set(drive, disk);
+  }
+
+
   public boot(): void {
     this.dosLog.push('BRUN INIT');
     this.cpu.pc = this.load('program', 'INIT', null);

@@ -89,7 +89,7 @@ export function smokeDisks(): DiskSet {
   return {
     program: disk('program', program),
     britannia: disk('britannia', britannia),
-    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ] }),
+    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], 'MAP@': [ 0x8B00, new Uint8Array(0x500) ] }),
     underworld: disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ] }),
   };
 }

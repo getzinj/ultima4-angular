@@ -15,6 +15,12 @@ GAME_MODE = 0x0B
 PLAYER_XPOS, PLAYER_YPOS = 0x00, 0x01
 OBJECT_TILE_SPRITE, OBJECT_XPOS, OBJECT_YPOS, OBJECT_TILE_TYPE = 0xEE00, 0xEE20, 0xEE40, 0xEE60
 TILE_SHIP_WEST, TILE_HORSE_WEST = 0x10, 0x14
+MOON_COUNTER, MOON_CTR_TRAMMEL, MOON_CTR_FELUCCA = 0x1833, 0x1834, 0x1835
+MOONGATE_TILE, MOONGATE_XPOS, MOONGATE_YPOS, MOONGATE_SPRITE = 0xED, 0xEE, 0xEF, 0xF1
+TILE_MOONGATE_FULL = 0x43
+GEMS, HORN = 0xED09, 0xED15
+PLAYER_1_STATUS, STATUS_DEAD = 0xEC12, 0xC4
+KEY_BUF_LEN = 0xB8
 
 
 class ScenarioError(Exception):
@@ -117,6 +123,60 @@ def place_object(session, slot, tile, x, y):
         session.poke(table + slot, value)
 
 
+def new_game_at(session, x, y):
+    """creation, with the party moved to (x, y) before ULT4 starts, and a checkpoint once it is there."""
+    session.run_until(session.dos_seen('BRUN BOOT'))
+    session.press_until(['I'], session.entered('BOOT', 'input_text'), limit=2000)
+    session.type('AVATAR\n')
+    session.press('M')
+    session.press_until(['A', ESC], session.dos_seen('BRUN ULT4'), limit=400)
+    session.poke(PLAYER_XPOS, x)
+    session.poke(PLAYER_YPOS, y)
+
+
+def in_britannia(session):
+    session.press_until([ESC], session.memory_is(GAME_MODE, MODE_WORLD), limit=20)
+    session.idle(20)
+    session.checkpoint()
+
+
+def command(session, *keys):
+    """One command's keys, each 10 polls after the game has taken the last from its type-ahead
+    buffer (a space empties it), and on to the next turn."""
+    for key in keys:
+        session.press(key, polls=10)
+        session.run_until(session.memory_is(KEY_BUF_LEN, 0))
+    session.run_until(session.entered('ULT4', 'next_turn'))
+
+
+def britannia(session):
+    """A new game moved to (E1,85) by Britain's moongate, open with Trammel and Felucca set to send it
+    to the second gate, with two gems and the horn: search where nothing is, step through the gate,
+    peer at a gem, use the horn and the bell, camp, then die and wake in Lord British's castle."""
+    new_game_at(session, 0xE1, 0x85)
+    session.poke(MOON_COUNTER, 0x00)
+    session.poke(MOON_CTR_TRAMMEL, 0x04)
+    session.poke(MOON_CTR_FELUCCA, 0x24)
+    session.poke(MOONGATE_XPOS, 0xE0)
+    session.poke(MOONGATE_YPOS, 0x85)
+    session.poke(MOONGATE_SPRITE, 0x03)
+    session.poke(MOONGATE_TILE, TILE_MOONGATE_FULL)
+    session.poke(GEMS, 0x02)
+    session.poke(HORN, 0x01)
+    in_britannia(session)
+    command(session, 'S')
+    command(session, LEFT)
+    command(session, 'P', ' ')
+    command(session, 'U', *'HORN', RETURN)
+    command(session, 'U', *'BELL', RETURN)
+    command(session, 'H')
+    session.poke(PLAYER_1_STATUS, STATUS_DEAD)
+    session.press(' ', polls=10)
+    session.press_until([ESC], session.entered('ULT4', 'next_turn'), limit=40)
+    session.idle(140)
+    session.checkpoint()
+
+
 def transport(session):
     """A new game moved, before ULT4 starts, to (E7,88) by Britain, with a horse to the north and a
     ship to the west: ride, gallop into the shallows, dismount, board the ship and sail."""
@@ -144,4 +204,5 @@ SCENARIOS = {
     'creation': creation,
     'first-steps': first_steps,
     'transport': transport,
+    'britannia': britannia,
 }

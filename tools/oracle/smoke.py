@@ -58,7 +58,8 @@ def disks(fixed):
                  'LIST': (0xEE00, bytes(256)), 'TLST': (0xEE00, bytes(256))}
     britannia.update({name: (0x8800, bytes(16)) for name in BRITANNIA_FILES})
     return {'program': format_disk(files), 'britannia': format_disk(britannia),
-            'towne': format_disk({'DISK': (0xD0, b'\x03')}), 'underworld': format_disk({'DISK': (0xD0, b'\x04')})}
+            'towne': format_disk({'DISK': (0xD0, b'\x03'), 'MAP@': (0x8B00, bytes(0x500))}),
+            'underworld': format_disk({'DISK': (0xD0, b'\x04')})}
 
 
 def main(fixed):

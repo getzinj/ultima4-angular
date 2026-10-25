@@ -20,6 +20,19 @@ const OBJECT_YPOS: number = 0xEE40;
 const OBJECT_TILE_TYPE: number = 0xEE60;
 const TILE_SHIP_WEST: number = 0x10;
 const TILE_HORSE_WEST: number = 0x14;
+const MOON_COUNTER: number = 0x1833;
+const MOON_CTR_TRAMMEL: number = 0x1834;
+const MOON_CTR_FELUCCA: number = 0x1835;
+const MOONGATE_TILE: number = 0xED;
+const MOONGATE_XPOS: number = 0xEE;
+const MOONGATE_YPOS: number = 0xEF;
+const MOONGATE_SPRITE: number = 0xF1;
+const TILE_MOONGATE_FULL: number = 0x43;
+const GEMS: number = 0xED09;
+const HORN: number = 0xED15;
+const PLAYER_1_STATUS: number = 0xEC12;
+const STATUS_DEAD: number = 0xC4;
+const KEY_BUF_LEN: number = 0xB8;
 
 type Key = string | number;
 type Condition = () => boolean;
@@ -157,6 +170,66 @@ export async function firstSteps(session: Session): Promise<void> {
 }
 
 
+/** creation, with the party moved to (x, y) before ULT4 starts. */
+async function newGameAt(session: Session, x: number, y: number): Promise<void> {
+  await session.machine.runUntil(session.dosSeen('BRUN BOOT'));
+  await session.pressUntil([ 'I' ], session.entered('BOOT', 'input_text'), 2000);
+  await session.type('AVATAR\n');
+  await session.press('M');
+  await session.pressUntil([ 'A', ESC ], session.dosSeen('BRUN ULT4'), 400);
+  session.poke(PLAYER_XPOS, x);
+  session.poke(PLAYER_YPOS, y);
+}
+
+
+async function inBritannia(session: Session): Promise<void> {
+  await session.pressUntil([ ESC ], session.memoryIs(GAME_MODE, MODE_WORLD), 20);
+  await session.idle(20);
+  session.checkpoint();
+}
+
+
+/**
+ * One command's keys, each 10 polls after the game has taken the last from its type-ahead buffer
+ * (a space empties it), and on to the next turn.
+ */
+async function command(session: Session, ...keys: readonly Key[]): Promise<void> {
+  for (const key of keys) {
+    await session.press(key, 10);
+    await session.machine.runUntil(session.memoryIs(KEY_BUF_LEN, 0));
+  }
+  await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+}
+
+
+/**
+ * A new game moved to (E1,85) by Britain's moongate, open with Trammel and Felucca set to send it
+ * to the second gate, with two gems and the horn: search where nothing is, step through the gate,
+ * peer at a gem, use the horn and the bell, camp, then die and wake in Lord British's castle.
+ */
+export async function britannia(session: Session): Promise<void> {
+  await newGameAt(session, 0xE1, 0x85);
+  for (const [ address, value ] of [
+    [ MOON_COUNTER, 0x00 ], [ MOON_CTR_TRAMMEL, 0x04 ], [ MOON_CTR_FELUCCA, 0x24 ], [ MOONGATE_XPOS, 0xE0 ], [ MOONGATE_YPOS, 0x85 ],
+    [ MOONGATE_SPRITE, 0x03 ], [ MOONGATE_TILE, TILE_MOONGATE_FULL ], [ GEMS, 0x02 ], [ HORN, 0x01 ],
+  ]) {
+    session.poke(address, value);
+  }
+  await inBritannia(session);
+  await command(session, 'S');
+  await command(session, LEFT);
+  await command(session, 'P', ' ');
+  await command(session, 'U', ...'HORN', RETURN);
+  await command(session, 'U', ...'BELL', RETURN);
+  await command(session, 'H');
+  session.poke(PLAYER_1_STATUS, STATUS_DEAD);
+  await session.press(' ', 10);
+  await session.pressUntil([ ESC ], session.entered('ULT4', 'next_turn'), 40);
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 function placeObject(session: Session, slot: number, tile: number, x: number, y: number): void {
   for (const [ table, value ] of [ [ OBJECT_TILE_TYPE, tile ], [ OBJECT_TILE_SPRITE, tile ], [ OBJECT_XPOS, x ], [ OBJECT_YPOS, y ] ]) {
     session.poke(table + slot, value);
@@ -195,4 +268,5 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   creation,
   'first-steps': firstSteps,
   transport,
+  britannia,
 };

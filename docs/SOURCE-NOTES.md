@@ -452,3 +452,30 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **The differential harness needs a sane world** for ULT4: the music silenced as INIT leaves it
   (or SEL's wait for the tune never ends), a party that is alive (or `anyone_awake` runs
   `run_file_dead`), and the disk asked for already in the drive (or `request_disk` waits for ESC).
+
+## Phase 9a-2 findings
+
+- **An overlay is a native module of its disk.** SEAR and TMAP exist on the towne and underworld
+  disks too, with other code, so a module is keyed by disk and name, and only Britannia's are
+  ported. Each installs the bytes it reads as data over the BLOADed file, which a spec checks
+  against the lifted image.
+- **Ported ULT4 calls an overlay with the 6502's own return address** (`callInline` with no data),
+  not the machine's: HOLE's ambush pulls it (`pla` / `pla`, then `jmp j_initialize_arena`) and
+  leaves its high byte in A.
+- **Some calls never come back.** The ambush and `run_file_dead` (which resets the stack with `ldx
+  #$FF` / `txs`) leave the native routine that called them waiting, and the game runs on inside
+  that call. Play is unaffected, but each such escape keeps a JS frame alive until the combat and
+  death paths are ported and the caller can return where control goes instead.
+- **The originals' quirks, kept:** SEAR's black stone is found only when both moons are dark,
+  under a label named `@dark_moons` that is taken when they are not; `increase_hp` caps the hit
+  points by comparing the high bytes and then the low bytes separately, so a player whose high
+  byte passes the maximum while the low byte is below it keeps the excess; HOLE's `restore_mp`
+  counts down through player 0 (`bpl`); USE compares only four letters, and pads the input to six
+  even when it is longer; the screen shake copies bytes 1 to $16 of each line, never byte 0.
+- **SPACE empties the type-ahead buffer**, so `britannia` waits for `key_buf_len` to reach zero
+  after each key, or the next one is lost.
+- **The differential harness had the program disk in drive 1**, so every BLOAD a ULT4 command made
+  failed the same way on both machines, and those cases agreed without loading anything.
+  `LiftedMachine.insertDisk` now puts the disk the random world asks for in drive 1, the smoke
+  towne disk has a blank `MAP@` for SAVE, and a case can type a sequence of keys (USE's item name,
+  the ESCs `request_disk` waits for).

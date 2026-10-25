@@ -24,6 +24,9 @@ export interface ICase {
   /** A key the keyboard delivers after some polls. */
   readonly key?: (random: Random) => { readonly code: number; readonly polls: number } | null;
 
+  /** Keys the keyboard delivers after it, one at a time, each once the one before has been read. */
+  readonly keys?: (random: Random) => readonly { readonly code: number; readonly polls: number }[];
+
   /** Load ULT4 too, for its routines. */
   readonly ult4?: boolean;
 
@@ -71,7 +74,12 @@ function fill(target: Uint8Array, start: number, end: number, random: Random): v
 
 
 /** A machine with SEL, SUBS and the tables loaded, and random game state everywhere the library looks. */
-function prepare(natives: readonly INativeModule[], seed: number, testCase: ICase): { machine: LiftedMachine; clicks: () => number; returnTo: number } {
+function prepare(natives: readonly INativeModule[], seed: number, testCase: ICase): {
+  machine: LiftedMachine;
+  clicks: () => number;
+  returnTo: number;
+  keys: { code: number; polls: number }[];
+} {
   const machine: LiftedMachine = new LiftedMachine(smokeDisks(), LIFTED_MODULES, null, natives);
   const random: Random = mulberry32(seed);
   const card: LiftedMachine['apple']['languageCard'] = machine.apple.languageCard;
@@ -128,17 +136,19 @@ function prepare(natives: readonly INativeModule[], seed: number, testCase: ICas
   inline.forEach((value: number, index: number): void => machine.apple.write(DATA + index, value));
   machine.cpu.pushWord((inline.length > 0) ? DATA - 1 : RETURN - 1);
   machine.pending = testCase.key?.(random) ?? null;
+
+  const keys: { code: number; polls: number }[] = [ ...(testCase.keys?.(random) ?? []) ];
   machine.polls = 0;
   machine.apple.speaker.toggle = (): void => {
     clicks = clicks + 1;
   };
 
-  return { machine, clicks: (): number => clicks, returnTo: (inline.length > 0) ? DATA + inline.length : RETURN };
+  return { machine, clicks: (): number => clicks, returnTo: (inline.length > 0) ? DATA + inline.length : RETURN, keys };
 }
 
 
 export async function runRoutine(natives: readonly INativeModule[], entry: number, seed: number, testCase: ICase): Promise<IOutcome> {
-  const { machine, clicks, returnTo } = prepare(natives, seed, testCase);
+  const { machine, clicks, returnTo, keys } = prepare(natives, seed, testCase);
   const card: LiftedMachine['apple']['languageCard'] = machine.apple.languageCard;
   let failure: string | null = null;
 
@@ -147,7 +157,13 @@ export async function runRoutine(natives: readonly INativeModule[], entry: numbe
 
   machine.cpu.pc = entry;
   try {
-    await machine.runUntil((): boolean => (machine.cpu.pc === returnTo) || ((machine.cpu.pc !== entry) && stops.has(machine.cpu.pc)));
+    await machine.runUntil((): boolean => {
+      if ((machine.pending == null) && (keys.length > 0)) {
+        machine.pending = keys.shift() ?? null;
+      }
+
+      return (machine.cpu.pc === returnTo) || ((machine.cpu.pc !== entry) && stops.has(machine.cpu.pc));
+    });
   } catch (error: unknown) {
     failure = String(error);
   }

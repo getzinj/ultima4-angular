@@ -8,10 +8,11 @@
 
 import { DECIMAL } from '../../lifted-runtime/cpu';
 import {
-  APPLE, CHAR, DISKS, DUNGEON, JUMP_OVERLAY, JUMP_SUBS, JUMP_SYSTEM, JUMP_TRAINERS, MAP_OBJECTS, MUSIC, PLACES, PRTY, ROST, SOUND, TILES, TRAINERS, ZP_MAIN,
+  APPLE, CHAR, DISKS, DUNGEON, JUMP_OVERLAY, JUMP_SUBS, JUMP_SYSTEM, JUMP_TRAINERS, MAP_OBJECTS, MUSIC, PLACES, PRTY, ROST, SOUND, TILES, TRAINERS, VIEW_MAP, ZP_MAIN,
 } from '../../state/symbols';
 import type { IInlineData } from '../inline-data';
 import { PortProgram } from '../port-program';
+import type { Exit } from '../routine';
 import { ULT4_ENTRIES, ULT4_INLINE, ULT4_LIFTED, ULT4_TABLES, ULT4_VARIABLES } from './ult4-data';
 
 const E = ULT4_ENTRIES;
@@ -34,7 +35,6 @@ const MOVE_SOUTH: number = J.j_move_south & 0xFF;
 const MOVE_WEST: number = J.j_move_west & 0xFF;
 const MOVE_EAST: number = J.j_move_east & 0xFF;
 
-export type Exit = number | null;
 
 /** How a direction differs: its tile, its ship and horse facings, its move and its printer. */
 interface IDirection {
@@ -1561,6 +1561,147 @@ export class Ult4 extends PortProgram {
     await this.m.call(J.j_console_out);
 
     return null;
+  }
+
+
+  // --- the overlays (ULT4.s:2829-2862, 3164-3200, 3395-3408, 3562-3581, 8886-8911, 8991-8999) ---
+
+  /** A JSR from `site` to code that may not return to it, such as an overlay, pushing the 6502's return address. */
+  private jsrOut(site: number, address: number): Promise<void> {
+    return this.m.callInline(address, site + 3, 0);
+  }
+
+
+  /** A BLOAD of an overlay, with the music off while the disk turns. */
+  private async loadOverlay(block: IInlineData): Promise<void> {
+    await this.musicCtl(MUSIC.music_off);
+    await this.callWith(J.j_primm_cout, block);
+  }
+
+
+  public async cmdHoleUp(): Promise<Exit> {
+    let exit: Exit = E.cmd_done;
+    let here: boolean = true;
+
+    await this.print(I.hole_up);
+    if (this.lda(this.peek(PRTY.current_location)) !== 0) {
+      this.lda(this.peek(PRTY.game_mode));
+      this.cmp(PRTY.mode_dungeon);
+      here = this.zero();
+    }
+    if (!here) {
+      exit = E.done_not_here;
+    } else {
+      this.lda(this.peek(PRTY.player_transport));
+      this.cmp(TILES.tile_walk);
+      if (this.zero()) {
+        await this.loadOverlay(I.bload_hole);
+        await this.jsrOut(0x55F2, JUMP_OVERLAY.j_overlay_entry);
+        await this.m.call(J.j_update_status);
+        await this.musicCtl(MUSIC.music_main);
+        await this.dungeonNeighbours();
+      } else {
+        await this.print(I.must_be_on_foot);
+      }
+    }
+
+    return exit;
+  }
+
+
+  /** In a dungeon, what the party can see round it again. */
+  private async dungeonNeighbours(): Promise<void> {
+    this.lda(this.peek(PRTY.game_mode));
+    this.cmp(PRTY.mode_dungeon);
+    if (this.zero()) {
+      await this.m.call(JUMP_OVERLAY.j_dng_neighbor_tiles);
+    }
+  }
+
+
+  public async cmdPeerGem(): Promise<Exit> {
+    let exit: Exit = E.cmd_done;
+    let gem: boolean = true;
+
+    await this.print(I.peer_at);
+    if (this.lda(this.peek(TRAINERS.trainer_peer)) === 0) {
+      this.ldy(ROST.party_stat_gems);
+      await this.sub(0x58F8, (): Promise<Exit> => this.decStat());
+      gem = this.carry();
+    }
+    if (gem) {
+      await this.print(I.a_gem);
+      await this.sub(0x590B, (): Promise<Exit> => this.doView());
+    } else {
+      exit = E.done_what;
+    }
+
+    return exit;
+  }
+
+
+  /** The map TMAP draws of the land about, to its own tune; in a dungeon, the level reloaded after. */
+  public async doView(): Promise<Exit> {
+    await this.loadOverlay(I.bload_tmap);
+    await this.musicCtl(MUSIC.music_peer);
+    await this.jsrOut(0x5932, VIEW_MAP.j_viewmap);
+    this.lda(this.peek(PRTY.game_mode));
+    this.cmp(PRTY.mode_dungeon);
+    if (this.zero()) {
+      await this.loadOverlay(I.bload_dngd);
+    }
+    await this.musicCtl(MUSIC.music_main);
+
+    return null;
+  }
+
+
+  public async cmdSearch(): Promise<Exit> {
+    await this.print(I.search);
+    await this.loadOverlay(I.bload_sear);
+    await this.jsrOut(0x5B65, JUMP_OVERLAY.j_overlay_entry);
+    await this.musicCtl(MUSIC.music_main);
+
+    return E.cmd_done;
+  }
+
+
+  public async cmdUseItem(): Promise<Exit> {
+    await this.print(I.use);
+    await this.loadOverlay(I.bload_use);
+    await this.jsrOut(0x5D03, JUMP_OVERLAY.j_overlay_entry);
+    await this.musicCtl((this.lda(this.peek(PRTY.game_mode)) & 0x80) ? MUSIC.music_combat : MUSIC.music_main);
+
+    return E.cmd_done;
+  }
+
+
+  /** The party all dead: SAVE brings it back, and the stack starts again under cmd_done, whichever way it came. */
+  public async runFileDead(): Promise<Exit> {
+    await this.musicCtl(MUSIC.music_off);
+    this.lda(DISKS.disk_britannia);
+    await this.m.call(J.j_request_disk);
+    await this.callWith(J.j_primm_cout, I.bload_save);
+    await this.jsrOut(0x84DD, JUMP_OVERLAY.j_overlay_entry);
+    await this.musicCtl(MUSIC.music_main);
+    this.ldx(0xFF);
+    this.cpu.sp = this.cpu.x;
+
+    return E.cmd_done;
+  }
+
+
+  /** One of a party stat (Y) used up, in BCD: carry clear if there was none. */
+  public decStat(): Promise<Exit> {
+    this.cpu.setFlag(DECIMAL, true);
+    this.lda(this.peek(ROST.party_stats + this.cpu.y));
+    this.subtract(0x01);
+    if (this.carry()) {
+      this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
+    }
+    this.cpu.setFlag(DECIMAL, false);
+
+    return Promise.resolve(null);
   }
 
 

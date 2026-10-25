@@ -1,6 +1,6 @@
 import type { LiftedMachine } from '../../lifted-runtime/lifted-machine';
 import { CARRY, ZERO } from '../../lifted-runtime/cpu';
-import { MAP_OBJECTS, PRTY, TILES, ZP_MAIN } from '../../state/symbols';
+import { MAP_OBJECTS, PRTY, ROST, TILES, TRAINERS, ZP_MAIN } from '../../state/symbols';
 import { RETURN, subsMachine } from '../testing/subs-machine';
 import { ULT4_ENTRIES } from './ult4-data';
 import { ULT4_MODULE } from './ult4-module';
@@ -182,6 +182,42 @@ describe('ULT4, ported in part', (): void => {
 
   it('brings the pirate fleet out at the mouth of the Abyss\'s cove', async (): Promise<void> => {
     expect((await command(ult4Machine(), E.spawn_pirate_fleet, E.cmd_done)).read(MAP_OBJECTS.object_tile_type)).toBe(TILES.tile_pirate);
+  });
+
+  describe('dec_stat', (): void => {
+    function withGems(gems: number): LiftedMachine {
+      const machine: LiftedMachine = ult4Machine();
+
+      machine.write(ROST.party_stats + ROST.party_stat_gems, gems);
+      machine.cpu.y = ROST.party_stat_gems;
+
+      return machine;
+    }
+
+    it('uses one up, in BCD', async (): Promise<void> => {
+      expect((await call(withGems(0x10), E.dec_stat)).read(ROST.party_stats + ROST.party_stat_gems)).toBe(0x09);
+    });
+
+    it('says with carry set that there was one', async (): Promise<void> => {
+      expect((await call(withGems(0x01), E.dec_stat)).cpu.flag(CARRY)).toBe(true);
+    });
+
+    it('says with carry clear that there was none', async (): Promise<void> => {
+      expect((await call(withGems(0x00), E.dec_stat)).cpu.flag(CARRY)).toBe(false);
+    });
+
+    it('leaves none at none', async (): Promise<void> => {
+      expect((await call(withGems(0x00), E.dec_stat)).read(ROST.party_stats + ROST.party_stat_gems)).toBe(0x00);
+    });
+  });
+
+  it('is WHAT? peering without a gem', async (): Promise<void> => {
+    const machine: LiftedMachine = ult4Machine();
+
+    machine.write(ROST.party_stats + ROST.party_stat_gems, 0x00);
+    machine.write(TRAINERS.trainer_peer, 0x00);
+
+    expect((await command(machine, E.cmd_peer_gem, E.done_what)).cpu.pc).toBe(E.done_what);
   });
 
   it('counts a turn on the move counter, in BCD', async (): Promise<void> => {

@@ -4,7 +4,7 @@
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { ULT4_ENTRIES, ULT4_LIFTED, ULT4_TABLES } from '../../../src/app/port/program/ult4-data';
-import { APPLE, DISKS, JUMP_SYSTEM, JUMP_TRAINERS, PRTY, ROST, TRAINERS, ZP_MAIN } from '../../../src/app/state/symbols';
+import { APPLE, DISKS, JUMP_OVERLAY, JUMP_SYSTEM, JUMP_TRAINERS, PRTY, ROST, TRAINERS, ZP_MAIN } from '../../../src/app/state/symbols';
 import { byte } from './differential';
 import type { ICase, Random } from './differential';
 
@@ -14,27 +14,31 @@ const L = ULT4_LIFTED;
 const KEY: (random: Random) => { code: number; polls: number } = (random: Random): { code: number; polls: number } =>
   ({ code: pick(random, [ 0x0D, 0x0B, 0x0A, 0x2F, 0x08, 0x15, 0x20, 0x16, 0x13, 0x41, 0x42, 0x59, 0x4E, 0x31 ]), polls: Math.floor(random() * 6) });
 
+/** ESC, for request_disk's prompt to swap disks. */
+export const ESCAPE: () => { code: number; polls: number } = (): { code: number; polls: number } => ({ code: 0x1B, polls: 0 });
+
 const TILES: readonly number[] = [
   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0A, 0x0E, 0x10, 0x12, 0x14, 0x15, 0x18, 0x1B, 0x1C, 0x1F, 0x43, 0x46, 0x8C, 0x90,
 ];
 const TRANSPORTS: readonly number[] = [ 0x1F, 0x1F, 0x14, 0x15, 0x10, 0x11, 0x12, 0x13, 0x18 ];
 
 
-function pick<T>(random: Random, values: readonly T[]): T {
+export function pick<T>(random: Random, values: readonly T[]): T {
   return values[Math.floor(random() * values.length)];
 }
 
 
 /** The places a command goes when it is done: every jump that ends one. */
-const STOPS: readonly number[] = [
+export const STOPS: readonly number[] = [
   E.cmd_done, E.next_turn, E.end_turn, E.done_what, E.done_blocked, E.done_cant, E.done_not_here, E.done_only_on_foot, E.done_drift_only,
   E.done_pass, E.cmd_timeout, E.leave_to_world, E.spawn_pirate_fleet, E.spawn_daemon_guard, E.board_horse, E.board_balloon, E.load_saved_map,
   E.game_start, E.halt, L.load_shrine, L.begin_dng_load, L.combat_cmd_done, L.do_dungeon_room, L.cmd_music, JUMP_TRAINERS.j_trainer_board,
+  JUMP_OVERLAY.j_initialize_arena,
 ];
 
 
 /** Britannia, a towne or a dungeon, with the party on foot or riding something, and the trainers off or on. */
-function world(machine: LiftedMachine, random: Random): void {
+export function world(machine: LiftedMachine, random: Random): void {
   const write: (address: number, value: number) => void = (address: number, value: number): void => machine.write(address, value);
 
   write(JUMP_SYSTEM.music_ctl, APPLE.opcode_RTS);
@@ -64,7 +68,8 @@ function world(machine: LiftedMachine, random: Random): void {
   }
   write(ROST.player_stats + ROST.player_status, ROST.status_Good);
   write(ZP_MAIN.currdisk_drive1, (machine.read(PRTY.game_mode) === 0x03) ? DISKS.disk_dungeon : DISKS.disk_britannia);
-  for (const trainer of [ TRAINERS.trainer_balloon, TRAINERS.trainer_travel, TRAINERS.trainer_exit, TRAINERS.trainer_pass, TRAINERS.trainer_avoid ]) {
+  machine.insertDisk(1, (machine.read(PRTY.game_mode) === 0x03) ? 'underworld' : 'britannia');
+  for (const trainer of [ TRAINERS.trainer_balloon, TRAINERS.trainer_travel, TRAINERS.trainer_exit, TRAINERS.trainer_pass, TRAINERS.trainer_avoid, TRAINERS.trainer_peer ]) {
     write(trainer, (random() < 0.2) ? 0x01 : 0x00);
   }
 }
@@ -117,7 +122,7 @@ export const ULT4_CASES: Readonly<Record<string, readonly [ number, ICase ]>> = 
   }),
   spawn_pirate_fleet: command(E.spawn_pirate_fleet),
   spawn_daemon_guard: command(E.spawn_daemon_guard),
-  leave_to_world: [ E.leave_to_world, { ult4: true, stops: STOPS, key: (): { code: number; polls: number } => ({ code: 0x1B, polls: 0 }), setup: world } ],
+  leave_to_world: [ E.leave_to_world, { ult4: true, stops: STOPS, key: ESCAPE, setup: world } ],
   check_slow_terrain: routine(E.check_slow_terrain, (machine: LiftedMachine, random: Random): void => {
     machine.cpu.a = pick(random, TILES);
   }),
@@ -128,7 +133,18 @@ export const ULT4_CASES: Readonly<Record<string, readonly [ number, ICase ]>> = 
   board_horse: command(E.board_horse),
   board_balloon: command(E.board_balloon),
   cmd_descend: command(E.cmd_descend),
+  cmd_hole_up: routine(E.cmd_hole_up, (machine: LiftedMachine, random: Random): void => {
+    machine.write(PRTY.player_transport, pick(random, [ 0x1F, 0x1F, 0x1F, 0x10 ]));
+  }),
   cmd_klimb: command(E.cmd_klimb),
+  cmd_peer_gem: routine(E.cmd_peer_gem, (machine: LiftedMachine, random: Random): void => {
+    machine.write(ROST.party_stats + ROST.party_stat_gems, pick(random, [ 0x00, 0x01, 0x10, byte(random) ]));
+  }),
+  do_view: routine(E.do_view),
+  cmd_search: command(E.cmd_search),
+  cmd_use_item: [ E.cmd_use_item, { ult4: true, stops: STOPS, keys: (random: Random): readonly { code: number; polls: number }[] =>
+    [ ...pick(random, [ 'HORN', 'STONE', 'BELL', 'X' ]) ].map((character: string): { code: number; polls: number } => ({ code: character.charCodeAt(0), polls: 1 }))
+      .concat([ { code: 0x0D, polls: 1 } ]), setup: world } ],
   cmd_x_it: command(E.cmd_x_it),
   cmd_yell_horse: command(E.cmd_yell_horse),
   cmd_done: command(E.cmd_done),
@@ -138,6 +154,14 @@ export const ULT4_CASES: Readonly<Record<string, readonly [ number, ICase ]>> = 
   }),
   print_north: routine(E.print_north),
   input_char: routine(E.input_char),
+  run_file_dead: [ E.run_file_dead, { ult4: true, stops: STOPS, keys: (): readonly { code: number; polls: number }[] => [ ESCAPE(), ESCAPE() ], setup: (machine: LiftedMachine, random: Random): void => {
+    world(machine, random);
+    machine.write(ZP_MAIN.key_buf_len, 0x00);
+  } } ],
+  dec_stat: routine(E.dec_stat, (machine: LiftedMachine, random: Random): void => {
+    machine.cpu.y = Math.floor(random() * 0x10);
+    machine.write(ROST.party_stats + machine.cpu.y, pick(random, [ 0x00, 0x01, 0x10, 0x99 ]));
+  }),
   print_newline: routine(E.print_newline),
   check_enter_moongate: routine(E.check_enter_moongate, (machine: LiftedMachine, random: Random): void => {
     machine.cpu.a = pick(random, [ 0x43, 0x43, 0x04 ]);

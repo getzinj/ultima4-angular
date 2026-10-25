@@ -1,7 +1,8 @@
 import type { LiftedMachine } from '../../lifted-runtime/lifted-machine';
 import type { INativeModule, NativeRoutine } from '../../lifted-runtime/native-module';
+import { exitRoutine } from '../routine';
+import type { Exit } from '../routine';
 import { Ult4 } from './ult4';
-import type { Exit } from './ult4';
 import { ULT4_ENTRIES, ULT4_LOAD, ult4Data } from './ult4-data';
 
 // ULT4 as a native module ported in part: its lifted module still runs everything else, and these
@@ -56,7 +57,12 @@ const BODIES: readonly [ number, Body ][] = [
   [ E.do_board, (p: Ult4): Promise<Exit> => p.doBoard() ],
   [ E.print_descend, (p: Ult4): Promise<Exit> => p.printDescend() ],
   [ E.cmd_descend, (p: Ult4): Promise<Exit> => p.cmdDescend() ],
+  [ E.cmd_hole_up, (p: Ult4): Promise<Exit> => p.cmdHoleUp() ],
   [ E.cmd_klimb, (p: Ult4): Promise<Exit> => p.cmdKlimb() ],
+  [ E.cmd_peer_gem, (p: Ult4): Promise<Exit> => p.cmdPeerGem() ],
+  [ E.do_view, (p: Ult4): Promise<Exit> => p.doView() ],
+  [ E.cmd_search, (p: Ult4): Promise<Exit> => p.cmdSearch() ],
+  [ E.cmd_use_item, (p: Ult4): Promise<Exit> => p.cmdUseItem() ],
   [ E.cmd_x_it, (p: Ult4): Promise<Exit> => p.cmdXIt() ],
   [ E.cmd_yell_horse, (p: Ult4): Promise<Exit> => p.cmdYellHorse() ],
   [ E.cmd_done, (p: Ult4): Promise<Exit> => p.cmdDone() ],
@@ -68,6 +74,8 @@ const BODIES: readonly [ number, Body ][] = [
   [ E.print_east, (p: Ult4): Promise<Exit> => p.printEast() ],
   [ E.print_west, (p: Ult4): Promise<Exit> => p.printWest() ],
   [ E.input_char, (p: Ult4): Promise<Exit> => p.inputChar() ],
+  [ E.run_file_dead, (p: Ult4): Promise<Exit> => p.runFileDead() ],
+  [ E.dec_stat, (p: Ult4): Promise<Exit> => p.decStat() ],
   [ E.print_newline, (p: Ult4): Promise<Exit> => p.printNewline() ],
   [ E.check_enter_moongate, (p: Ult4): Promise<Exit> => p.checkEnterMoongate() ],
   [ E.gate_to_gate, (p: Ult4): Promise<Exit> => p.gateToGate() ],
@@ -75,15 +83,7 @@ const BODIES: readonly [ number, Body ][] = [
 
 
 function entry(body: Body): NativeRoutine {
-  return async (machine: LiftedMachine): Promise<void> => {
-    const exit: Exit = await body(new Ult4(machine));
-
-    if (exit == null) {
-      machine.rts();
-    } else {
-      machine.cpu.pc = exit;
-    }
-  };
+  return exitRoutine((machine: LiftedMachine): Ult4 => new Ult4(machine), body);
 }
 
 
