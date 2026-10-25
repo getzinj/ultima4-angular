@@ -4,8 +4,9 @@
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { COMBAT_ENTRIES } from '../../../src/app/port/program/ult4-combat-data';
+import { COMMAND_ENTRIES } from '../../../src/app/port/program/ult4-commands-data';
 import { ULT4_ENTRIES } from '../../../src/app/port/program/ult4-data';
-import { SPELL_ENTRIES, SPELL_LIFTED, SPELL_ROUTINES, SPELL_VARIABLES } from '../../../src/app/port/program/ult4-spells-data';
+import { SPELL_ENTRIES, SPELL_ROUTINES, SPELL_VARIABLES } from '../../../src/app/port/program/ult4-spells-data';
 import { DISKS, MAP_OBJECTS, PRTY, ROST, TILES, TRAINERS, ZP_MAIN } from '../../../src/app/state/symbols';
 import { ARROWS, COMBAT_STOPS, FOES, battle, keyOf } from './combat-cases';
 import { byte } from './differential';
@@ -130,7 +131,7 @@ function cast(random: Random): readonly Key[] {
 /** Where a spell goes next: the labels it jumps to, never the ones it calls. */
 const SPELL_STOPS: readonly number[] = [
   ...COMBAT_STOPS, ...SPELL_ROUTINES, S.failed, S.do_fireball, S.launch_attack_spell, S.spell_attack_failed, S.set_spell_aura, S.res_view_fail,
-  S.try_resurrect, SPELL_LIFTED.try_get_chest, COMBAT_ENTRIES.try_get_chest_combat, E.done_done, E.done_have_none,
+  S.try_resurrect, COMMAND_ENTRIES.try_get_chest, COMBAT_ENTRIES.try_get_chest_combat, E.done_done, E.done_have_none,
   E.done_disabled, E.done_not_a_player,
 ];
 

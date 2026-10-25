@@ -3,7 +3,8 @@
 // wind. The ship's hull and the party are sturdy enough that no case ends the game.
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
-import { MONSTER_ENTRIES, MONSTER_LIFTED } from '../../../src/app/port/program/ult4-monsters-data';
+import { COMMAND_ENTRIES } from '../../../src/app/port/program/ult4-commands-data';
+import { MONSTER_ENTRIES } from '../../../src/app/port/program/ult4-monsters-data';
 import { SUBS_VARIABLES } from '../../../src/app/port/program/subs-data';
 import { MAP_OBJECTS, PRTY, ROST, TILES, TRAINERS, ZP_COMBAT, ZP_MAIN } from '../../../src/app/state/symbols';
 import { keyOf } from './combat-cases';
@@ -52,7 +53,7 @@ function nextRand(state: number[]): number {
 
 
 /** The generator's next number made one `wanted` takes: rnd0 is added last, so one of its values gives it. */
-function rigRand(machine: LiftedMachine, random: Random, wanted: (value: number) => boolean): void {
+export function rigRand(machine: LiftedMachine, random: Random, wanted: (value: number) => boolean): void {
   const start: number = byte(random);
   let found: boolean = false;
 
@@ -238,7 +239,7 @@ function withA(values: (random: Random) => number, setup: (machine: LiftedMachin
 
 
 /** Where a monster's turn goes next: the fight it starts, or the turn's end. */
-const MONSTER_STOPS: readonly number[] = [ ...STOPS, MONSTER_LIFTED.do_attack ];
+const MONSTER_STOPS: readonly number[] = [ ...STOPS, COMMAND_ENTRIES.do_attack ];
 
 
 function monster(entry: number, extra?: Partial<ICase>): readonly [ number, ICase ] {

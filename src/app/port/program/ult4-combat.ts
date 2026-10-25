@@ -11,17 +11,17 @@ import type { IInlineData } from '../inline-data';
 import type { Exit } from '../routine';
 import { Ult4 } from './ult4';
 import { COMBAT_ENTRIES, COMBAT_INLINE, COMBAT_LIFTED, COMBAT_TABLES, COMBAT_VARIABLES } from './ult4-combat-data';
+import { COMMAND_ENTRIES } from './ult4-commands-data';
 import { ULT4_ENTRIES } from './ult4-data';
 import { SPELL_ENTRIES } from './ult4-spells-data';
-import { COMMAND_ENTRIES } from './ult4-commands-data';
 
-const CE = COMMAND_ENTRIES;
 const C = COMBAT_ENTRIES;
 const CL = COMBAT_LIFTED;
 const CI = COMBAT_INLINE;
 const CT = COMBAT_TABLES;
 const CV = COMBAT_VARIABLES;
 const E = ULT4_ENTRIES;
+const CE = COMMAND_ENTRIES;
 const J = JUMP_SUBS;
 const O = MAP_OBJECTS;
 /** ULT4.s's own uses of zero page in combat. */

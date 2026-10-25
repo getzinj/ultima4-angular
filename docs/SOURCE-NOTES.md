@@ -570,3 +570,43 @@ on the developer's machine. The images, and anything built from them, stay out o
   and `cmp #$50` gives the same $50; SHRN's Super-Packer ORs the rune onto a view it has just
   cleared, so storing it instead looks the same.
 
+
+## Phase 9c-2 findings
+
+- **ULT4's Britannia is native.** `Ult4Commands` (`ult4-commands.ts`, its data in
+  `ult4-commands-data.ts`) is the last of ULT4's subclasses, and the module now builds it: 87
+  entries, from Attack to `is_evil`. What stays lifted is the townes' (Talk, the shops,
+  `mobs_act_towne`) and the dungeons' (`spawn_dungeon`, `mobs_act_dungeon`, `dng_check_attacked`,
+  the rooms and their exits), for phases 10 and 11. The labels the other subclasses still listed as
+  lifted moved to `COMMAND_ENTRIES`, and the spells' list emptied.
+- **The bridge trolls drop the turn's frame.** `tile_effect` ends a troll ambush with `pla` / `pla`
+  / `jmp init_combat`, as the remaster's BUGFIX says it was entered from the main loop. Called
+  through the machine, the fight would run inside that call and never unwind, so `next_turn` now
+  calls `tileEffect`, abstract in `Ult4`, by `sub`, and passes its Exit on.
+- **A fall-through to a label the differential stops at goes back through the dispatcher.**
+  `check_on_foot` falls into `begin_dng_load` and `print_shrine` into `load_shrine`; the lifted
+  code stops there, so the port returns those labels as Exits rather than calling them.
+- **The originals' quirks, kept:** `recover_mp` counts down to player 0, past the party;
+  `poison_all` stops at the first player not in good health rather than skipping them; Jimmy asks a
+  direction even in Britannia, where it then refuses; Ztats shows a level as the maximum hit points'
+  high byte; a chest's trap springs on no one when `curr_player` is 0; `is_evil` spares the sea
+  horse, rat, bat, spider, insects and python.
+- **The ground under the party comes from the map's chunks, every turn.** `update_view` reads
+  `tile_under_player` from the four chunks at (`tile_xpos`, `tile_ypos`), the party's place in the
+  tile cache, not its Britannia coordinates; the scenario sets a tile there and passes a turn. A
+  step is judged on the neighbours the last update read, so poking the square ahead does not change
+  it.
+- **Disk prompts take one ESC, once the game waits at them.** Keys pressed while a towne or a
+  dungeon loads go into the type-ahead buffer and come back as commands (WHAT?), and
+  `Session.pressUntil` stops at each key read, which a load's printing does at every character; so
+  `townes` idles until the prompt waits, presses ESC, and runs to the next turn.
+- **The harness's disks.** The smoke disks had no towne or dungeon maps, so every load stopped at
+  FILE NOT FOUND; they now carry filler `MAP@` to `MAPP` and `DNG0` to `DNG7`. The harness does not
+  swap disks at a prompt, so the towne cases have two drives, the towne disk in the first and
+  Britannia's in the second, as the towne's loads ask for them.
+- **Two mutants survive, and cannot be caught.** A `sub`'s JSR site only changes the return address
+  on the stack, which the differential does not compare (Ready's and Wear's newline); and
+  `eat_food`'s `clc` when the food runs out follows a `sbc` whose borrow already cleared carry.
+  The rest, 63 of 65, are caught: for those that needed it the cases weight their setups (the
+  objects an attack makes over, places' own tiles, a ship with targets all round, sleep traps in a
+  fight) and rig the generator for the bridge trolls, as the monsters' cases do.

@@ -5,13 +5,13 @@
 
 import { CHAR, JUMP_SUBS, MAP_OBJECTS, PRTY, SOUND, TILES, TRAINERS, ZP_COMBAT, ZP_MAIN } from '../../state/symbols';
 import type { Exit } from '../routine';
+import { COMMAND_ENTRIES } from './ult4-commands-data';
 import { MONSTER_INLINE, MONSTER_LIFTED } from './ult4-monsters-data';
 import { Ult4Spells } from './ult4-spells';
-import { COMMAND_ENTRIES } from './ult4-commands-data';
 
-const CE = COMMAND_ENTRIES;
 const MI = MONSTER_INLINE;
 const ML = MONSTER_LIFTED;
+const CE = COMMAND_ENTRIES;
 const J = JUMP_SUBS;
 const O = MAP_OBJECTS;
 /** ULT4.s's own uses of zero page for the monsters. */

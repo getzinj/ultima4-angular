@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds ten, written from the remaster's source:
+`scenarios.py` holds twelve, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -83,6 +83,18 @@ Monitor would have left, which nothing here reproduces and the game does not use
   (`Session.poke` into a townsperson's slot): the newcomer's welcome, every subject he answers
   (healing declined and taken, HELP early in the game), one he cannot, and farewell; then a level
   gained and the help that asks for runes; then his greeting to a party of four.
+- **`commands`:** a new game by Britain with three in the party, a sextant, a torch, arms and the
+  quest's items: Locate, Ignite, Ztats through every page both ways, Ready and Wear (taken,
+  refused by class, lacking, aborted), New order, Volume and Music, starving, four chests, Attack
+  at nothing, at a whirlpool and at a rat (a fight with Ztats and Ready in it), Fire from a ship,
+  a turn on each of swamp, fire, sleep, poison and lava (poked under the party into the map's
+  chunks), three on a bridge, and Quit.
+- **`townes`:** a new game by Moonglow with eight in the party: into the towne, where the
+  companion who lives there is gone; a door opened and left to close, a locked one jimmied, the
+  towne's chests stolen and a dropped one opened, a sleeper attacked; then, each time by poking
+  `britannia_x` and `_y` before leaving, out to Deceit (on a horse, then on foot, and up its
+  ladder), Paws, Magincia, the Lycaeum and the Abyss (shut, then opened), and Enter in a balloon
+  and where nothing is. Each disk prompt is answered with one ESC once the game waits at it.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

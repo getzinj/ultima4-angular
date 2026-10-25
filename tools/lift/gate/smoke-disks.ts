@@ -53,6 +53,13 @@ function towneArenas(): Files {
 }
 
 
+/** The townes' maps, MAP@ to MAPP, and the dungeons', DNG0 to DNG7, each a different filler. */
+function maps(prefix: string, first: number, count: number, address: number, length: number): Files {
+  return Object.fromEntries(Array.from({ length: count }, (_: unknown, index: number): [ string, readonly [ number, Uint8Array ] ] =>
+    [ `${ prefix }${ String.fromCharCode(first + index) }`, [ address, Uint8Array.from({ length }, (_: unknown, at: number): number => (at * 7) + index) ] ]));
+}
+
+
 function disk(name: UltimaDiskName, files: Files): Dos33Disk {
   const result: Dos33Disk = new Dos33Disk(formatDos33());
 
@@ -96,7 +103,7 @@ export function smokeDisks(): DiskSet {
   return {
     program: disk('program', program),
     britannia: disk('britannia', britannia),
-    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], 'MAP@': [ 0x8B00, new Uint8Array(0x500) ], ...towneArenas() }),
-    underworld: disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ] }),
+    towne: disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], ...maps('MAP', 0x40, 17, 0x8B00, 0x500), ...towneArenas() }),
+    underworld: disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ], ...maps('DNG', 0x30, 8, 0xE800, 0x200) }),
   };
 }

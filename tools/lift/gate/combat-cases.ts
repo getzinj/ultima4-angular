@@ -6,6 +6,7 @@
 import type { UltimaDiskName } from '../../../src/app/data/ultima-disks';
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { COMBAT_ENTRIES, COMBAT_LIFTED, COMBAT_VARIABLES } from '../../../src/app/port/program/ult4-combat-data';
+import { COMMAND_ENTRIES } from '../../../src/app/port/program/ult4-commands-data';
 import { ULT4_ENTRIES } from '../../../src/app/port/program/ult4-data';
 import { SPELL_ENTRIES } from '../../../src/app/port/program/ult4-spells-data';
 import { DISKS, MAP_OBJECTS, PRTY, ROST, ZP_COMBAT, ZP_MAIN } from '../../../src/app/state/symbols';
@@ -191,7 +192,7 @@ export const COMBAT_STOPS: readonly number[] = [
   C.combat_players_fled, C.combat_over, C.do_foe_melee_attack, C.combat_move_up, C.combat_move_down, C.combat_move_left, C.combat_move_right,
   C.try_move, C.try_flee, C.do_flee, C.combat_cmd_attack, C.melee_attack, C.did_hit, C.ranged_attack, C.use_weapon, C.last_one, C.check_target,
   C.target_hit, C.missed, C.end_attack, C.combat_cmd_cast, C.combat_cmd_get, C.combat_cmd_ready, C.combat_cmd_ztats, CL.combat_exit_room,
-  S.choose_spell, CL.ask_weapon, CL.zstats_for_player, CL.do_get_chest, E.cmd_use_item, 0x5D1A, 0xFB0F,
+  S.choose_spell, COMMAND_ENTRIES.ask_weapon, COMMAND_ENTRIES.zstats_for_player, COMMAND_ENTRIES.do_get_chest, E.cmd_use_item, 0x5D1A, 0xFB0F,
 ];
 
 

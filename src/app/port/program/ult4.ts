@@ -13,11 +13,11 @@ import {
 import type { IInlineData } from '../inline-data';
 import { PortProgram } from '../port-program';
 import type { Exit } from '../routine';
-import { ULT4_ENTRIES, ULT4_INLINE, ULT4_LIFTED, ULT4_TABLES, ULT4_VARIABLES } from './ult4-data';
 import { COMMAND_ENTRIES } from './ult4-commands-data';
+import { ULT4_ENTRIES, ULT4_INLINE, ULT4_LIFTED, ULT4_TABLES, ULT4_VARIABLES } from './ult4-data';
 
-const CE = COMMAND_ENTRIES;
 const E = ULT4_ENTRIES;
+const CE = COMMAND_ENTRIES;
 const L = ULT4_LIFTED;
 const I = ULT4_INLINE;
 const T = ULT4_TABLES;

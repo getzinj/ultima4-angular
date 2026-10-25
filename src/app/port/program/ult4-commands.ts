@@ -301,7 +301,7 @@ export class Ult4Commands extends Ult4Monsters {
       this.poke(ZP_MAIN.temp_y, this.cpu.a);
       await this.musicCtl(MUSIC.music_off);
       await this.sub(0x5120, (): Promise<Exit> => this.fileWriteTempMap());
-      exit = await this.beginDngLoad();
+      exit = CE.begin_dng_load;
     } else {
       this.poke(PRTY.current_location, this.lda(PRTY.loc_world));
       exit = E.done_only_on_foot;
@@ -443,7 +443,7 @@ export class Ult4Commands extends Ult4Monsters {
     await this.m.call(J.j_printstring);
     await this.sub(0x5249, (): Promise<Exit> => this.printNewline());
 
-    return this.loadShrine();
+    return CE.load_shrine;
   }
 
 
