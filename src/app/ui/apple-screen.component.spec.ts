@@ -32,4 +32,29 @@ describe('AppleScreenComponent', (): void => {
 
     expect(machine.dirty).toBe(true);
   });
+
+  describe('the CRT effect', (): void => {
+    async function screenWith(crt: boolean): Promise<HTMLElement> {
+      fixture.componentRef.setInput('crt', crt);
+      await fixture.whenStable();
+
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('adds scanlines when on', async (): Promise<void> => {
+      expect((await screenWith(true)).querySelector('.scanlines')).not.toBeNull();
+    });
+
+    it('adds a glow layer when on', async (): Promise<void> => {
+      expect((await screenWith(true)).querySelector('canvas.glow')).not.toBeNull();
+    });
+
+    it('has no scanlines when off', async (): Promise<void> => {
+      expect((await screenWith(false)).querySelector('.scanlines')).toBeNull();
+    });
+
+    it('has no glow layer when off', async (): Promise<void> => {
+      expect((await screenWith(false)).querySelector('canvas.glow')).toBeNull();
+    });
+  });
 });
