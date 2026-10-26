@@ -14,9 +14,6 @@ import { ShopOverlay, stringTable } from './shop-overlay';
 
 const J = JUMP_SUBS;
 const zp_amount: number = 0xD8;
-const zp_save_reg: number = 0xD9;
-const zp_inc_amount: number = 0xD9;
-const zp_dec_amount: number = 0xDA;
 const zp_index: number = 0xEA;
 const PROPRIETOR: number = 0x05;
 const REAGENT_NAME: number = 0x09;
@@ -246,7 +243,7 @@ export class Shp4 extends ShopOverlay {
     for (const virtue of [ ROST.virtue_honesty, ROST.virtue_justice, ROST.virtue_honor ]) {
       this.ldy(virtue);
       this.lda(0x04);
-      await this.decVirtue();
+      await this.decVirtue(I.lost_an_eighth);
     }
   }
 
@@ -352,40 +349,6 @@ export class Shp4 extends ShopOverlay {
     await this.printString(this.add(REAGENT_NAME));
   }
 
-
-  private incVirtue(): void {
-    this.poke(zp_inc_amount, this.cpu.a);
-    this.cpu.setFlag(DECIMAL, true);
-    this.setCarry(false);
-    if (this.lda(this.peek(ROST.party_stats + this.cpu.y)) !== 0) {
-      this.cpu.adc(this.peek(zp_inc_amount));
-      if (this.carry()) {
-        this.lda(0x99);
-      }
-    }
-    this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
-    this.cpu.setFlag(DECIMAL, false);
-  }
-
-
-  /** A virtue down, not below one; one at zero (an eighth of the Avatarhood) is lost, and starts again from 99. */
-  private async decVirtue(): Promise<void> {
-    this.poke(zp_dec_amount, this.cpu.a);
-    this.poke(zp_save_reg, this.cpu.y);
-    if (this.lda(this.peek(ROST.party_stats + this.cpu.y)) === 0) {
-      await this.print(I.lost_an_eighth);
-      this.ldy(this.peek(zp_save_reg));
-      this.lda(0x99);
-    }
-    this.cpu.setFlag(DECIMAL, true);
-    this.setCarry(true);
-    this.cpu.sbc(this.peek(zp_dec_amount));
-    if (this.zero() || !this.carry()) {
-      this.lda(0x01);
-    }
-    this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
-    this.cpu.setFlag(DECIMAL, false);
-  }
 }
 
 

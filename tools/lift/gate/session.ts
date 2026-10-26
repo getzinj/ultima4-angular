@@ -900,6 +900,53 @@ export async function shops(session: Session): Promise<void> {
 }
 
 
+/**
+ * A new game into Moonglow, two in the party, the leader poisoned and the other dead, with 900 gold:
+ * the healer's cure paid for, a healing turned down, a resurrection, and blood given; a night at the
+ * inn; then with no gold a cure for free and blood refused. Then Paws, a horse too dear and one
+ * bought; Buccaneer's Den's guild, torches and a sextant; and Hawkwind in the castle, asked of
+ * honesty, spirituality at its height, humility attained and love, and then with the leader dead.
+ */
+export async function services(session: Session): Promise<void> {
+  await newGameAt(session, 0xE8, 0x87);
+  await inBritannia(session);
+  await enter(session);
+  session.poke(GOLD_HI, 0x09);
+  session.poke(GOLD_LO, 0x00);
+  session.poke(PARTY_SIZE, 0x02);
+  session.poke(PLAYER_STATUS, STATUS_POISON);
+  session.poke(PLAYER_STATUS + PLAYER_SIZE, STATUS_DEAD);
+  session.poke(PLAYER_1_HP_HI, 0x05);
+  await shopAt(session, 0x1B, 'Y', 'A', '1', 'Y', 'Y', 'B', '1', 'N', 'Y', 'C', '2', 'Y', 'N', 'Y');
+  await shopAt(session, 0x02, 'Y', 'Y');
+  session.poke(GOLD_HI, 0x00);
+  session.poke(PLAYER_STATUS, STATUS_POISON);
+  session.poke(PLAYER_1_HP_HI, 0x05);
+  await shopAt(session, 0x1B, 'Y', 'A', '1', ' ', 'N', 'N');
+  await walkOffTowne(session, 0x62, 0x91);
+  await enter(session);
+  session.poke(GOLD_HI, 0x01);
+  await shopAt(session, 0x18, 'Y', 'Y');
+  session.poke(GOLD_HI, 0x05);
+  await shopAt(session, 0x18, 'Y', 'Y');
+  session.poke(PLAYER_TRANSPORT, TILE_WALK);
+  await walkOffTowne(session, 0x88, 0x9E);
+  await enter(session);
+  session.poke(GOLD_HI, 0x10);
+  await shopAt(session, 0x07, 'Y', 'A', 'Y', 'Y', 'D', 'Y', 'N');
+  await walkOffTowne(session, 0x56, 0x6B);
+  await enter(session);
+  session.poke(VIRTUE_HONESTY, 0x10);
+  session.poke(VIRTUE_SPIRITUALITY, 0x99);
+  session.poke(VIRTUE_HONESTY + 0x07, 0x00);
+  await shopAt(session, 0x19, ' ', ...word('HONESTY'), ...word('SPIRITUALITY'), ' ', ...word('HUMILITY'), ...word('LOVE'), ...word('BYE'));
+  session.poke(PLAYER_STATUS, STATUS_DEAD);
+  await shopAt(session, 0x19);
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -915,4 +962,5 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   townes,
   townsfolk,
   shops,
+  services,
 };

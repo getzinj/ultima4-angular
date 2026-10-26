@@ -13,6 +13,9 @@ import { KeywordOverlay } from '../keyword-overlay';
 
 const J = JUMP_SUBS;
 const zp_mismatches: number = 0xF0;
+const zp_inc_amount: number = 0xD9;
+const zp_save_reg: number = 0xD9;
+const zp_dec_amount: number = 0xDA;
 const BCD_MAX: number = 0x63;
 
 
@@ -210,6 +213,41 @@ export abstract class ShopOverlay extends KeywordOverlay {
       this.poke(ROST.party_stats + y, this.cpu.a);
       this.lda(0xFF);
     }
+    this.cpu.setFlag(DECIMAL, false);
+  }
+
+  /** inc_virtue: virtue Y up by A in BCD, to 99 at most; one at zero, an eighth of the Avatarhood, stays there. */
+  protected incVirtue(): void {
+    this.poke(zp_inc_amount, this.cpu.a);
+    this.cpu.setFlag(DECIMAL, true);
+    this.setCarry(false);
+    if (this.lda(this.peek(ROST.party_stats + this.cpu.y)) !== 0) {
+      this.cpu.adc(this.peek(zp_inc_amount));
+      if (this.carry()) {
+        this.lda(0x99);
+      }
+    }
+    this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
+    this.cpu.setFlag(DECIMAL, false);
+  }
+
+
+  /** dec_virtue: virtue Y down by A, not below one; one at zero is lost, `lost` said, and starts again from 99. */
+  protected async decVirtue(lost: IInlineData): Promise<void> {
+    this.poke(zp_dec_amount, this.cpu.a);
+    this.poke(zp_save_reg, this.cpu.y);
+    if (this.lda(this.peek(ROST.party_stats + this.cpu.y)) === 0) {
+      await this.print(lost);
+      this.ldy(this.peek(zp_save_reg));
+      this.lda(0x99);
+    }
+    this.cpu.setFlag(DECIMAL, true);
+    this.setCarry(true);
+    this.cpu.sbc(this.peek(zp_dec_amount));
+    if (this.zero() || !this.carry()) {
+      this.lda(0x01);
+    }
+    this.poke(ROST.party_stats + this.cpu.y, this.cpu.a);
     this.cpu.setFlag(DECIMAL, false);
   }
 }

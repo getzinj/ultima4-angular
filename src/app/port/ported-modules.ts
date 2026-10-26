@@ -18,6 +18,11 @@ import { SHP1_MODULE } from './program/towne/shp1';
 import { SHP2_MODULE } from './program/towne/shp2';
 import { SHP3_MODULE } from './program/towne/shp3';
 import { SHP4_MODULE } from './program/towne/shp4';
+import { SHP5_MODULE } from './program/towne/shp5';
+import { SHP6_MODULE } from './program/towne/shp6';
+import { SHP7_MODULE } from './program/towne/shp7';
+import { SHP8_MODULE } from './program/towne/shp8';
+import { SHP9_MODULE } from './program/towne/shp9';
 import { TALK_MODULE } from './program/towne/talk';
 import { TOWNE_SEAR_MODULE } from './program/towne/sear';
 import { TOWNE_TMAP_MODULE } from './program/towne/tmap';
@@ -50,4 +55,9 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   SHP2_MODULE,
   SHP3_MODULE,
   SHP4_MODULE,
+  SHP5_MODULE,
+  SHP6_MODULE,
+  SHP7_MODULE,
+  SHP8_MODULE,
+  SHP9_MODULE,
 ];

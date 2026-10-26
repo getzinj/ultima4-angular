@@ -13,6 +13,11 @@ import { TOWNE_SHP1 } from '../../../src/app/lifted/towne/shp1';
 import { TOWNE_SHP2 } from '../../../src/app/lifted/towne/shp2';
 import { TOWNE_SHP3 } from '../../../src/app/lifted/towne/shp3';
 import { TOWNE_SHP4 } from '../../../src/app/lifted/towne/shp4';
+import { TOWNE_SHP5 } from '../../../src/app/lifted/towne/shp5';
+import { TOWNE_SHP6 } from '../../../src/app/lifted/towne/shp6';
+import { TOWNE_SHP7 } from '../../../src/app/lifted/towne/shp7';
+import { TOWNE_SHP8 } from '../../../src/app/lifted/towne/shp8';
+import { TOWNE_SHP9 } from '../../../src/app/lifted/towne/shp9';
 import { TOWNE_TALK } from '../../../src/app/lifted/towne/talk';
 import { TOWNE_TMAP } from '../../../src/app/lifted/towne/tmap';
 import { TOWNE_USE } from '../../../src/app/lifted/towne/use';
@@ -33,6 +38,11 @@ import { SHP1_DATA } from '../../../src/app/port/program/towne/shp1';
 import { SHP2_DATA } from '../../../src/app/port/program/towne/shp2';
 import { SHP3_DATA } from '../../../src/app/port/program/towne/shp3';
 import { SHP4_DATA } from '../../../src/app/port/program/towne/shp4';
+import { SHP5_DATA } from '../../../src/app/port/program/towne/shp5';
+import { SHP6_DATA } from '../../../src/app/port/program/towne/shp6';
+import { SHP7_DATA } from '../../../src/app/port/program/towne/shp7';
+import { SHP8_DATA } from '../../../src/app/port/program/towne/shp8';
+import { SHP9_DATA } from '../../../src/app/port/program/towne/shp9';
 import { TALK_DATA } from '../../../src/app/port/program/towne/talk';
 import { TOWNE_TMAP_DATA } from '../../../src/app/port/program/towne/tmap';
 import { TOWNE_USE_DATA } from '../../../src/app/port/program/towne/use';
@@ -71,6 +81,11 @@ const OVERLAYS: readonly [ string, ILiftedModule, readonly IInlineData[] ][] = [
   [ 'SHP2', TOWNE_SHP2, SHP2_DATA ],
   [ 'SHP3', TOWNE_SHP3, SHP3_DATA ],
   [ 'SHP4', TOWNE_SHP4, SHP4_DATA ],
+  [ 'SHP5', TOWNE_SHP5, SHP5_DATA ],
+  [ 'SHP6', TOWNE_SHP6, SHP6_DATA ],
+  [ 'SHP7', TOWNE_SHP7, SHP7_DATA ],
+  [ 'SHP8', TOWNE_SHP8, SHP8_DATA ],
+  [ 'SHP9', TOWNE_SHP9, SHP9_DATA ],
 ];
 
 

@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds fourteen, written from the remaster's source:
+`scenarios.py` holds fifteen, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -108,6 +108,13 @@ Monitor would have left, which nothing here reproduces and the game does not use
   that fizzle and reagents not owned; then Britain with 30 gold: a sword too dear and a sling
   bought, a staff sold and one kept, armour turned down and too dear, leather sold; and the pub's
   food, an ale, and the black stone's rumour bribed for.
+- **`services`:** a new game into Moonglow, two in the party, the leader poisoned and the other dead,
+  each shop reached as in `shops`: the healer's cure paid for, a healing turned down, a
+  resurrection and blood given; a night at the inn; then, with no gold, a cure for free and blood
+  refused. Then Paws, a horse too dear and one bought (SHP8's row of its own); Buccaneer's Den's
+  guild, torches and the sextant the menu does not list; and Hawkwind in the castle (SHP9's row),
+  asked of honesty, spirituality at its height, humility attained and a word that is no virtue,
+  and then with the leader dead.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 
