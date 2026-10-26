@@ -34,6 +34,8 @@ export const ULT4_TABLES = {
 
 /** ULT4's own entries the port takes over: every label lifted code jumps to or calls. */
 export const ULT4_ENTRIES = {
+  /** The main jump table's first slot, `jmp game_init`. */
+  main_jump_table: 0x4000,
   game_init: 0x4009,
   load_saved_game: 0x4033,
   halt: 0x4060,

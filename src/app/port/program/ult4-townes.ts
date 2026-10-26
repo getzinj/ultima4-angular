@@ -158,6 +158,20 @@ export abstract class Ult4Townes extends Ult4Commands {
     await this.callWith(J.j_primm_cout, TI.bload_lord);
     await this.musicCtl(MUSIC.music_British);
     await this.jsrOut(0x5C1C, JUMP_OVERLAY.talk_lord_british);
+    await this.backFromLordBritish();
+  }
+
+
+  /** After LORD: the towne disk back, the castle's tune, and the talk ended. */
+  public async afterLordBritish(): Promise<Exit> {
+    await this.backFromLordBritish();
+    await this.musicCtl(MUSIC.music_explore);
+
+    return E.cmd_done;
+  }
+
+
+  private async backFromLordBritish(): Promise<void> {
     await this.musicCtl(MUSIC.music_off);
     this.lda(DISKS.disk_towne);
     await this.m.call(J.j_request_disk);

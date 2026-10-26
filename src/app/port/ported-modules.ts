@@ -32,6 +32,7 @@ import { END_MODULE } from './program/underworld/end';
 import { UNDERWORLD_SEAR_MODULE } from './program/underworld/sear';
 import { UNDERWORLD_TMAP_MODULE } from './program/underworld/tmap';
 import { UNDERWORLD_USE_MODULE } from './program/underworld/use';
+import { TRAINERS_MODULE } from './program/trainers';
 import { ULT4_MODULE } from './program/ult4-module';
 
 /** Every program ported so far; the machine runs them in place of their lifted modules. */
@@ -42,6 +43,7 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   SEL_MODULE,
   SUBS_MODULE,
   ULT4_MODULE,
+  TRAINERS_MODULE,
   HELP_MODULE,
   HOLE_MODULE,
   LORD_MODULE,

@@ -13,6 +13,7 @@ import { COMBAT_CASES } from './combat-cases';
 import { COMMAND_CASES } from './command-cases';
 import { MONSTER_CASES } from './monster-cases';
 import { SHOP_CASES } from './shop-cases';
+import { TRAINER_CASES } from './trainer-cases';
 import { UNDERWORLD_CASES } from './underworld-cases';
 import { SPELL_CASES } from './spell-cases';
 import { TOWNE_CASES } from './towne-cases';
@@ -22,7 +23,7 @@ import { ULT4_CASES } from './ult4-cases';
 const CASES: Readonly<Record<string, readonly [ number, ICase, readonly INativeModule[] ]>> = {
   ...Object.fromEntries(Object.entries({ ...ULT4_CASES, ...COMBAT_CASES, ...SPELL_CASES, ...MONSTER_CASES, ...COMMAND_CASES, ...TOWNE_CASES, ...DUNGEON_CASES }).map(([ name, [ entry, testCase ] ]: [ string, readonly [ number, ICase ] ]):
     [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ entry, testCase, [ ULT4_MODULE ] ] ])),
-  ...Object.fromEntries(Object.entries({ ...OVERLAY_CASES, ...SHOP_CASES, ...UNDERWORLD_CASES }).map(([ name, overlay ]: [ string, IOverlayCase ]):
+  ...Object.fromEntries(Object.entries({ ...OVERLAY_CASES, ...SHOP_CASES, ...UNDERWORLD_CASES, ...TRAINER_CASES }).map(([ name, overlay ]: [ string, IOverlayCase ]):
     [ string, readonly [ number, ICase, readonly INativeModule[] ] ] => [ name, [ overlay.entry, overlay.testCase, overlay.modules ?? [ overlay.module ] ] ])),
 };
 

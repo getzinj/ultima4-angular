@@ -136,6 +136,14 @@ export abstract class Ult4 extends PortProgram {
   }
 
 
+  /** ULT4.s's main jump table, its first slot: `jmp game_init`. */
+  public mainJumpTable(): Exit {
+    this.cpu.cycles = this.cpu.cycles + 3;
+
+    return E.game_init;
+  }
+
+
   /** ULT4.s halt: no game to load, and nothing more to do. */
   public halt(): Exit {
     this.cpu.cycles = this.cpu.cycles + 3;

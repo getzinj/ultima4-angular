@@ -12,8 +12,8 @@ import { DUNGEON_ENTRIES, dungeonData } from './ult4-dungeons-data';
 import type { Ult4Townes } from './ult4-townes';
 import { TOWNE_ENTRIES, towneData } from './ult4-townes-data';
 
-// ULT4 as a native module ported in part: its lifted module still runs everything else, and these
-// entries run natively. Each returns where control goes: its RTS, or the address it jumps to.
+// ULT4 as a native module: these entries are every address other programs and its own native
+// code reach. Each returns where control goes: its RTS, or the address it jumps to.
 
 type Body = (program: Ult4Dungeons) => Exit | Promise<Exit>;
 
@@ -24,6 +24,7 @@ const MO = MONSTER_ENTRIES;
 const CE = COMMAND_ENTRIES;
 
 const BODIES: readonly [ number, Body ][] = [
+  [ E.main_jump_table, (p: Ult4Townes): Exit => p.mainJumpTable() ],
   [ E.game_init, (p: Ult4Townes): Promise<Exit> => p.gameInit() ],
   [ E.load_saved_game, (p: Ult4Townes): Promise<Exit> => p.loadSavedGame() ],
   [ E.halt, (p: Ult4Townes): Exit => p.halt() ],
@@ -353,6 +354,7 @@ const COMMAND_BODIES: readonly [ number, Body ][] = [
 
 const TOWNE_BODIES: readonly [ number, Body ][] = [
   [ TOWNE_ENTRIES.cmd_talk, (p: Ult4Townes): Promise<Exit> => p.cmdTalk() ],
+  [ TOWNE_ENTRIES.after_lord_british, (p: Ult4Townes): Promise<Exit> => p.afterLordBritish() ],
   [ TOWNE_ENTRIES.mobs_act_towne, (p: Ult4Townes): Promise<Exit> => p.mobsActTowne() ],
 ];
 
@@ -379,7 +381,6 @@ export const ULT4_MODULE: INativeModule = {
   disk: 'program',
   name: 'ULT4',
   load: ULT4_LOAD,
-  partial: true,
   install: (machine: LiftedMachine): void => {
     for (const [ address, bytes ] of [ ...ult4Data(), ...combatData(), ...spellData(), ...monsterData(), ...commandData(), ...towneData(), ...dungeonData() ]) {
       bytes.forEach((value: number, index: number): void => machine.write(address + index, value));
