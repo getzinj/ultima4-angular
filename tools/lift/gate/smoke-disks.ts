@@ -23,6 +23,8 @@ const ROOM_FOES: readonly number[] = [ 0x90, 0x94, 0x98, 0x9C, 0xA0, 0xA4, 0xA8,
 /** Where CSTRING's thirteen packed images start, and the first of the codes they use, two each. */
 const SPK_OFFSETS: readonly number[] = [ 0x0F36, 0x0FFB, 0x10AB, 0x10C8, 0x10E5, 0x11B0, 0x126D, 0x12AC, 0x146E, 0x14EB, 0x156E, 0x15EC, 0x181B ];
 const FIRST_CODE: number = 0xE6;
+/** How much of a picture is drawn, the rest blank, so that the pictures ORed onto each other leave the view's own bits to see. */
+const SPARSE: number = 0.15;
 /** A picture's bytes: 22 columns of 176 rows. */
 const SPK_PICTURE_BYTES: number = 22 * 176;
 /** Long enough for the last image's 22 columns of 176 bytes, all literals, to end within it. */
@@ -112,7 +114,7 @@ function rooms(underworld: Dos33Disk): void {
  */
 function pictures(): Uint8Array {
   const random: Random = seeded(0x0C0D);
-  const data: Uint8Array = Uint8Array.from({ length: CSTRING_LENGTH }, (): number => Math.floor(random() * FIRST_CODE));
+  const data: Uint8Array = Uint8Array.from({ length: CSTRING_LENGTH }, (): number => (random() < SPARSE) ? Math.floor(random() * FIRST_CODE) : 0x00);
 
   SPK_OFFSETS.forEach((offset: number, image: number): void => {
     data[offset] = FIRST_CODE + (image * 2);
@@ -127,7 +129,7 @@ function pictures(): Uint8Array {
 /** The lock, END's first picture and the last in CSTRING: literals, runs and patterns of literals, ending exactly on the picture's last byte. */
 function packedLock(random: Random): number[] {
   const repeatCode: number = FIRST_CODE + ((SPK_OFFSETS.length - 1) * 2);
-  const literal = (): number => Math.floor(random() * FIRST_CODE);
+  const literal = (): number => (random() < SPARSE) ? Math.floor(random() * FIRST_CODE) : 0x00;
   const stream: number[] = [];
   let left: number = SPK_PICTURE_BYTES;
 

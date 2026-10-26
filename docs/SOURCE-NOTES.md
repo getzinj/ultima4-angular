@@ -813,7 +813,9 @@ on the developer's machine. The images, and anything built from them, stay out o
   uses as its run flag. A picture that ended with a run pending would leave keys claimed; the real
   pictures end on a boundary. The gate's test CSTRING is literals, each picture with run and pattern
   codes nothing after it holds, but for the lock, END's first picture and CSTRING's last, which is
-  runs and patterns of literals ending exactly on the picture's last byte.
+  runs and patterns of literals ending exactly on the picture's last byte. Its pictures are mostly
+  blank: each is ORed onto the view, and dense ones would leave every bit of the door set before
+  it is drawn.
 - **The delays** pass 539,721 cycles a count, and 9 for the call; the door's scroll pauses 261,632
   between steps. The port adds them to the clock.
 - **The game ends in `jmp halt`**, which the port keeps as an entry that jumps to itself, three
