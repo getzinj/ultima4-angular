@@ -27,15 +27,15 @@ test('a wrong file is refused with a reason', async ({ page }: { page: Page }) =
 test('the four disks lead to the screen', async ({ page }: { page: Page }) => {
   await importSyntheticDisks(page);
 
-  await expect(page.locator('ultima4-apple-screen canvas')).toHaveJSProperty('width', 280);
+  await expect(page.locator('ultima4-apple-screen canvas.picture')).toHaveJSProperty('width', 280);
 });
 
 test('the disks are remembered for the next visit', async ({ page }: { page: Page }) => {
   await importSyntheticDisks(page);
-  await expect(page.locator('ultima4-apple-screen canvas')).toBeVisible();
+  await expect(page.locator('ultima4-apple-screen canvas.picture')).toBeVisible();
   await page.reload();
 
-  await expect(page.locator('ultima4-apple-screen canvas')).toBeVisible();
+  await expect(page.locator('ultima4-apple-screen canvas.picture')).toBeVisible();
 });
 
 test('the game runs from the disks without stopping', async ({ page }: { page: Page }) => {
@@ -44,4 +44,12 @@ test('the game runs from the disks without stopping', async ({ page }: { page: P
   await page.waitForTimeout(3_000);
 
   await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('the CRT effect can be turned off from the settings', async ({ page }: { page: Page }) => {
+  await importSyntheticDisks(page);
+  await page.getByLabel('Display settings').click();
+  await page.getByLabel('CRT effect').uncheck();
+
+  await expect(page.locator('.scanlines')).toHaveCount(0);
 });

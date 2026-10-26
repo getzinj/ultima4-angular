@@ -22,6 +22,7 @@ describe('GameComponent', (): void => {
 
   afterEach((): void => {
     fixture.destroy();
+    localStorage.clear();
   });
 
   function keyDown(init: KeyboardEventInit): KeyboardEvent {
@@ -51,6 +52,43 @@ describe('GameComponent', (): void => {
 
     it('leaves a key the Apple has no code for to the browser', (): void => {
       expect(keyDown({ key: 'F5' }).defaultPrevented).toBe(false);
+    });
+
+    it('leaves a key pressed on one of the page\'s controls to it', (): void => {
+      const summary: HTMLElement = (fixture.nativeElement as HTMLElement).querySelector('summary') as HTMLElement;
+
+      summary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+
+      expect(game.press).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the touch pad', (): void => {
+    it('gives its keys to the game', (): void => {
+      ((fixture.nativeElement as HTMLElement).querySelector('[data-key="↑"]') as HTMLButtonElement).click();
+
+      expect(game.press).toHaveBeenCalledWith(0x8B);
+    });
+  });
+
+  describe('the display settings', (): void => {
+    it('are kept for the next visit', (): void => {
+      const crt: HTMLInputElement = (fixture.nativeElement as HTMLElement).querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+      crt.checked = false;
+      crt.dispatchEvent(new Event('change'));
+
+      expect(JSON.parse(localStorage.getItem('ultima4.display') ?? 'null')).toEqual({ palette: 'ntsc', crt: false });
+    });
+
+    it('take the CRT effect off the screen', async (): Promise<void> => {
+      const crt: HTMLInputElement = (fixture.nativeElement as HTMLElement).querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+      crt.checked = false;
+      crt.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.scanlines')).toBeNull();
     });
   });
 
