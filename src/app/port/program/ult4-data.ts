@@ -32,15 +32,6 @@ export const ULT4_TABLES = {
   moongate_y: 0x4C57,
 } as const;
 
-/** The labels the ported routines jump to that are still lifted. */
-export const ULT4_LIFTED = {
-  dng_check_attacked: 0x6E79,
-  do_dungeon_room: 0x6F0F,
-  combat_cmd_done: 0x72B7,
-  dng_can_advance: 0x80E0,
-  dng_can_retreat: 0x80F2,
-} as const;
-
 /** ULT4's own entries the port takes over: every label lifted code jumps to or calls. */
 export const ULT4_ENTRIES = {
   game_init: 0x4009,

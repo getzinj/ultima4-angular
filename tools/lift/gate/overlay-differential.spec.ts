@@ -2,6 +2,7 @@ import { differences, runRoutine } from './differential';
 import { OVERLAY_CASES } from './overlay-cases';
 import type { IOverlayCase } from './overlay-cases';
 import { SHOP_CASES } from './shop-cases';
+import { UNDERWORLD_CASES } from './underworld-cases';
 
 // Each ported overlay against the lifted original from ten random states, with SUBS
 // and ULT4 lifted on both sides: registers, flags, memory, the language card, polls, DOS
@@ -12,7 +13,7 @@ const SEEDS: number = 10;
 
 
 describe('the overlays, ported, against the lifted originals', (): void => {
-  it.each(Object.entries({ ...OVERLAY_CASES, ...SHOP_CASES }))('%s agrees', async (_: string, overlay: IOverlayCase): Promise<void> => {
+  it.each(Object.entries({ ...OVERLAY_CASES, ...SHOP_CASES, ...UNDERWORLD_CASES }))('%s agrees', async (_: string, overlay: IOverlayCase): Promise<void> => {
     const found: string[] = [];
 
     for (let seed: number = 1; seed <= SEEDS; seed++) {

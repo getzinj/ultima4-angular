@@ -10,13 +10,13 @@ import {
 import type { IInlineData } from '../inline-data';
 import type { Exit } from '../routine';
 import { Ult4 } from './ult4';
-import { COMBAT_ENTRIES, COMBAT_INLINE, COMBAT_LIFTED, COMBAT_TABLES, COMBAT_VARIABLES } from './ult4-combat-data';
+import { COMBAT_ENTRIES, COMBAT_INLINE, COMBAT_TABLES, COMBAT_VARIABLES } from './ult4-combat-data';
+import { DUNGEON_ENTRIES } from './ult4-dungeons-data';
 import { COMMAND_ENTRIES } from './ult4-commands-data';
 import { ULT4_ENTRIES } from './ult4-data';
 import { SPELL_ENTRIES } from './ult4-spells-data';
 
 const C = COMBAT_ENTRIES;
-const CL = COMBAT_LIFTED;
 const CI = COMBAT_INLINE;
 const CT = COMBAT_TABLES;
 const CV = COMBAT_VARIABLES;
@@ -1155,7 +1155,7 @@ export abstract class Ult4Combat extends Ult4 {
     this.lda(this.peek(PRTY.game_mode));
     this.cmp(PRTY.mode_combat_dng_room);
 
-    return this.zero() ? CL.combat_exit_room : C.combat_players_fled;
+    return this.zero() ? DUNGEON_ENTRIES.combat_exit_room : C.combat_players_fled;
   }
 
 

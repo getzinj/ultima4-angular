@@ -69,7 +69,7 @@ export class Use extends UseOverlay {
     const H = HANDLERS;
 
     return new Map<number, () => Promise<void>>([
-      [ H.use_stone, (): Promise<void> => this.useStone() ],
+      [ H.use_stone, (): Promise<void> => this.useStone(I.no_place) ],
       [ H.use_bell, (): Promise<void> => this.useBell() ],
       [ H.use_book, (): Promise<void> => this.useAfter(ROST.item_have_book, ROST.item_used_bell, ROST.item_used_book, I.book) ],
       [ H.use_candle, (): Promise<void> => this.useAfter(ROST.item_have_candle, ROST.item_used_book, ROST.item_used_candle, I.candle) ],

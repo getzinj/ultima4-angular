@@ -111,6 +111,9 @@ const TILE_VILLAGER: number = 0x20;
 const TILE_BEGGAR: number = 0x58;
 const TILE_SHOPKEEPER: number = 0x52;
 const TILE_SIGN: number = 0x60;
+const DUNGEON_MAP: number = 0xE800;
+const DUNGEON_LEVEL: number = 0x0C;
+const DNG_DIRECTION: number = 0x10;
 const REAGENTS: number = 0xED38;
 const AI_HOSTILE: number = 0xFF;
 /** Moonglow's townsfolk, by their records on the towne disk's track 4, numbered from one. */
@@ -947,6 +950,82 @@ export async function services(session: Session): Promise<void> {
 }
 
 
+/** The dungeon's map cell `dx`, `dy` from the party on its level, wrapping round: get_dng_tile's place in view_buf. */
+function dungeonCell(session: Session, dx: number, dy: number): number {
+  const level: number = session.machine.read(DUNGEON_LEVEL);
+  const x: number = (session.machine.read(PLAYER_XPOS) + dx) & 0x07;
+  const y: number = (session.machine.read(PLAYER_YPOS) + dy) & 0x07;
+
+  return DUNGEON_MAP + (level * 0x40) + (y * 0x08) + x;
+}
+
+
+/** Attacks round the compass, a direction a turn, until the fight is over. */
+async function fightAround(session: Session): Promise<void> {
+  const around: readonly Key[] = [ UP, RIGHT, DOWN, LEFT ];
+
+  for (let turn: number = 0; (turn < 400) && ((session.machine.read(GAME_MODE) & MODE_COMBAT) !== 0); turn++) {
+    await combatTurn(session, 'A', around[turn % around.length]);
+  }
+}
+
+
+/** `tile` under the party, and a turn passed for the game to see it. */
+async function standOn(session: Session, tile: number): Promise<void> {
+  session.poke(dungeonCell(session, 0, 0), tile);
+  await command(session, ' ');
+}
+
+
+/**
+ * A new game into Deceit with a strong avatar: the gem's map of the level; a fountain that heals and
+ * one that harms, an orb and the altar searched; the skull and the bell used; a rat met where the
+ * party stands, fought; a room stepped into ahead and left the way the party came in; and turns for
+ * the level's monsters.
+ */
+export async function dungeons(session: Session): Promise<void> {
+  await newGameAt(session, 0xF0, 0x49);
+  for (const [ address, value ] of [ [ PLAYER_1_STRENGTH, 0x50 ], [ PLAYER_1_DEXTERITY, 0x50 ], [ PLAYER_1_WEAPON, WEAPON_SWORD ], [ PLAYER_1_HP_HI, 0x05 ], [ PLAYER_1_MAX_HP_HI, 0x08 ] ]) {
+    session.poke(address, value);
+  }
+  await inBritannia(session);
+  await enter(session);
+  session.poke(GEMS, 0x02);
+  await keys(session, 'P');
+  await session.machine.runUntil((): boolean => session.machine.cpu.pc === VIEW_MAP);
+  await session.idle(40);
+  await keys(session, RETURN);
+  await session.machine.runUntil(session.entered('ULT4', 'next_turn'));
+  for (const tile of [ 0x91, 0x92, 0x70 ]) {
+    await standOn(session, tile);
+    await command(session, 'S', '1');
+  }
+  await standOn(session, 0xB0);
+  await command(session, 'S');
+  await standOn(session, 0x00);
+  session.poke(SKULL, 0x01);
+  await command(session, 'U', ...word('SKULL'));
+  await command(session, 'U', ...word('BELL'));
+  session.poke(dungeonCell(session, 0, 0), 0x01);
+  await combatTurn(session, ' ');
+  await fightAround(session);
+  const ahead: readonly [ number, number ] = [ [ 0, -1 ], [ 1, 0 ], [ 0, 1 ], [ -1, 0 ] ][session.machine.read(DNG_DIRECTION) & 0x03] as [ number, number ];
+
+  const back: Key = [ DOWN, LEFT, UP, RIGHT ][session.machine.read(DNG_DIRECTION) & 0x03];
+
+  session.poke(dungeonCell(session, ahead[0], ahead[1]), 0xD0);
+  await combatTurn(session, UP);
+  for (let turn: number = 0; (turn < 40) && ((session.machine.read(GAME_MODE) & MODE_COMBAT) !== 0); turn++) {
+    await combatTurn(session, back);
+  }
+  for (let turn: number = 0; turn < 6; turn++) {
+    await command(session, ' ');
+  }
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -963,4 +1042,5 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   townsfolk,
   shops,
   services,
+  dungeons,
 };

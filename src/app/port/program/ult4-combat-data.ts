@@ -33,10 +33,6 @@ export const COMBAT_TABLES = {
 } as const;
 
 /** The labels combat jumps to or calls that are still lifted. */
-export const COMBAT_LIFTED = {
-  combat_exit_room: 0x7701,
-} as const;
-
 /** Combat's entries: every label lifted code jumps to or calls, and the ones its own code jumps to. */
 export const COMBAT_ENTRIES = {
   inn_combat: 0x6E58,

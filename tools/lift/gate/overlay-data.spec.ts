@@ -21,6 +21,9 @@ import { TOWNE_SHP9 } from '../../../src/app/lifted/towne/shp9';
 import { TOWNE_TALK } from '../../../src/app/lifted/towne/talk';
 import { TOWNE_TMAP } from '../../../src/app/lifted/towne/tmap';
 import { TOWNE_USE } from '../../../src/app/lifted/towne/use';
+import { UNDERWORLD_SEAR } from '../../../src/app/lifted/underworld/sear';
+import { UNDERWORLD_TMAP } from '../../../src/app/lifted/underworld/tmap';
+import { UNDERWORLD_USE } from '../../../src/app/lifted/underworld/use';
 import type { ILiftedModule } from '../../../src/app/lifted-runtime/lifted-module';
 import type { IInlineData } from '../../../src/app/port/inline-data';
 import { HELP_DATA } from '../../../src/app/port/program/britannia/help';
@@ -46,6 +49,9 @@ import { SHP9_DATA } from '../../../src/app/port/program/towne/shp9';
 import { TALK_DATA } from '../../../src/app/port/program/towne/talk';
 import { TOWNE_TMAP_DATA } from '../../../src/app/port/program/towne/tmap';
 import { TOWNE_USE_DATA } from '../../../src/app/port/program/towne/use';
+import { UNDERWORLD_SEAR_DATA } from '../../../src/app/port/program/underworld/sear';
+import { UNDERWORLD_TMAP_DATA } from '../../../src/app/port/program/underworld/tmap';
+import { UNDERWORLD_USE_DATA } from '../../../src/app/port/program/underworld/use';
 
 // Every byte the overlay ports install, against the image the lifter took from the build. Local
 // only, like the rest of the gate: the lifted modules are generated, not committed.
@@ -75,6 +81,9 @@ const OVERLAYS: readonly [ string, ILiftedModule, readonly IInlineData[] ][] = [
   [ 'towne TALK', TOWNE_TALK, TALK_DATA ],
   [ 'towne TMAP', TOWNE_TMAP, TOWNE_TMAP_DATA ],
   [ 'towne USE', TOWNE_USE, TOWNE_USE_DATA ],
+  [ 'underworld SEAR', UNDERWORLD_SEAR, UNDERWORLD_SEAR_DATA ],
+  [ 'underworld TMAP', UNDERWORLD_TMAP, UNDERWORLD_TMAP_DATA ],
+  [ 'underworld USE', UNDERWORLD_USE, UNDERWORLD_USE_DATA ],
   [ 'MIX', TOWNE_MIX, MIX_DATA ],
   [ 'SHP0', TOWNE_SHP0, SHP0_DATA ],
   [ 'SHP1', TOWNE_SHP1, SHP1_DATA ],

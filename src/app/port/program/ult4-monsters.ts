@@ -6,11 +6,10 @@
 import { CHAR, JUMP_SUBS, MAP_OBJECTS, PRTY, SOUND, TILES, TRAINERS, ZP_COMBAT, ZP_MAIN } from '../../state/symbols';
 import type { Exit } from '../routine';
 import { COMMAND_ENTRIES } from './ult4-commands-data';
-import { MONSTER_INLINE, MONSTER_LIFTED } from './ult4-monsters-data';
+import { MONSTER_INLINE } from './ult4-monsters-data';
 import { Ult4Spells } from './ult4-spells';
 
 const MI = MONSTER_INLINE;
-const ML = MONSTER_LIFTED;
 const CE = COMMAND_ENTRIES;
 const J = JUMP_SUBS;
 const O = MAP_OBJECTS;
@@ -52,7 +51,7 @@ export abstract class Ult4Monsters extends Ult4Spells {
     } else {
       this.cmp(PRTY.mode_dungeon);
       if (this.zero()) {
-        await this.jmp(ML.spawn_dungeon);
+        exit = await this.spawnDungeon();
       }
     }
 
@@ -178,8 +177,10 @@ export abstract class Ult4Monsters extends Ult4Spells {
 
   // --- the monsters' turns (ULT4.s:4975-5310) -----------------------------------------------
 
-  /** Ult4Townes's mobs_act_towne. */
+  /** Ult4Townes's mobs_act_towne, and Ult4Dungeons's spawn_dungeon and mobs_act_dungeon. */
   public abstract mobsActTowne(): Promise<Exit>;
+  public abstract spawnDungeon(): Promise<Exit>;
+  public abstract mobsActDungeon(): Promise<Exit>;
 
 
   public async mobsAct(): Promise<Exit> {
@@ -196,7 +197,7 @@ export abstract class Ult4Monsters extends Ult4Spells {
       } else {
         this.cmp(PRTY.mode_dungeon);
         if (this.zero()) {
-          await this.jmp(ML.mobs_act_dungeon);
+          exit = await this.mobsActDungeon();
         }
       }
     }

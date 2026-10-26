@@ -25,11 +25,6 @@ export const COMMAND_TABLES = {
   rune_sym: 0x634C,
 } as const;
 
-/** The labels the commands jump to or call that are still lifted. */
-export const COMMAND_LIFTED = {
-  dng_check_attacked: 0x6E79,
-} as const;
-
 /** The commands' entries: every label lifted code jumps to or calls, and the ones their own code jumps to. */
 export const COMMAND_ENTRIES = {
   cmd_attack: 0x4714,

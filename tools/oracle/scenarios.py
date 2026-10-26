@@ -50,6 +50,7 @@ DISK_PROMPT = 300
 GOLD_HI, GOLD_LO, PLAYER_1_CLASS, CLASS_SHEPHERD = 0xED13, 0xED14, 0xEC11, 0x07
 NPC_DIALOGUE, TILE_FLOOR_BRICK, TILE_VILLAGER, TILE_BEGGAR, AI_HOSTILE = 0xEEE0, 0x3E, 0x20, 0x58, 0xFF
 TILE_SHOPKEEPER, TILE_SIGN, REAGENTS = 0x52, 0x60, 0xED38
+DUNGEON_MAP, DUNGEON_LEVEL, DNG_DIRECTION = 0xE800, 0x0C, 0x10
 # Moonglow's townsfolk, by their records on the towne disk's track 4, numbered from one.
 MARIAH, CROMWELL, PATRIC, CALABRINI = 0x01, 0x03, 0x06, 0x0D
 # TMAP's entry, which SEAR's telescope calls once the map is loaded.
@@ -769,6 +770,74 @@ def services(session):
     session.checkpoint()
 
 
+def dungeon_cell(session, dx, dy):
+    """The dungeon's map cell dx, dy from the party on its level, wrapping round: get_dng_tile's place
+    in view_buf."""
+    ram = session.machine.memory.ram
+    x = (ram[PLAYER_XPOS] + dx) & 0x07
+    y = (ram[PLAYER_YPOS] + dy) & 0x07
+    return DUNGEON_MAP + ram[DUNGEON_LEVEL] * 0x40 + y * 0x08 + x
+
+
+def fight_around(session):
+    """Attacks round the compass, a direction a turn, until the fight is over."""
+    around = (UP, RIGHT, DOWN, LEFT)
+    turn = 0
+    while turn < 400 and in_combat(session):
+        combat_turn(session, 'A', around[turn % len(around)])
+        turn += 1
+
+
+def stand_on(session, tile):
+    """tile under the party, and a turn passed for the game to see it."""
+    session.poke(dungeon_cell(session, 0, 0), tile)
+    command(session, ' ')
+
+
+def dungeons(session):
+    """A new game into Deceit with a strong avatar: the gem's map of the level; a fountain that heals
+    and one that harms, an orb and the altar searched; the skull and the bell used; a rat met where
+    the party stands, fought; a room stepped into ahead and left the way the party came in; and turns
+    for the level's monsters."""
+    new_game_at(session, 0xF0, 0x49)
+    for address, value in ((PLAYER_1_STRENGTH, 0x50), (PLAYER_1_DEXTERITY, 0x50), (PLAYER_1_WEAPON, WEAPON_SWORD),
+                           (PLAYER_1_HP_HI, 0x05), (PLAYER_1_MAX_HP_HI, 0x08)):
+        session.poke(address, value)
+    in_britannia(session)
+    enter(session)
+    session.poke(GEMS, 0x02)
+    keys(session, 'P')
+    session.run_until(lambda: session.machine.mpu.pc == VIEW_MAP)
+    session.idle(40)
+    keys(session, RETURN)
+    session.run_until(session.entered('ULT4', 'next_turn'))
+    for tile in (0x91, 0x92, 0x70):
+        stand_on(session, tile)
+        command(session, 'S', '1')
+    stand_on(session, 0xB0)
+    command(session, 'S')
+    stand_on(session, 0x00)
+    session.poke(SKULL, 0x01)
+    command(session, 'U', *word('SKULL'))
+    command(session, 'U', *word('BELL'))
+    session.poke(dungeon_cell(session, 0, 0), 0x01)
+    combat_turn(session, ' ')
+    fight_around(session)
+    direction = session.machine.memory.ram[DNG_DIRECTION] & 0x03
+    ahead = ((0, -1), (1, 0), (0, 1), (-1, 0))[direction]
+    back = (DOWN, LEFT, UP, RIGHT)[direction]
+    session.poke(dungeon_cell(session, ahead[0], ahead[1]), 0xD0)
+    combat_turn(session, UP)
+    turn = 0
+    while turn < 40 and in_combat(session):
+        combat_turn(session, back)
+        turn += 1
+    for _ in range(6):
+        command(session, ' ')
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
@@ -785,4 +854,5 @@ SCENARIOS = {
     'townsfolk': townsfolk,
     'shops': shops,
     'services': services,
+    'dungeons': dungeons,
 }

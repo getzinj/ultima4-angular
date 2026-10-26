@@ -7,13 +7,15 @@ import { ULT4_ENTRIES, ULT4_LOAD, ult4Data } from './ult4-data';
 import { COMMAND_ENTRIES, commandData } from './ult4-commands-data';
 import { MONSTER_ENTRIES, monsterData } from './ult4-monsters-data';
 import { SPELL_ENTRIES, spellData } from './ult4-spells-data';
-import { Ult4Townes } from './ult4-townes';
+import { Ult4Dungeons } from './ult4-dungeons';
+import { DUNGEON_ENTRIES, dungeonData } from './ult4-dungeons-data';
+import type { Ult4Townes } from './ult4-townes';
 import { TOWNE_ENTRIES, towneData } from './ult4-townes-data';
 
 // ULT4 as a native module ported in part: its lifted module still runs everything else, and these
 // entries run natively. Each returns where control goes: its RTS, or the address it jumps to.
 
-type Body = (program: Ult4Townes) => Exit | Promise<Exit>;
+type Body = (program: Ult4Dungeons) => Exit | Promise<Exit>;
 
 const E = ULT4_ENTRIES;
 const C = COMBAT_ENTRIES;
@@ -355,8 +357,21 @@ const TOWNE_BODIES: readonly [ number, Body ][] = [
 ];
 
 
+const DUNGEON_BODIES: readonly [ number, Body ][] = [
+  [ DUNGEON_ENTRIES.spawn_dungeon, (p: Ult4Dungeons): Promise<Exit> => p.spawnDungeon() ],
+  [ DUNGEON_ENTRIES.mobs_act_dungeon, (p: Ult4Dungeons): Promise<Exit> => p.mobsActDungeon() ],
+  [ DUNGEON_ENTRIES.dng_check_attacked, (p: Ult4Dungeons): Promise<Exit> => p.dngCheckAttacked() ],
+  [ DUNGEON_ENTRIES.do_dungeon_room, (p: Ult4Dungeons): Promise<Exit> => p.doDungeonRoom() ],
+  [ DUNGEON_ENTRIES.combat_exit_room, (p: Ult4Dungeons): Promise<Exit> => p.combatExitRoom() ],
+  [ DUNGEON_ENTRIES.do_exit_room, (p: Ult4Dungeons): Promise<Exit> => p.doExitRoom() ],
+  [ DUNGEON_ENTRIES.legal_move_dungeon, (p: Ult4Dungeons): Promise<Exit> => p.legalMoveDungeon() ],
+  [ DUNGEON_ENTRIES.dng_can_advance, (p: Ult4Dungeons): Exit => p.dngCanAdvance() ],
+  [ DUNGEON_ENTRIES.dng_can_retreat, (p: Ult4Dungeons): Exit => p.dngCanRetreat() ],
+];
+
+
 function entry(body: Body): NativeRoutine {
-  return exitRoutine((machine: LiftedMachine): Ult4Townes => new Ult4Townes(machine), body);
+  return exitRoutine((machine: LiftedMachine): Ult4Dungeons => new Ult4Dungeons(machine), body);
 }
 
 
@@ -366,9 +381,9 @@ export const ULT4_MODULE: INativeModule = {
   load: ULT4_LOAD,
   partial: true,
   install: (machine: LiftedMachine): void => {
-    for (const [ address, bytes ] of [ ...ult4Data(), ...combatData(), ...spellData(), ...monsterData(), ...commandData(), ...towneData() ]) {
+    for (const [ address, bytes ] of [ ...ult4Data(), ...combatData(), ...spellData(), ...monsterData(), ...commandData(), ...towneData(), ...dungeonData() ]) {
       bytes.forEach((value: number, index: number): void => machine.write(address + index, value));
     }
   },
-  entries: new Map<number, NativeRoutine>([ ...BODIES, ...COMBAT_BODIES, ...SPELL_BODIES, ...MONSTER_BODIES, ...COMMAND_BODIES, ...TOWNE_BODIES ].map(([ address, body ]: [ number, Body ]): [ number, NativeRoutine ] => [ address, entry(body) ])),
+  entries: new Map<number, NativeRoutine>([ ...BODIES, ...COMBAT_BODIES, ...SPELL_BODIES, ...MONSTER_BODIES, ...COMMAND_BODIES, ...TOWNE_BODIES, ...DUNGEON_BODIES ].map(([ address, body ]: [ number, Body ]): [ number, NativeRoutine ] => [ address, entry(body) ])),
 };

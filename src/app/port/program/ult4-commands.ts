@@ -1,7 +1,7 @@
 // ULT4.s's remaining Britannia commands, ported: Attack, Enter and the places it loads, Fire, Get
 // chest and its traps, Ignite, Jimmy, Locate, New order, Open, Quit, Ready, Volume, Music, Wear and
 // Ztats; the turn's tile effects, food and magic; and the party's health and the screen effects
-// that go with them. Talk is in Ult4Townes; the dungeons' own commands are still lifted. Like the
+// that go with them. Talk is in Ult4Townes, and the dungeons' own code in Ult4Dungeons. Like the
 // rest of ULT4's port, each entry leaves the registers and flags as the original does, and returns
 // where control goes next.
 
@@ -14,7 +14,7 @@ import type { IInlineData } from '../inline-data';
 import type { Exit } from '../routine';
 import { COMBAT_ENTRIES } from './ult4-combat-data';
 import { COMMAND_ENTRIES, COMMAND_INLINE, COMMAND_TABLES, COMMAND_VARIABLES } from './ult4-commands-data';
-import { ULT4_ENTRIES, ULT4_LIFTED } from './ult4-data';
+import { ULT4_ENTRIES } from './ult4-data';
 import { Ult4Monsters } from './ult4-monsters';
 
 const C = COMBAT_ENTRIES;
@@ -23,7 +23,6 @@ const CI = COMMAND_INLINE;
 const CT = COMMAND_TABLES;
 const CV = COMMAND_VARIABLES;
 const E = ULT4_ENTRIES;
-const L = ULT4_LIFTED;
 const J = JUMP_SUBS;
 const O = MAP_OBJECTS;
 /** ULT4.s's own uses of zero page for the commands. */
@@ -70,8 +69,7 @@ export abstract class Ult4Commands extends Ult4Monsters {
     this.cmp(PRTY.mode_dungeon);
     if (this.zero()) {
       this.poke(zp_trainer_avoid, this.lda(0x00));
-      await this.m.call(L.dng_check_attacked);
-      exit = E.done_what;
+      exit = (await this.sub(0x4729, (): Promise<Exit> => this.dngCheckAttacked())) ?? E.done_what;
     } else {
       await this.sub(0x472F, (): Promise<Exit> => this.inputDirection());
       if (this.zero()) {

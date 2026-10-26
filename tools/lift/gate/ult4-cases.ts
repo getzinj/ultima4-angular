@@ -4,13 +4,14 @@
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { COMMAND_ENTRIES } from '../../../src/app/port/program/ult4-commands-data';
-import { ULT4_ENTRIES, ULT4_LIFTED, ULT4_TABLES } from '../../../src/app/port/program/ult4-data';
+import { ULT4_ENTRIES, ULT4_TABLES } from '../../../src/app/port/program/ult4-data';
+import { COMBAT_ENTRIES } from '../../../src/app/port/program/ult4-combat-data';
+import { DUNGEON_ENTRIES } from '../../../src/app/port/program/ult4-dungeons-data';
 import { APPLE, DISKS, JUMP_OVERLAY, JUMP_SYSTEM, JUMP_TRAINERS, PRTY, ROST, TRAINERS, ZP_MAIN } from '../../../src/app/state/symbols';
 import { byte } from './differential';
 import type { ICase, Random } from './differential';
 
 const E = ULT4_ENTRIES;
-const L = ULT4_LIFTED;
 
 const KEY: (random: Random) => { code: number; polls: number } = (random: Random): { code: number; polls: number } =>
   ({ code: pick(random, [ 0x0D, 0x0B, 0x0A, 0x2F, 0x08, 0x15, 0x20, 0x16, 0x13, 0x41, 0x42, 0x59, 0x4E, 0x31 ]), polls: Math.floor(random() * 6) });
@@ -33,7 +34,7 @@ export function pick<T>(random: Random, values: readonly T[]): T {
 export const STOPS: readonly number[] = [
   E.cmd_done, E.next_turn, E.end_turn, E.done_what, E.done_blocked, E.done_cant, E.done_not_here, E.done_only_on_foot, E.done_drift_only,
   E.done_pass, E.cmd_timeout, E.leave_to_world, E.spawn_pirate_fleet, E.spawn_daemon_guard, E.board_horse, E.board_balloon, E.load_saved_map,
-  E.game_start, E.halt, COMMAND_ENTRIES.load_shrine, COMMAND_ENTRIES.begin_dng_load, L.combat_cmd_done, L.do_dungeon_room, COMMAND_ENTRIES.cmd_music, JUMP_TRAINERS.j_trainer_board,
+  E.game_start, E.halt, COMMAND_ENTRIES.load_shrine, COMMAND_ENTRIES.begin_dng_load, COMBAT_ENTRIES.combat_cmd_done, DUNGEON_ENTRIES.do_dungeon_room, COMMAND_ENTRIES.cmd_music, JUMP_TRAINERS.j_trainer_board,
   JUMP_OVERLAY.j_initialize_arena,
 ];
 

@@ -27,7 +27,7 @@ const DIALOG_PAGE: number = 0xEF;
 const MODE_COMBAT: number = 0x10;
 
 
-export class Ult4Townes extends Ult4Commands {
+export abstract class Ult4Townes extends Ult4Commands {
   // --- Talk (ULT4.s:3409-3560) --------------------------------------------------------------
 
   public async cmdTalk(): Promise<Exit> {

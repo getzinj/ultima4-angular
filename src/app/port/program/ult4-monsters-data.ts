@@ -4,12 +4,6 @@ import { encode } from '../text';
 
 // Where ULT4's wandering monsters keep their strings in the `fixed` build, and the labels they use.
 
-/** The labels the monsters jump to or call that are still lifted. */
-export const MONSTER_LIFTED = {
-  spawn_dungeon: 0x67D7,
-  mobs_act_dungeon: 0x6B70,
-} as const;
-
 /** The monsters' entries: every label lifted code jumps to or calls, and the ones their own code jumps to. */
 export const MONSTER_ENTRIES = {
   spawn_monsters: 0x66F9,

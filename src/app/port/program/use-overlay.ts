@@ -6,9 +6,9 @@ import type { Exit } from '../routine';
 import { encode } from '../text';
 import { KeywordOverlay } from './keyword-overlay';
 
-// What Britannia's USE and the townes' share: the item asked for, its handler from the table, the
-// stones and the key, which do the same in both, the skull's destruction in combat and its price,
-// and the shaking of the screen.
+// What the three USEs share, Britannia's, the townes' and the dungeons': the item asked for, its
+// handler from the table, the stones outside the dungeons and the key, the skull's destruction in
+// combat and its price, and the shaking of the screen.
 
 const J = JUMP_SUBS;
 const O = MAP_OBJECTS;
@@ -37,7 +37,6 @@ export interface IUseTexts {
   readonly not_usable: IInlineData;
   readonly none_owned: IInlineData;
   readonly no_effect: IInlineData;
-  readonly no_place: IInlineData;
   readonly skull_aloft: IInlineData;
   readonly lost_an_eighth: IInlineData;
 }
@@ -82,7 +81,7 @@ export abstract class UseOverlay extends KeywordOverlay {
   protected abstract handlers(): ReadonlyMap<number, () => Promise<void>>;
 
 
-  private async use(handler: number): Promise<void> {
+  protected async use(handler: number): Promise<void> {
     const body: (() => Promise<void>) | undefined = this.handlers().get(handler);
 
     if (body == null) {
@@ -93,9 +92,10 @@ export abstract class UseOverlay extends KeywordOverlay {
   }
 
 
-  protected async useStone(): Promise<void> {
+  /** Outside the dungeons, the stones have `noPlace` to go. */
+  protected async useStone(noPlace: IInlineData): Promise<void> {
     if (this.lda(this.peek(ROST.stones)) !== 0) {
-      await this.print(this.layout.texts.no_place);
+      await this.print(noPlace);
     } else {
       await this.print(this.layout.texts.none_owned);
     }

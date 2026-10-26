@@ -57,7 +57,7 @@ export class TowneUse extends UseOverlay {
     const H = HANDLERS;
 
     return new Map<number, () => Promise<void>>([
-      [ H.use_stone, (): Promise<void> => this.useStone() ],
+      [ H.use_stone, (): Promise<void> => this.useStone(I.no_place) ],
       [ H.use_bell, (): Promise<void> => this.useOwned(this.owned(ROST.item_have_bell)) ],
       [ H.use_book, (): Promise<void> => this.useOwned(this.owned(ROST.item_have_book)) ],
       [ H.use_candle, (): Promise<void> => this.useOwned(this.owned(ROST.item_have_candle)) ],

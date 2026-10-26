@@ -14,11 +14,12 @@ import type { IInlineData } from '../inline-data';
 import { PortProgram } from '../port-program';
 import type { Exit } from '../routine';
 import { COMMAND_ENTRIES } from './ult4-commands-data';
-import { ULT4_ENTRIES, ULT4_INLINE, ULT4_LIFTED, ULT4_TABLES, ULT4_VARIABLES } from './ult4-data';
+import { ULT4_ENTRIES, ULT4_INLINE, ULT4_TABLES, ULT4_VARIABLES } from './ult4-data';
+import { COMBAT_ENTRIES } from './ult4-combat-data';
+import { DUNGEON_ENTRIES } from './ult4-dungeons-data';
 
 const E = ULT4_ENTRIES;
 const CE = COMMAND_ENTRIES;
-const L = ULT4_LIFTED;
 const I = ULT4_INLINE;
 const T = ULT4_TABLES;
 const V = ULT4_VARIABLES;
@@ -59,6 +60,10 @@ export abstract class Ult4 extends PortProgram {
   public abstract mobsAct(): Promise<Exit>;
   /** Ult4Commands's tile_effect, which drops the turn's return for the bridge trolls' fight. */
   public abstract tileEffect(): Promise<Exit>;
+  /** Ult4Dungeons's dng_check_attacked, which drops its return for a fight, and the doors' advance and retreat. */
+  public abstract dngCheckAttacked(): Promise<Exit>;
+  public abstract dngCanAdvance(): Exit;
+  public abstract dngCanRetreat(): Exit;
 
 
   // --- calls and jumps ----------------------------------------------------------------------
@@ -587,7 +592,7 @@ export abstract class Ult4 extends PortProgram {
   private async dngTryAdvance(): Promise<Exit> {
     await this.print(I.advance);
     this.lda(this.peek(ZP_MAIN.tile_north));
-    await this.m.call(L.dng_can_advance);
+    await this.sub(0x434F, (): Promise<Exit> => Promise.resolve(this.dngCanAdvance()));
     let exit: Exit = E.done_blocked;
 
     if (!this.negative()) {
@@ -623,7 +628,7 @@ export abstract class Ult4 extends PortProgram {
     if (this.zero()) {
       await this.print(I.retreat);
       this.lda(this.peek(ZP_MAIN.tile_west));
-      await this.m.call(L.dng_can_retreat);
+      await this.sub(0x438C, (): Promise<Exit> => Promise.resolve(this.dngCanRetreat()));
       if (this.negative()) {
         exit = E.done_blocked;
       } else {
@@ -1394,7 +1399,7 @@ export abstract class Ult4 extends PortProgram {
     let exit: Exit;
 
     if (this.lda(this.peek(PRTY.game_mode)) & 0x80) {
-      exit = L.combat_cmd_done;
+      exit = COMBAT_ENTRIES.combat_cmd_done;
     } else {
       this.lda(this.peek(PRTY.ship_hull));
       this.cmp(PRTY.ship_hull_full);
@@ -1467,11 +1472,13 @@ export abstract class Ult4 extends PortProgram {
     if (this.zero()) {
       await this.m.call(J.j_print_direction);
       this.poke(ZP_SAVE_REG1, this.lda(this.peek(TRAINERS.trainer_avoid)));
-      await this.m.call(L.dng_check_attacked);
-      this.lda(this.peek(ZP_MAIN.tile_under_player) & DUNGEON.dng_tile_type_mask);
-      this.cmp(DUNGEON.dng_tile_room);
-      if (this.zero()) {
-        exit = L.do_dungeon_room;
+      exit = await this.sub(0x64AE, (): Promise<Exit> => this.dngCheckAttacked());
+      if (exit == null) {
+        this.lda(this.peek(ZP_MAIN.tile_under_player) & DUNGEON.dng_tile_type_mask);
+        this.cmp(DUNGEON.dng_tile_room);
+        if (this.zero()) {
+          exit = DUNGEON_ENTRIES.do_dungeon_room;
+        }
       }
     }
     if (exit == null) {
