@@ -734,3 +734,33 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **Two mutants survive, out of the random states' reach:** the rogue's and the ghost's odds, whose
   rolls come after the night's seventy turns of animation have consumed the generator. The other
   39 of 41 are caught, some only once the setups drew the values above.
+
+## Phase 11a findings
+
+- **A fight in the halls does not return.** `dng_check_attacked` drops its caller's return address
+  (`pla` / `pla`) and goes on to `load_arena` with the arena for the tile, so the port pulls the
+  two bytes and returns `load_arena` as its exit. A monster's number on a trap, fountain, field,
+  room or wall is no monster; with the trainer on, the party is asked whether to avoid it.
+- **The level's monsters** spawn only in its own object slots, onto an empty hall off the party's
+  row and column, as one of four kinds from the level's number; a spawn that would be a mimic is
+  dropped. They step at random, never onto another monster or the tiles above, and back where
+  they were only one time in eight; mimics and reapers never move.
+- **The rooms** are a sector of the dungeon's own track (the Abyss has a track for each two of its
+  levels), read through the IOB's drive, which is drive 2. The altar room is sector 15 outside the
+  Abyss; which principle by the column entered on, love's at 3. Leaving an altar room leads into
+  a dungeon chosen by the direction fled. A mimic in a room is shown as a chest, and each foe gets
+  half its kind's power or more in hit points.
+- **TMAP** explores the level breadth first (the remaster's fix of a stack that ran out) and keeps
+  its variables in its own image past the code, at `$91BB`–`$91C4`.
+- **USE** suspends the game while the item is asked for, and loads DNGD again after unless END was
+  BRUN. The skull does nothing in the Abyss; elsewhere it clears only the level's monsters, from the
+  map as well as the objects (the remaster's fix).
+- **ULT4 stays partial**, though every routine but DNGD's is native: other programs return into
+  its jump table at `$4000` and into continuations such as `$5C1F` after LORD and HELP.
+- **The harness's cases.** The gate's smoke disks left the underworld's raw tracks blank, so every
+  room was read empty and the room cases proved nothing; they now hold a room in each sector,
+  some foes and a mimic now and then among them. The setups draw empty halls for spawning, a
+  monster's place before as its step, walls and the trainer under the party, the Abyss for rooms,
+  courage's altar room on the way out, poisoned drinkers at a poison fountain, and each principle's
+  stones and keypart. 61 of 62 mutants are caught; the other, clamping a stat at 50 with `cmp #$50`
+  for `cmp #$51`, is equivalent.

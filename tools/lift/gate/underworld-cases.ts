@@ -56,27 +56,37 @@ const PRINCIPLE_COLORS: readonly (readonly string[])[] = [
 ];
 
 
-/** In the fight in the altar room of `principle`, the player on its centre more often than not, most stones held. */
+/** The stones of each principle's colours, and its part of the key. */
+const PRINCIPLE_STONES: readonly number[] = [ 0x96, 0x5A, 0x2E ];
+const PRINCIPLE_KEYPARTS: readonly number[] = [ 0x04, 0x02, 0x01 ];
+
+
+/** In the fight in the altar room of `principle`, outside the Abyss, the player on its centre more often than not, most stones held. */
 function inAltarRoom(principle: number): (machine: LiftedMachine, random: Random) => void {
   return (machine: LiftedMachine, random: Random): void => {
     belowground(machine, random);
+    machine.write(PRTY.current_location, PRTY.loc_dng_first + Math.floor(random() * 7));
     machine.write(PRTY.game_mode, (random() < 0.9) ? PRTY.mode_combat_dng_room : PRTY.mode_dungeon);
-    machine.write(PRTY.altar_room_principle, (random() < 0.9) ? principle : PRTY.principle_none);
+    machine.write(PRTY.altar_room_principle, (random() < 0.95) ? principle : PRTY.principle_none);
     for (let player: number = 0; player < 8; player++) {
       machine.write(O.combat_player_xpos + player, (random() < 0.9) ? 0x05 : 0x04);
       machine.write(O.combat_player_ypos + player, (random() < 0.9) ? 0x05 : 0x06);
     }
-    machine.write(ROST.stones, pick(random, [ 0xFF, 0xFF, 0xFF, 0x96, 0x5A, 0x2E, byte(random) ]));
-    machine.write(ROST.threepartkey, pick(random, [ 0x00, 0x00, 0x07, byte(random) & 0x07 ]));
+    machine.write(ROST.stones, pick(random, [ 0xFF, 0xFF, 0xFF, 0xFF, PRINCIPLE_STONES[principle], PRINCIPLE_STONES[principle], byte(random) ]));
+    machine.write(ROST.threepartkey, pick(random, [ 0x00, 0x00, 0x07 ^ PRINCIPLE_KEYPARTS[principle], 0x07, byte(random) & 0x07 ]));
   };
 }
 
 
-/** The principle's four colours in any order, or now and then any. */
+/** The principle's four colours in any order, or now and then one again or any. */
 function placing(principle: number): (random: Random) => readonly Key[] {
   return (random: Random): readonly Key[] => {
     const colors: string[] = [ ...PRINCIPLE_COLORS[principle] ].sort((): number => random() - 0.5);
-    const placed: string[] = colors.map((color: string): string => (random() < 0.9) ? color : pick(random, [ ...COLORS, 'X' ]));
+    const placed: string[] = colors.map((color: string, index: number): string => {
+      const roll: number = random();
+
+      return (roll < 0.85) ? color : ((roll < 0.93) && (index > 0)) ? colors[index - 1] : pick(random, [ ...COLORS, 'X' ]);
+    });
 
     return [ ...typedWord('STONE', random), ...placed.flatMap((color: string): readonly Key[] => typedWord(color, random)) ];
   };
@@ -111,8 +121,24 @@ function answering(level: number): (random: Random) => readonly Key[] {
 /** At an altar of a dungeon with a stone, its stone not found yet more often than not. */
 function atAltar(machine: LiftedMachine, random: Random): void {
   searching([ D.dng_tile_altar ])(machine, random);
-  machine.write(PRTY.current_location, pick(random, [ 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, ABYSS ]));
+  machine.write(PRTY.current_location, pick(random, [ 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x17, 0x17, ABYSS ]));
   machine.write(ROST.stones, pick(random, [ 0x00, 0x00, byte(random) ]));
+}
+
+
+/** At a fountain, of `kind` or any, the party poisoned more often than not. */
+function drinking(kind: number | null): (machine: LiftedMachine, random: Random) => void {
+  return (machine: LiftedMachine, random: Random): void => {
+    searching([ D.dng_tile_fountain ])(machine, random);
+    if (kind != null) {
+      machine.write(ZP_MAIN.tile_under_player, D.dng_tile_fountain | kind);
+    }
+    for (let index: number = 0; index < 8; index++) {
+      if (random() < 0.6) {
+        machine.write(ROST.player_stats + (index * 0x20) + ROST.player_status, ROST.status_Poison);
+      }
+    }
+  };
 }
 
 
@@ -135,10 +161,11 @@ function who(random: Random): readonly Key[] {
 export const UNDERWORLD_CASES: Readonly<Record<string, IOverlayCase>> = {
   underworld_tmap: underworldCase(UNDERWORLD_TMAP_MODULE, (random: Random): readonly Key[] => [ { code: 0x41, polls: Math.floor(random() * 5) } ], belowground),
   underworld_sear_orb: underworldCase(UNDERWORLD_SEAR_MODULE, who, searching([ D.dng_tile_orb ])),
-  underworld_sear_fountain: underworldCase(UNDERWORLD_SEAR_MODULE, who, searching([ D.dng_tile_fountain ])),
+  underworld_sear_fountain: underworldCase(UNDERWORLD_SEAR_MODULE, who, drinking(null)),
+  underworld_sear_poison: underworldCase(UNDERWORLD_SEAR_MODULE, who, drinking(D.fountain_poison)),
   underworld_sear_altar: underworldCase(UNDERWORLD_SEAR_MODULE, who, atAltar),
   underworld_sear: underworldCase(UNDERWORLD_SEAR_MODULE, who, searching([ 0x00, 0x10, 0x40, 0x80, 0xA0, D.dng_tile_wall ])),
-  underworld_use: underworldCase(UNDERWORLD_USE_MODULE, words([ ...ITEMS, ...OTHER_WORDS ]), belowground),
+  underworld_use: underworldCase(UNDERWORLD_USE_MODULE, words([ ...ITEMS, ...OTHER_WORDS, COLORS[0], COLORS[0], COLORS[0] ]), belowground),
   ...Object.fromEntries([ 'truth', 'love', 'courage' ].map((name: string, principle: number): [ string, IOverlayCase ] =>
     [ `underworld_use_${ name }`, underworldCase(UNDERWORLD_USE_MODULE, placing(principle), inAltarRoom(principle)) ])),
   ...Object.fromEntries(VIRTUES.map((_: string, level: number): [ string, IOverlayCase ] =>

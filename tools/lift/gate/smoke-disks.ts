@@ -7,6 +7,7 @@ import { RAW_TRACKS } from '../../../src/app/data/ultima-disks';
 import type { UltimaDiskName } from '../../../src/app/data/ultima-disks';
 import type { DiskSet } from '../../../src/app/lifted-runtime/lifted-machine';
 import { dialogue, seeded } from './dialogue';
+import type { Random } from './differential';
 
 type Files = Readonly<Record<string, readonly [ number, Uint8Array ]>>;
 
@@ -16,6 +17,9 @@ const BRITANNIA_FILES: readonly string[] = [
 ];
 /** The arenas a fight in a towne loads, the inn's among them. */
 const TOWNE_ARENAS: readonly string[] = [ 'CONA', 'CONB', 'CONC', 'COND', 'CONF', 'CONG', 'CONH', 'CONO', 'CONR', 'CONS' ];
+const ROOM_FOE_TYPES: number = 0x10;
+/** The monsters a room may hold, by tile: the dungeon's own, and the mimic often. */
+const ROOM_FOES: readonly number[] = [ 0x90, 0x94, 0x98, 0x9C, 0xA0, 0xA4, 0xA8, 0xAC, 0xAC, 0xB0, 0xB4, 0xB8, 0xBC, 0xC0, 0xD0, 0xE0, 0xF0, 0xFC ];
 const SLIDES: readonly string[] = [ 'FAIR', 'GYPS', 'LOOK', 'PRTL', 'TABL', 'TREE', 'WAGN' ];
 
 
@@ -77,6 +81,22 @@ function townsfolk(towne: Dos33Disk): void {
 }
 
 
+/** A room in each sector of the underworld disk's raw tracks, where a dungeon reads it: some foes, a mimic among them now and then, and every place within the room. */
+function rooms(underworld: Dos33Disk): void {
+  for (let track: number = 0; track < RAW_TRACKS.underworld; track++) {
+    for (let sector: number = 0; sector < 16; sector++) {
+      const random: Random = seeded((track * 16) + sector + 1);
+      const room: Uint8Array = Uint8Array.from({ length: 256 }, (): number => Math.floor(random() * 11));
+
+      for (let foe: number = 0; foe < 16; foe++) {
+        room[ROOM_FOE_TYPES + foe] = (random() < 0.5) ? 0x00 : ROOM_FOES[Math.floor(random() * ROOM_FOES.length)];
+      }
+      underworld.image.writeSector(track, sector, room);
+    }
+  }
+}
+
+
 function disk(name: UltimaDiskName, files: Files): Dos33Disk {
   const result: Dos33Disk = new Dos33Disk(formatDos33());
 
@@ -119,12 +139,15 @@ export function smokeDisks(): DiskSet {
 
   const towne: Dos33Disk = disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], SHPS: [ 0x8800, shops() ], ...maps('MAP', 0x40, 17, 0x8B00, 0x500), ...towneArenas() });
 
+  const underworld: Dos33Disk = disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ], ...maps('DNG', 0x30, 8, 0xE800, 0x200) });
+
   townsfolk(towne);
+  rooms(underworld);
 
   return {
     program: disk('program', program),
     britannia: disk('britannia', britannia),
     towne,
-    underworld: disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ], ...maps('DNG', 0x30, 8, 0xE800, 0x200) }),
+    underworld,
   };
 }

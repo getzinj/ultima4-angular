@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds fifteen, written from the remaster's source:
+`scenarios.py` holds sixteen, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -115,6 +115,10 @@ Monitor would have left, which nothing here reproduces and the game does not use
   guild, torches and the sextant the menu does not list; and Hawkwind in the castle (SHP9's row),
   asked of honesty, spirituality at its height, humility attained and a word that is no virtue,
   and then with the leader dead.
+- **`dungeons`:** a new game with a strong avatar walked into Deceit: the gem's map; an orb, a
+  fountain and an altar stood on and searched, and nothing; the skull and the bell used; a rat
+  poked under the party and fought out; a room poked ahead, entered and fled from; then a few
+  turns of the level's monsters moving.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 
