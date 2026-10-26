@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds thirteen, written from the remaster's source:
+`scenarios.py` holds fourteen, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -102,6 +102,12 @@ Monitor would have left, which nothing here reproduces and the game does not use
   then with it; a townsperson turned hostile and fought; the rune of honesty found twice; the horn
   and the skull used; then the Lycaeum's book, and its telescope turned to Moonglow (once TMAP is
   up, the key that dismisses it) and to a letter it lacks.
+- **`shops`:** a new game into Moonglow, each shop reached by Talk across a sign poked on the row
+  SHPS gives it, to a shopkeeper placed beyond: food bought, more than the gold allows, and none;
+  reagents paid for in full, short, with nothing and then something, and none; a spell mixed, two
+  that fizzle and reagents not owned; then Britain with 30 gold: a sword too dear and a sling
+  bought, a staff sold and one kept, armour turned down and too dear, leather sold; and the pub's
+  food, an ale, and the black stone's rumour bribed for.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

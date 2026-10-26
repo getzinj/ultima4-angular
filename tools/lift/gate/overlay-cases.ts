@@ -34,7 +34,7 @@ export interface IOverlayCase {
   readonly testCase: ICase;
 }
 
-type Key = { code: number; polls: number };
+export type Key = { code: number; polls: number };
 
 const SEAR_X: readonly number[] = [ 0xB6, 0x64, 0x2E, 0xCD, 0xB0, 0x2D, 0x60, 0xC5, 0xE0, 0x40 ];
 const SEAR_Y: readonly number[] = [ 0x36, 0xA5, 0x95, 0x2C, 0xD0, 0xAD, 0xD7, 0xF5, 0x85, 0x50 ];
@@ -77,13 +77,13 @@ const MEETINGS: Readonly<Record<string, readonly string[]>> = {
 const STATUSES: readonly number[] = [ ROST.status_Good, ROST.status_Good, ROST.status_Poison, ROST.status_Sleep, ROST.status_Dead, 0xC1 ];
 
 
-function bcd(random: Random): number {
+export function bcd(random: Random): number {
   return (Math.floor(random() * 10) << 4) | Math.floor(random() * 10);
 }
 
 
 /** Each player alive or not, hurt or not, of any class, and every virtue and reagent in BCD. */
-function party(machine: LiftedMachine, random: Random): void {
+export function party(machine: LiftedMachine, random: Random): void {
   for (let index: number = 0; index < 8; index++) {
     const stats: number = ROST.player_stats + (index * 0x20);
     const max: number = bcd(random);
@@ -107,7 +107,7 @@ function party(machine: LiftedMachine, random: Random): void {
 
 
 /** The quest items held or not, used or not. */
-function inventory(machine: LiftedMachine, random: Random): void {
+export function inventory(machine: LiftedMachine, random: Random): void {
   machine.write(ROST.stones, pick(random, [ 0x00, 0xFF, byte(random) ]));
   machine.write(ROST.bell_book_candle, pick(random, [ 0x00, 0x07, 0x47, 0x67, 0x77, byte(random) ]));
   machine.write(ROST.threepartkey, pick(random, [ 0x00, 0x07 ]));
@@ -179,7 +179,7 @@ function typed(words: readonly string[]): (random: Random) => readonly Key[] {
 }
 
 
-function typedWord(word: string, random: Random): readonly Key[] {
+export function typedWord(word: string, random: Random): readonly Key[] {
   const keys: Key[] = [ ...word ].map((character: string): Key => ({ code: character.charCodeAt(0), polls: Math.floor(random() * 3) }));
 
   if (random() < 0.3) {
@@ -351,7 +351,7 @@ function pageKey(random: Random): Key {
 }
 
 
-function loaded(name: string, setup: (machine: LiftedMachine, random: Random) => void, disk: UltimaDiskName = 'britannia'): (machine: LiftedMachine, random: Random) => void {
+export function loaded(name: string, setup: (machine: LiftedMachine, random: Random) => void, disk: UltimaDiskName = 'britannia'): (machine: LiftedMachine, random: Random) => void {
   return (machine: LiftedMachine, random: Random): void => {
     setup(machine, random);
     machine.bload(disk, name);

@@ -49,6 +49,7 @@ TOWNE_MAP, BRITANNIA_X, BRITANNIA_Y, ITEMS_OPENED_ABYSS = 0xE800, 0x08, 0x09, 0x
 DISK_PROMPT = 300
 GOLD_HI, GOLD_LO, PLAYER_1_CLASS, CLASS_SHEPHERD = 0xED13, 0xED14, 0xEC11, 0x07
 NPC_DIALOGUE, TILE_FLOOR_BRICK, TILE_VILLAGER, TILE_BEGGAR, AI_HOSTILE = 0xEEE0, 0x3E, 0x20, 0x58, 0xFF
+TILE_SHOPKEEPER, TILE_SIGN, REAGENTS = 0x52, 0x60, 0xED38
 # Moonglow's townsfolk, by their records on the towne disk's track 4, numbered from one.
 MARIAH, CROMWELL, PATRIC, CALABRINI = 0x01, 0x03, 0x06, 0x0D
 # TMAP's entry, which SEAR's telescope calls once the map is loaded.
@@ -681,6 +682,49 @@ def townsfolk(session):
     session.checkpoint()
 
 
+def shop_at(session, row, *pressed):
+    """Across a sign from (0F, row) to a shopkeeper beyond it: the shop SHPS puts on that row of the
+    towne."""
+    session.poke(PLAYER_XPOS, 0x0F)
+    session.poke(PLAYER_YPOS, row)
+    session.poke(TOWNE_MAP + row * 0x20 + 0x10, TILE_SIGN)
+    place_object(session, 0x10, TILE_SHOPKEEPER, 0x11, row)
+    session.poke(NPC_MOVEMENT_AI + 0x10, 0x00)
+    talk_to(session, RIGHT, *pressed)
+
+
+def shops(session):
+    """A new game into Moonglow with 500 gold: food bought, more than can be afforded, and none;
+    reagents paid for in full, short, with nothing and then something, and none; a spell mixed, two
+    that fizzle, reagents not owned; then Britain with 30 gold: a weapon too dear and one bought, a
+    staff sold and one not, armour turned down and too dear, leather kept and sold; and the pub's
+    food, ale, and a rumour bribed for."""
+    new_game_at(session, 0xE8, 0x87)
+    in_britannia(session)
+    enter(session)
+    session.poke(GOLD_HI, 0x05)
+    session.poke(GOLD_LO, 0x00)
+    shop_at(session, 0x0E, 'Y', *word('3'), 'Y', *word('99'), 'Y', *word('0'))
+    session.poke(GOLD_HI, 0x05)
+    shop_at(session, 0x1A, 'Y', 'A', '5', *word('10'), 'Y', 'B', '3', *word('5'), 'Y', 'C', '0', 'Y', 'D', '2', *word('0'), *word('6'), 'N')
+    shop_at(session, 0x1A, 'N')
+    session.poke(REAGENTS + 7, 0x00)
+    command(session, 'M', 'A', 'B', 'C', RETURN, 'B', 'D', 'E', RETURN, 'C', 'A', 'H', RETURN, '1')
+    walk_off_towne(session, 0x52, 0x6A)
+    enter(session)
+    session.poke(GOLD_HI, 0x00)
+    session.poke(GOLD_LO, 0x30)
+    session.poke(WEAPONS + 0x01, 0x02)
+    session.poke(ARMOUR + 0x02, 0x01)
+    shop_at(session, 0x03, 'B', 'G', 'Y', 'D', 'Y', 'A')
+    shop_at(session, 0x03, 'S', 'B', 'Y', 'B', 'N', 'C', 'A')
+    shop_at(session, 0x07, 'B', 'C', 'N', 'Y', 'B', 'Y')
+    shop_at(session, 0x07, 'S', 'C', 'N', 'C', 'Y', 'A')
+    shop_at(session, 0x02, 'F', *word('2'), 'Y', 'A', *word('5'), *word('BLACK STONE'), *word('5'), *word('20'), 'N')
+    session.idle(140)
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
@@ -695,4 +739,5 @@ SCENARIOS = {
     'commands': commands,
     'townes': townes,
     'townsfolk': townsfolk,
+    'shops': shops,
 }

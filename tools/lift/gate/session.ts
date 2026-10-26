@@ -109,6 +109,9 @@ const NPC_DIALOGUE: number = 0xEEE0;
 const TILE_FLOOR_BRICK: number = 0x3E;
 const TILE_VILLAGER: number = 0x20;
 const TILE_BEGGAR: number = 0x58;
+const TILE_SHOPKEEPER: number = 0x52;
+const TILE_SIGN: number = 0x60;
+const REAGENTS: number = 0xED38;
 const AI_HOSTILE: number = 0xFF;
 /** Moonglow's townsfolk, by their records on the towne disk's track 4, numbered from one. */
 const MARIAH: number = 0x01;
@@ -851,6 +854,52 @@ export async function townsfolk(session: Session): Promise<void> {
 }
 
 
+/** Across a sign from (0F, row) to a shopkeeper beyond it: the shop SHPS puts on that row of the towne. */
+async function shopAt(session: Session, row: number, ...pressed: readonly Key[]): Promise<void> {
+  session.poke(PLAYER_XPOS, 0x0F);
+  session.poke(PLAYER_YPOS, row);
+  session.poke(TOWNE_MAP + (row * 0x20) + 0x10, TILE_SIGN);
+  placeObject(session, 0x10, TILE_SHOPKEEPER, 0x11, row);
+  session.poke(NPC_MOVEMENT_AI + 0x10, 0x00);
+  await talkTo(session, RIGHT, ...pressed);
+}
+
+
+/**
+ * A new game into Moonglow with 500 gold: food bought, more than can be afforded, and none; reagents
+ * paid for in full, short, with nothing and then something, and none; a spell mixed, two that
+ * fizzle, reagents not owned; then Britain with 30 gold: a weapon too dear and one bought, a staff
+ * sold and one not, armour turned down and too dear, leather kept and sold; and the pub's food, ale,
+ * and a rumour bribed for.
+ */
+export async function shops(session: Session): Promise<void> {
+  await newGameAt(session, 0xE8, 0x87);
+  await inBritannia(session);
+  await enter(session);
+  session.poke(GOLD_HI, 0x05);
+  session.poke(GOLD_LO, 0x00);
+  await shopAt(session, 0x0E, 'Y', ...word('3'), 'Y', ...word('99'), 'Y', ...word('0'));
+  session.poke(GOLD_HI, 0x05);
+  await shopAt(session, 0x1A, 'Y', 'A', '5', ...word('10'), 'Y', 'B', '3', ...word('5'), 'Y', 'C', '0', 'Y', 'D', '2', ...word('0'), ...word('6'), 'N');
+  await shopAt(session, 0x1A, 'N');
+  session.poke(REAGENTS + 7, 0x00);
+  await command(session, 'M', 'A', 'B', 'C', RETURN, 'B', 'D', 'E', RETURN, 'C', 'A', 'H', RETURN, '1');
+  await walkOffTowne(session, 0x52, 0x6A);
+  await enter(session);
+  session.poke(GOLD_HI, 0x00);
+  session.poke(GOLD_LO, 0x30);
+  session.poke(WEAPONS + 0x01, 0x02);
+  session.poke(ARMOUR + 0x02, 0x01);
+  await shopAt(session, 0x03, 'B', 'G', 'Y', 'D', 'Y', 'A');
+  await shopAt(session, 0x03, 'S', 'B', 'Y', 'B', 'N', 'C', 'A');
+  await shopAt(session, 0x07, 'B', 'C', 'N', 'Y', 'B', 'Y');
+  await shopAt(session, 0x07, 'S', 'C', 'N', 'C', 'Y', 'A');
+  await shopAt(session, 0x02, 'F', ...word('2'), 'Y', 'A', ...word('5'), ...word('BLACK STONE'), ...word('5'), ...word('20'), 'N');
+  await session.idle(140);
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -865,4 +914,5 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   commands,
   townes,
   townsfolk,
+  shops,
 };

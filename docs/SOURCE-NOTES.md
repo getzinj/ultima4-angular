@@ -659,3 +659,41 @@ on the developer's machine. The images, and anything built from them, stay out o
   idle animation has consumed the generator. The other 56 of 64 are caught, some only once the cases
   put the party on a shop's row, weighted the companion's experience and the near-Avatar's last
   virtue, and rigged the first roll for the meeting's fight margin.
+
+## Phase 10b findings
+
+- **SHPS's columns are the shop numbers.** Each towne's eight bytes in SHPS give the row of shop 0
+  to 7's counter, 0 for none, and every shop's own `location_table` (indexed by location − 1, its
+  entries numbering that shop's townes from 1) is non-zero for exactly the townes whose SHPS column
+  is. `check_shop` scans from shop 7 down, so a row two shops share goes to the higher; a towne's
+  zeros all match a `dest_y` of 0.
+- **The shops share code but each carries its own copy.** Every SHP and MIX has its own
+  `input_char`, BCD encode and decode, newline, `print_string` over its own table, console save
+  and restore, `try_spend` and `match_input_inline`; they differ in small ways and are one base,
+  `shop-overlay.ts`, with the differences passed in. MIX's `input_char` waits with `bpl` where the
+  shops wait with `beq`, which `waitkey` (0 or a key with its high bit) makes the same.
+- **SHP0 and SHP1 are one shop with four differences** (`arms-shop.ts`): the greeting, the plural
+  after a ware's name, what follows a ware too dear (SHP0 offers again, SHP1 says goodbye), and the
+  sale price. An offer is half the price, each BCD byte halved alone, so an odd hundreds' half is
+  lost; SHP0 has the remaster's fix, which adds it back only while the price trainer
+  (`trainer_price`) is on. SHP1's BCD encode caps at exactly 99 rather than at 99 or more, which no
+  halved price reaches.
+- **The pub tells only its own rumour.** An ale paid 3 gold or more opens the question, a subject is
+  matched on four letters, and only the pub's own (by its number) is told, once the gold given
+  reaches its price; giving nothing, or more than the party has, ends the visit. Three drinks a
+  visit at most; a plate is one ration, and the count bought is printed as BCD though it is binary.
+- **The reagent seller's virtue.** Paying anything less than the price costs four honesty, justice
+  and honour before the two each that any purchase gives; paying nothing asks again; a count that is
+  not a digit is none. No price × count reaches 99, so its BCD cap is never used.
+- **MIX spends a reagent as it is added**, whether the mixture then succeeds or fizzles; a reagent
+  added twice counts once.
+- **The harness's shop cases.** A case is one shop in one of its townes, with the party's gold, arms,
+  food, reagents, mixtures and virtues at random; its keys are rounds of one purchase each (a ware
+  and yes or no; an ale, a subject and a bribe; a reagent, a count and a payment; a spell and its
+  reagents), then the keys that leave whatever is asked. The arms shops are split into buying and
+  selling cases and the pub into one case for each pub, so a subject can be its own. They run
+  within 200 million cycles. A case that fails the same way on both sides counts as agreeing, so
+  each was also checked to reach every method and to finish.
+- **Four mutants survive, none catchable:** the two BCD caps above, MIX's `bpl`, and `try_spend`'s
+  A after a purchase, whose callers test only its sign. The other 29 of 33 are caught, some only
+  once the cases sold the letter past the last kind and added a reagent twice.

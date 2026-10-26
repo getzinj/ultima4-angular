@@ -12,6 +12,12 @@ import { INIT_MODULE } from './program/init-module';
 import { NEWGAME_MODULE } from './program/newgame-module';
 import { SEL_MODULE } from './program/sel-module';
 import { SUBS_MODULE } from './program/subs-module';
+import { MIX_MODULE } from './program/towne/mix';
+import { SHP0_MODULE } from './program/towne/shp0';
+import { SHP1_MODULE } from './program/towne/shp1';
+import { SHP2_MODULE } from './program/towne/shp2';
+import { SHP3_MODULE } from './program/towne/shp3';
+import { SHP4_MODULE } from './program/towne/shp4';
 import { TALK_MODULE } from './program/towne/talk';
 import { TOWNE_SEAR_MODULE } from './program/towne/sear';
 import { TOWNE_TMAP_MODULE } from './program/towne/tmap';
@@ -38,4 +44,10 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   TOWNE_SEAR_MODULE,
   TOWNE_TMAP_MODULE,
   TOWNE_USE_MODULE,
+  MIX_MODULE,
+  SHP0_MODULE,
+  SHP1_MODULE,
+  SHP2_MODULE,
+  SHP3_MODULE,
+  SHP4_MODULE,
 ];
