@@ -838,6 +838,95 @@ def dungeons(session):
     session.checkpoint()
 
 
+CURRENT_LOCATION, LOC_DNG_ABYSS, TILE_ALTAR, KEY_OF_THREE_PARTS = 0x0A, 0x18, 0xB0, 0x07
+ABYSS_X, ABYSS_Y = 0xE9, 0xE9
+VIRTUE_ANSWERS = ('HONESTY', 'COMPASSION', 'VALOR', 'JUSTICE', 'SACRIFICE', 'HONOR', 'SPIRITUALITY', 'HUMILITY')
+PRINCIPLE_ANSWERS = ('TRUTH', 'LOVE', 'COURAGE')
+
+
+def answers(*words):
+    return tuple(key for answer in words for key in word(answer))
+
+
+def into_the_abyss(session):
+    """E at the Abyss, opened by the bell, book and candle, and its disk."""
+    session.poke(BELL_BOOK_CANDLE, ITEMS_OPENED_ABYSS)
+    enter(session)
+
+
+def to_the_codex(session, party_size, *pressed):
+    """Down to the Abyss's last altar, its stone used with the party's size as given, and END's keys."""
+    session.poke(CURRENT_LOCATION, LOC_DNG_ABYSS)
+    session.poke(DUNGEON_LEVEL, 0x07)
+    session.poke(STONES, 0xFF)
+    stand_on(session, TILE_ALTAR)
+    session.poke(PARTY_SIZE, party_size)
+    keys(session, 'U', *word('STONE'), *word('HUMILITY'), *word('BLACK'), *pressed)
+
+
+def back_in_britannia(session):
+    """Sent back from the Codex's chamber: END's disk asked for, then ULT4's, and the party alone
+    again."""
+    session.idle(DISK_PROMPT)
+    keys(session, ESC)
+    answer_disk_prompt(session)
+    session.poke(PARTY_SIZE, 0x01)
+
+
+def shift_party(session, dx, dy):
+    """The party moved a few squares within the world's four chunks held, its place in them too."""
+    ram = session.machine.memory.ram
+    for address, delta in ((PLAYER_XPOS, dx), (PLAYER_YPOS, dy), (TILE_XPOS, dx), (TILE_YPOS, dy)):
+        session.poke(address, (ram[address] + delta) & 0xFF)
+
+
+def back_to_the_abyss(session, dx, dy, *steps):
+    """From where the party was sent, moved and stepped to the towne or castle beside it, in and off
+    its west edge to the Abyss, and into it."""
+    shift_party(session, dx, dy)
+    for step in steps:
+        command(session, step)
+    enter(session)
+    walk_off_towne(session, ABYSS_X, ABYSS_Y)
+    into_the_abyss(session)
+
+
+def endgame(session):
+    """A new game at the Abyss, opened and entered, then to the Codex's chamber at its last altar
+    again and again: without the key of three parts; with it but the wrong word of passage; with the
+    word but alone; with a party of eight short of avatarhood (each time sent back to the Abyss);
+    then an avatar's, honesty's question answered wrongly (sent by Moonglow); every question but the
+    last answered (sent by Lord British's castle); and every one, the Codex revealed and the game won."""
+    new_game_at(session, ABYSS_X, ABYSS_Y)
+    in_britannia(session)
+    into_the_abyss(session)
+    to_the_codex(session, 0x01)
+    back_in_britannia(session)
+    into_the_abyss(session)
+    session.poke(THREEPARTKEY, KEY_OF_THREE_PARTS)
+    to_the_codex(session, 0x01, *word('VERAMOCAR'))
+    back_in_britannia(session)
+    into_the_abyss(session)
+    to_the_codex(session, 0x01, *word('VERAMOCOR'))
+    back_in_britannia(session)
+    into_the_abyss(session)
+    to_the_codex(session, 0x08, *word('VERAMOCOR'))
+    back_in_britannia(session)
+    into_the_abyss(session)
+    for virtue in range(8):
+        session.poke(PARTY_STATS + virtue, 0x00)
+    to_the_codex(session, 0x08, *word('VERAMOCOR'), *word('LOVE'))
+    back_in_britannia(session)
+    back_to_the_abyss(session, 0, 0, RIGHT, UP)
+    to_the_codex(session, 0x08, *word('VERAMOCOR'), *answers(*VIRTUE_ANSWERS, *PRINCIPLE_ANSWERS), ' ', *word('SELF'))
+    back_in_britannia(session)
+    back_to_the_abyss(session, -3, 2, UP)
+    to_the_codex(session, 0x08, *word('VERAMOCOR'), *answers(*VIRTUE_ANSWERS, *PRINCIPLE_ANSWERS), ' ', *word('INFINITY'),
+                 *(' ' * 10))
+    session.run_until(session.entered('END', 'halt'))
+    session.checkpoint()
+
+
 SCENARIOS = {
     'boot-to-title': boot_to_title,
     'creation': creation,
@@ -855,4 +944,5 @@ SCENARIOS = {
     'shops': shops,
     'services': services,
     'dungeons': dungeons,
+    'endgame': endgame,
 }

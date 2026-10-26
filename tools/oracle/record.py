@@ -20,7 +20,7 @@ from machine import Machine
 from scenarios import SCENARIOS, Session
 
 HERE = pathlib.Path(__file__).parent
-PROGRAMS = {'BOOT': 'program', 'NEWGAME': 'program', 'ULT4': 'program', 'SUBS': 'program'}
+PROGRAMS = {'BOOT': 'program', 'NEWGAME': 'program', 'ULT4': 'program', 'SUBS': 'program', 'END': 'underworld'}
 
 
 def load_build(build):

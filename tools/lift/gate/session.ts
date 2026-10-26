@@ -1026,6 +1026,108 @@ export async function dungeons(session: Session): Promise<void> {
 }
 
 
+const CURRENT_LOCATION: number = 0x0A;
+const LOC_DNG_ABYSS: number = 0x18;
+const TILE_ALTAR: number = 0xB0;
+const KEY_OF_THREE_PARTS: number = 0x07;
+const ABYSS_X: number = 0xE9;
+const ABYSS_Y: number = 0xE9;
+const VIRTUE_ANSWERS: readonly string[] = [ 'HONESTY', 'COMPASSION', 'VALOR', 'JUSTICE', 'SACRIFICE', 'HONOR', 'SPIRITUALITY', 'HUMILITY' ];
+const PRINCIPLE_ANSWERS: readonly string[] = [ 'TRUTH', 'LOVE', 'COURAGE' ];
+
+
+function answers(...words: readonly string[]): Key[] {
+  return words.flatMap((answer: string): Key[] => word(answer));
+}
+
+
+/** E at the Abyss, opened by the bell, book and candle, and its disk. */
+async function intoTheAbyss(session: Session): Promise<void> {
+  session.poke(BELL_BOOK_CANDLE, ITEMS_OPENED_ABYSS);
+  await enter(session);
+}
+
+
+/** Down to the Abyss's last altar, its stone used with the party's size as given, and END's keys. */
+async function toTheCodex(session: Session, partySize: number, ...pressed: readonly Key[]): Promise<void> {
+  session.poke(CURRENT_LOCATION, LOC_DNG_ABYSS);
+  session.poke(DUNGEON_LEVEL, 0x07);
+  session.poke(STONES, 0xFF);
+  await standOn(session, TILE_ALTAR);
+  session.poke(PARTY_SIZE, partySize);
+  await keys(session, 'U', ...word('STONE'), ...word('HUMILITY'), ...word('BLACK'), ...pressed);
+}
+
+
+/** Sent back from the Codex's chamber: END's disk asked for, then ULT4's, and the party alone again. */
+async function backInBritannia(session: Session): Promise<void> {
+  await session.idle(DISK_PROMPT);
+  await keys(session, ESC);
+  await answerDiskPrompt(session);
+  session.poke(PARTY_SIZE, 0x01);
+}
+
+
+/** The party moved a few squares within the world's four chunks held, its place in them too. */
+function shiftParty(session: Session, dx: number, dy: number): void {
+  for (const [ address, delta ] of [ [ PLAYER_XPOS, dx ], [ PLAYER_YPOS, dy ], [ TILE_XPOS, dx ], [ TILE_YPOS, dy ] ]) {
+    session.poke(address, (session.machine.read(address) + delta) & 0xFF);
+  }
+}
+
+
+/** From where the party was sent, moved and stepped to the towne or castle beside it, in and off its west edge to the Abyss, and into it. */
+async function backToTheAbyss(session: Session, dx: number, dy: number, ...steps: readonly Key[]): Promise<void> {
+  shiftParty(session, dx, dy);
+  for (const step of steps) {
+    await command(session, step);
+  }
+  await enter(session);
+  await walkOffTowne(session, ABYSS_X, ABYSS_Y);
+  await intoTheAbyss(session);
+}
+
+
+/**
+ * A new game at the Abyss, opened and entered, then to the Codex's chamber at its last altar again
+ * and again: without the key of three parts; with it but the wrong word of passage; with the word
+ * but alone; with a party of eight short of avatarhood (each time sent back to the Abyss); then an
+ * avatar's, honesty's question answered wrongly (sent by Moonglow); every question but the last
+ * answered (sent by Lord British's castle); and every one, the Codex revealed and the game won.
+ */
+export async function endgame(session: Session): Promise<void> {
+  await newGameAt(session, ABYSS_X, ABYSS_Y);
+  await inBritannia(session);
+  await intoTheAbyss(session);
+  await toTheCodex(session, 0x01);
+  await backInBritannia(session);
+  await intoTheAbyss(session);
+  session.poke(THREEPARTKEY, KEY_OF_THREE_PARTS);
+  await toTheCodex(session, 0x01, ...word('VERAMOCAR'));
+  await backInBritannia(session);
+  await intoTheAbyss(session);
+  await toTheCodex(session, 0x01, ...word('VERAMOCOR'));
+  await backInBritannia(session);
+  await intoTheAbyss(session);
+  await toTheCodex(session, 0x08, ...word('VERAMOCOR'));
+  await backInBritannia(session);
+  await intoTheAbyss(session);
+  for (let virtue: number = 0; virtue < 8; virtue++) {
+    session.poke(PARTY_STATS + virtue, 0x00);
+  }
+  await toTheCodex(session, 0x08, ...word('VERAMOCOR'), ...word('LOVE'));
+  await backInBritannia(session);
+  await backToTheAbyss(session, 0, 0, RIGHT, UP);
+  await toTheCodex(session, 0x08, ...word('VERAMOCOR'), ...answers(...VIRTUE_ANSWERS, ...PRINCIPLE_ANSWERS), ' ', ...word('SELF'));
+  await backInBritannia(session);
+  await backToTheAbyss(session, -3, 2, UP);
+  await toTheCodex(session, 0x08, ...word('VERAMOCOR'), ...answers(...VIRTUE_ANSWERS, ...PRINCIPLE_ANSWERS), ' ', ...word('INFINITY'),
+    ...new Array<Key>(10).fill(' '));
+  await session.machine.runUntil(session.entered('END', 'halt'));
+  session.checkpoint();
+}
+
+
 export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<void>>> = {
   'boot-to-title': bootToTitle,
   creation,
@@ -1043,4 +1145,5 @@ export const SCENARIOS: Readonly<Record<string, (session: Session) => Promise<vo
   shops,
   services,
   dungeons,
+  endgame,
 };
