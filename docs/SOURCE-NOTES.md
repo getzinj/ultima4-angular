@@ -697,3 +697,40 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **Four mutants survive, none catchable:** the two BCD caps above, MIX's `bpl`, and `try_spend`'s
   A after a purchase, whose callers test only its sign. The other 29 of 33 are caught, some only
   once the cases sold the letter past the last kind and added a reagent twice.
+
+## Phase 10c findings
+
+- **The healer (SHP5).** A number past the party's size asks again, and 0 or anything not a digit
+  is no one. A cure costs a hundred but is free, after a key, to a party with under a hundred;
+  `ask_pay` takes only from the hundreds of gold. On the way out, whether or not help was asked for,
+  a leader with 400 hit points or more is asked for blood every visit: yes is five sacrifice and a
+  hundred hit points, no costs five. The remaster's fix keeps that delay's counter off `zp_index`,
+  which holds the healer's name for the goodbye.
+- **The inn (SHP6).** A party on a horse is turned away. Minoc's choice of room is written into the
+  inn's own bed and price tables, which last only until the overlay is loaded again. The night is
+  seventy turns of `j_update_view`, the party in the bed; each member alive is woken (the
+  remaster's fix makes a sleeper good) and given the same number from 50 to 99 in BCD twice. The
+  hit points are held to the most only when both bytes have reached it, so a total past the most
+  in the hundreds but not the units stays past it. Magic is restored by class from intelligence,
+  the loop running down to the player before the first (`bpl`). One night in eight a rogue comes
+  for a living leader, through ULT4's `j_inn_combat`, which `rts`es back when the fight ends; in
+  Skara Brae, when no rogue came, one night in four a ghost appears in object slot 0 beside the bed.
+- **The guild (SHP7)** sells a sextant the menu does not list (D); a ware the party cannot pay for
+  ends the visit at once, with no goodbye.
+- **The horse seller (SHP8)** charges a hundred a member of the party, from the hundreds alone.
+- **Hawkwind (SHP9)** speaks only with a leader who is well or poisoned, and waits for a key after
+  his welcome. Nothing, BYE or NONE ends the visit; a virtue is matched on four letters, from the
+  first (TALK's `compare_keywords` searches from the last). A reading is chosen by the virtue's
+  bounds, below 20, 40, 60 and 99; at 0 the party is already a partial Avatar in it, and at 99 he
+  also urges meditation and waits for a key. Spirituality rises by three once a cycle, from
+  `move_counter + 2` against `last_meditated` (the remaster's fix of `+ 3`).
+- **Shared.** `inc_virtue` and `dec_virtue` are the same in SHP4 and SHP5 and are now in
+  `shop-overlay.ts`. SHP6's `dec_gold` is `try_spend`.
+- **The harness's cases.** The inn's fight stops at `j_initialize_arena`, one of the cases' stops,
+  so no fight keys are needed. The healer has a case for each healing, with the whole party in the
+  state it treats; the inn has cases for the inns, for Skara Brae's ghost and for Minoc's beds.
+  The setups draw gold about each price (2 and 3 hundred for the healer), a leader about 400 hit
+  points, sacrifice about five and the seer's virtues about each bound.
+- **Two mutants survive, out of the random states' reach:** the rogue's and the ghost's odds, whose
+  rolls come after the night's seventy turns of animation have consumed the generator. The other
+  39 of 41 are caught, some only once the setups drew the values above.
