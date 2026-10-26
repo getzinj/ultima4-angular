@@ -51,7 +51,7 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 ## Scenarios
 
-`scenarios.py` holds sixteen, written from the remaster's source:
+`scenarios.py` holds seventeen, written from the remaster's source:
 - **`boot-to-title`:** the intro, a checkpoint every 250 polls.
 - **`creation`:** a new character, to the moment the game is in Britannia.
 - **`first-steps`:** `creation`, five moves, and an idle long enough to pass a turn.
@@ -119,6 +119,12 @@ Monitor would have left, which nothing here reproduces and the game does not use
   fountain and an altar stood on and searched, and nothing; the skull and the bell used; a rat
   poked under the party and fought out; a room poked ahead, entered and fled from; then a few
   turns of the level's monsters moving.
+- **`endgame`:** a new game at the Abyss, opened with the bell, book and candle and entered, then to
+  the Codex's chamber at its last altar seven times: without the key of three parts, with the
+  wrong word of passage, alone, with eight short of avatarhood (each time sent back to the Abyss);
+  honesty's question answered wrongly (sent by Moonglow, walked into it and off it to the Abyss);
+  every question but the last (sent by Lord British's castle, likewise); and every one, the Codex
+  revealed and the game halted.
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 

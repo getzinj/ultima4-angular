@@ -6,11 +6,13 @@
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { OVERLAY_ENTRY } from '../../../src/app/port/program/overlay';
 import { UNDERWORLD_DNGD_MODULE } from '../../../src/app/port/program/underworld/dngd';
+import { END_MODULE } from '../../../src/app/port/program/underworld/end';
+import { END_ENTRIES } from '../../../src/app/port/program/underworld/end-data';
 import { DNGD_ENTRIES, DNGD_VARIABLES } from '../../../src/app/port/program/underworld/dngd-data';
 import { UNDERWORLD_SEAR_MODULE } from '../../../src/app/port/program/underworld/sear';
 import { UNDERWORLD_TMAP_MODULE } from '../../../src/app/port/program/underworld/tmap';
 import { UNDERWORLD_USE_MODULE } from '../../../src/app/port/program/underworld/use';
-import { DUNGEON, MAP_OBJECTS, PRTY, ROST, VIEW_MAP, ZP_MAIN } from '../../../src/app/state/symbols';
+import { DISKS, DUNGEON, JUMP_OVERLAY, MAP_OBJECTS, PRTY, ROST, VIEW_MAP, ZP_MAIN } from '../../../src/app/state/symbols';
 import { byte } from './differential';
 import type { Random } from './differential';
 import { dungeonTile, inDungeon } from './dungeon-cases';
@@ -254,6 +256,62 @@ function viewCase(entry: number, near: readonly number[] | null = null, drawn: I
 }
 
 
+/** What the voice asks for in the Codex's chamber: the eight virtues and the three principles, then infinity. */
+const CODEX_ANSWERS: readonly string[] = [ ...VIRTUES, 'TRUTH', 'LOVE', 'COURAGE' ];
+const END_STOPS: readonly number[] = [ ...STOPS, END_ENTRIES.halt, JUMP_OVERLAY.j_game_init ];
+const END_CYCLES: number = 400_000_000;
+const WAITING: number = 10;
+
+
+/** At the Abyss's last altar, END run by USE: the key of three parts, eight in the party and every virtue at its height, each more often than not as `ready` says, and the drives as they may be. */
+function inTheChamber(ready: number): (machine: LiftedMachine, random: Random) => void {
+  return (machine: LiftedMachine, random: Random): void => {
+    belowground(machine, random);
+    machine.write(PRTY.current_location, ABYSS);
+    machine.write(PRTY.dungeon_level, 0x07);
+    machine.write(ROST.threepartkey, (random() < ready) ? ROST.key3_have_all : byte(random) & 0x07);
+    machine.write(PRTY.party_size, (random() < ready) ? 0x08 : 1 + Math.floor(random() * 8));
+    for (let virtue: number = 0; virtue < ROST.virtue_last; virtue++) {
+      machine.write(ROST.party_stats + virtue, (random() < ready) ? 0x00 : pick(random, [ 0x00, 0x01, 0x99 ]));
+    }
+    machine.write(ZP_MAIN.numdrives, pick(random, [ 0x01, 0x02 ]));
+    machine.write(ZP_MAIN.currdisk_drive1, pick(random, [ DISKS.disk_program, DISKS.disk_dungeon ]));
+    machine.write(ZP_MAIN.currdisk_drive2, pick(random, [ DISKS.disk_britannia, DISKS.disk_dungeon ]));
+    for (let digit: number = 0; digit < 4; digit++) {
+      machine.write(PRTY.move_counter + digit, pick(random, [ 0x00, 0x00, byte(random) & 0x99 ]));
+    }
+  };
+}
+
+
+/** A word typed once the game waits for it: as the oracle's scenarios do, ten polls on, since printing takes a key already waiting. */
+function answered(word: string, random: Random): readonly Key[] {
+  const [ first, ...rest ] = typedWord(word, random);
+
+  return [ { code: first.code, polls: WAITING }, ...rest ];
+}
+
+
+/** The word of passage, mostly right; each of the `asked` answers right as `right` says; then the last, and a key for every page and prompt. */
+function inTheVoice(asked: number, right: number): (random: Random) => readonly Key[] {
+  return (random: Random): readonly Key[] => [
+    ...answered((random() < 0.9) ? 'VERAMOCOR' : pick(random, [ 'VERAMOCAR', 'VERA', 'X' ]), random),
+    ...CODEX_ANSWERS.slice(0, asked).flatMap((answer: string): readonly Key[] => answered((random() < right) ? answer : pick(random, [ ...CODEX_ANSWERS, 'SELF' ]), random)),
+    { code: 0x20, polls: WAITING },
+    ...answered((random() < right) ? 'INFINITY' : pick(random, [ 'SELF', 'INFINIT', 'INF' ]), random),
+    ...Array.from({ length: 12 }, (): Key => ({ code: pick(random, [ 0x20, 0x20, 0x1B ]), polls: WAITING })),
+    ...Array.from({ length: 4 }, (): Key => ({ code: 0x1B, polls: WAITING })),
+  ];
+}
+
+
+function endCase(ready: number, asked: number, right: number): IOverlayCase {
+  return { module: END_MODULE, entry: OVERLAY_ENTRY, testCase: {
+    ult4: true, screen: true, stops: END_STOPS, cycles: END_CYCLES, keys: inTheVoice(asked, right), setup: loaded(END_MODULE.name, inTheChamber(ready), 'underworld'),
+  } };
+}
+
+
 function words(...lists: readonly (readonly string[])[]): (random: Random) => readonly Key[] {
   return (random: Random): readonly Key[] => lists.flatMap((list: readonly string[]): readonly Key[] => typedWord(pick(random, list), random));
 }
@@ -271,6 +329,10 @@ function who(random: Random): readonly Key[] {
 
 
 export const UNDERWORLD_CASES: Readonly<Record<string, IOverlayCase>> = {
+  end_passage: endCase(0.6, 0, 0),
+  end_virtues: endCase(1, 8, 0.9),
+  end_principles: endCase(1, CODEX_ANSWERS.length, 0.95),
+  end_codex: endCase(1, CODEX_ANSWERS.length, 1),
   dngd_check_update: viewCase(DNGD_ENTRIES.dungeon_check_update),
   dngd_draw_items_monsters: viewCase(DNGD_ENTRIES.draw_items_monsters),
   dngd_redraw: viewCase(DNGD_ENTRIES.dungeon_redraw),

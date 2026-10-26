@@ -793,3 +793,31 @@ on the developer's machine. The images, and anything built from them, stay out o
   variables are set, since loading it resets them. Two mutants are equivalent: the error terms'
   setup, which no table reaches, and testing the third square ahead for what it hides, when
   nothing lies beyond it.
+
+## Phase 12 findings
+
+- **END is BRUN by USE** at the Abyss's last altar and drops the two frames that leaves (the
+  remaster's fix), then loads CSTRING, its pictures, at `$4000`. The party is one while it runs;
+  the size it came with is put back when it leaves.
+- **What the chamber asks.** The key of three parts; the word of passage, VERAMOCOR, compared only
+  as far as END's own string goes, so anything typed after it passes; eight in the party (counted
+  after the word); and every virtue at 0. Each answer after is matched on its first four letters,
+  from a table that also holds SELF, never asked for. The voice asks the eight virtues, then truth,
+  love and courage, then infinity.
+- **Where a party is sent back to.** The Abyss's entrance before the questions; for a virtue or
+  principle answered wrongly, the world place of that question (the virtues' shrines, then the
+  Lycaeum, Empath Abbey and Serpent's Hold); for the last, Lord British's castle. Each place is
+  beside its shrine or castle, not on it. END asks for the program disk itself, by its own prompt,
+  before ULT4 asks for Britannia's, so a single drive sees two prompts.
+- **Super-Packer's zero page ($B0–$BB) holds ULT4's type-ahead count at $B8**, which the packer
+  uses as its run flag. A picture that ended with a run pending would leave keys claimed; the real
+  pictures end on a boundary. The gate's test CSTRING is literals, each picture with run and pattern
+  codes nothing after it holds, but for the lock, END's first picture and CSTRING's last, which is
+  runs and patterns of literals ending exactly on the picture's last byte.
+- **The delays** pass 539,721 cycles a count, and 9 for the call; the door's scroll pauses 261,632
+  between steps. The port adds them to the clock.
+- **The game ends in `jmp halt`**, which the port keeps as an entry that jumps to itself, three
+  cycles a time.
+- **The harness's cases.** One with the chamber's conditions often unmet, one with the virtues'
+  answers mostly right, one with every answer mostly right, and one with all of them. A word's first
+  key waits ten polls, as the oracle's do, since printing takes a key already waiting.

@@ -20,6 +20,13 @@ const TOWNE_ARENAS: readonly string[] = [ 'CONA', 'CONB', 'CONC', 'COND', 'CONF'
 const ROOM_FOE_TYPES: number = 0x10;
 /** The monsters a room may hold, by tile: the dungeon's own, and the mimic often. */
 const ROOM_FOES: readonly number[] = [ 0x90, 0x94, 0x98, 0x9C, 0xA0, 0xA4, 0xA8, 0xAC, 0xAC, 0xB0, 0xB4, 0xB8, 0xBC, 0xC0, 0xD0, 0xE0, 0xF0, 0xFC ];
+/** Where CSTRING's thirteen packed images start, and the first of the codes they use, two each. */
+const SPK_OFFSETS: readonly number[] = [ 0x0F36, 0x0FFB, 0x10AB, 0x10C8, 0x10E5, 0x11B0, 0x126D, 0x12AC, 0x146E, 0x14EB, 0x156E, 0x15EC, 0x181B ];
+const FIRST_CODE: number = 0xE6;
+/** A picture's bytes: 22 columns of 176 rows. */
+const SPK_PICTURE_BYTES: number = 22 * 176;
+/** Long enough for the last image's 22 columns of 176 bytes, all literals, to end within it. */
+const CSTRING_LENGTH: number = 0x2800;
 const SLIDES: readonly string[] = [ 'FAIR', 'GYPS', 'LOOK', 'PRTL', 'TABL', 'TREE', 'WAGN' ];
 
 
@@ -97,6 +104,57 @@ function rooms(underworld: Dos33Disk): void {
 }
 
 
+/**
+ * CSTRING: END's door and pictures as filler that Super-Packer reads as literals only, each image's
+ * run and pattern codes found nowhere after its own start. A run left pending at an image's end
+ * would leave $B8, which the packer shares with the type-ahead count, claiming keys; real images
+ * end on a boundary.
+ */
+function pictures(): Uint8Array {
+  const random: Random = seeded(0x0C0D);
+  const data: Uint8Array = Uint8Array.from({ length: CSTRING_LENGTH }, (): number => Math.floor(random() * FIRST_CODE));
+
+  SPK_OFFSETS.forEach((offset: number, image: number): void => {
+    data[offset] = FIRST_CODE + (image * 2);
+    data[offset + 1] = FIRST_CODE + (image * 2) + 1;
+  });
+  data.set(packedLock(random), SPK_OFFSETS[SPK_OFFSETS.length - 1] + 2);
+
+  return data;
+}
+
+
+/** The lock, END's first picture and the last in CSTRING: literals, runs and patterns of literals, ending exactly on the picture's last byte. */
+function packedLock(random: Random): number[] {
+  const repeatCode: number = FIRST_CODE + ((SPK_OFFSETS.length - 1) * 2);
+  const literal = (): number => Math.floor(random() * FIRST_CODE);
+  const stream: number[] = [];
+  let left: number = SPK_PICTURE_BYTES;
+
+  while (left > 0) {
+    const roll: number = random();
+
+    if ((roll < 0.2) && (left >= 2)) {
+      const count: number = 2 + Math.floor(random() * Math.min(40, left - 1));
+
+      stream.push(repeatCode, count, literal());
+      left = left - count;
+    } else if ((roll < 0.35) && (left >= 4)) {
+      const length: number = 1 + Math.floor(random() * 4);
+      const count: number = 1 + Math.floor(random() * Math.min(6, Math.floor(left / length)));
+
+      stream.push(repeatCode + 1, length, count, ...Array.from({ length }, literal));
+      left = left - (length * count);
+    } else {
+      stream.push(literal());
+      left = left - 1;
+    }
+  }
+
+  return stream;
+}
+
+
 function disk(name: UltimaDiskName, files: Files): Dos33Disk {
   const result: Dos33Disk = new Dos33Disk(formatDos33());
 
@@ -139,7 +197,7 @@ export function smokeDisks(): DiskSet {
 
   const towne: Dos33Disk = disk('towne', { DISK: [ 0xD0, Uint8Array.of(3) ], SHPS: [ 0x8800, shops() ], ...maps('MAP', 0x40, 17, 0x8B00, 0x500), ...towneArenas() });
 
-  const underworld: Dos33Disk = disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ], ...maps('DNG', 0x30, 8, 0xE800, 0x200) });
+  const underworld: Dos33Disk = disk('underworld', { DISK: [ 0xD0, Uint8Array.of(4) ], CSTRING: [ 0x4000, pictures() ], ...maps('DNG', 0x30, 8, 0xE800, 0x200) });
 
   townsfolk(towne);
   rooms(underworld);

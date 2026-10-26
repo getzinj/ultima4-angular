@@ -1,4 +1,4 @@
-import type { LiftedMachine } from '../../lifted-runtime/lifted-machine';
+import type { DiskSet, LiftedMachine } from '../../lifted-runtime/lifted-machine';
 import type { INativeModule } from '../../lifted-runtime/native-module';
 import { SEL_MODULE } from '../program/sel-module';
 import { ZP_MAIN } from '../../state/symbols';
@@ -9,8 +9,8 @@ const KEY_POLLS: number = 10;
 // An overlay, ported, loaded over the ported SUBS and SEL (for music_ctl), with any other overlay
 // it BRUNs and its own disk in the drive for what it loads, and its entry called.
 
-export function overlayMachine(module: INativeModule, others: readonly INativeModule[] = []): LiftedMachine {
-  const machine: LiftedMachine = subsMachine([ module, SEL_MODULE, ...others ]);
+export function overlayMachine(module: INativeModule, others: readonly INativeModule[] = [], disks?: DiskSet): LiftedMachine {
+  const machine: LiftedMachine = subsMachine([ module, SEL_MODULE, ...others ], disks);
 
   machine.bload('program', 'SEL', 0x0320);
   machine.bload(module.disk, module.name);

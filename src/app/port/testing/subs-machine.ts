@@ -1,5 +1,6 @@
 import { syntheticDiskSet } from '../../data/testing/synthetic-disks';
 import { LiftedMachine } from '../../lifted-runtime/lifted-machine';
+import type { DiskSet } from '../../lifted-runtime/lifted-machine';
 import type { INativeModule } from '../../lifted-runtime/native-module';
 import { TABLES } from '../../state/symbols';
 import { SUBS_MODULE } from '../program/subs-module';
@@ -12,8 +13,8 @@ export const RETURN: number = 0xC0FE;
 export const INLINE: number = 0x9000;
 
 
-export function subsMachine(others: readonly INativeModule[] = []): LiftedMachine {
-  const machine: LiftedMachine = new LiftedMachine(syntheticDiskSet(), [], null, [ SUBS_MODULE, ...others ]);
+export function subsMachine(others: readonly INativeModule[] = [], disks: DiskSet = syntheticDiskSet()): LiftedMachine {
+  const machine: LiftedMachine = new LiftedMachine(disks, [], null, [ SUBS_MODULE, ...others ]);
   const high: Uint8Array = machine.apple.languageCard.contents('high');
 
   for (let row: number = 0; row < 192; row++) {
