@@ -49,5 +49,22 @@ describe('PortedGame', (): void => {
 
     expect(new PortedGame(disks.all, UNHURRIED_MS).savedImage()).toEqual(disks.disk('britannia').image.bytes);
   });
+
+  it('gives the speaker\'s sound for the Apple time just run', async (): Promise<void> => {
+    const game: PortedGame = await booted();
+
+    await game.runFrame(FRAME_MS);
+
+    expect(game.drainSound(1_000).length).toBe(Math.round((game.machine.cpu.cycles * 1_000) / (14_318_180 / 14)));
+  });
+
+  it('gives no sound twice', async (): Promise<void> => {
+    const game: PortedGame = await booted();
+
+    await game.runFrame(FRAME_MS);
+    game.drainSound(1_000);
+
+    expect(game.drainSound(1_000).length).toBe(0);
+  });
 });
 

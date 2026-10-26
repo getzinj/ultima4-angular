@@ -13,7 +13,7 @@ const PALETTE_LABELS: Record<string, string> = {
 };
 
 
-/** A small corner menu for the screen colour and the CRT effect. */
+/** A small corner menu for the screen colour, the CRT effect and the sound. */
 @Component({
   selector: 'ultima4-settings-menu',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,6 +29,7 @@ const PALETTE_LABELS: Record<string, string> = {
           </select>
         </label>
         <label><input type="checkbox" [checked]="settings().crt" (change)="chooseCrt($event)" /> CRT effect</label>
+        <label><input type="checkbox" [checked]="settings().sound" (change)="chooseSound($event)" /> Sound</label>
       </div>
     </details>
   `,
@@ -59,6 +60,11 @@ export class SettingsMenuComponent {
 
   protected chooseCrt(event: Event): void {
     this.changed.emit({ ...this.settings(), crt: (event.target as HTMLInputElement).checked });
+  }
+
+
+  protected chooseSound(event: Event): void {
+    this.changed.emit({ ...this.settings(), sound: (event.target as HTMLInputElement).checked });
   }
 
 }

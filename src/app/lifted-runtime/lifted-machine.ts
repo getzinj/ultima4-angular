@@ -39,6 +39,7 @@ const CALL_RETURN: number = 0xC0FF;
 
 export const KEYBOARD: number = 0xC000;
 export const STROBE: number = 0xC010;
+export const SPEAKER: number = 0xC030;
 const CSW: number = 0x36;
 const REQDISK: number = 0xDE;
 const IOB: number = 0xB7E8;
@@ -163,6 +164,8 @@ export class LiftedMachine implements IBus {
       return this.pollKeyboard();
     } else if (address === STROBE) {
       return this.clearStrobe();
+    } else if (address === SPEAKER) {
+      return this.click();
     } else {
       return this.apple.read(address);
     }
@@ -172,6 +175,8 @@ export class LiftedMachine implements IBus {
   public write(address: number, value: number): void {
     if (address === STROBE) {
       this.clearStrobe();
+    } else if (address === SPEAKER) {
+      this.click();
     } else {
       const slot: number = this.writeSlot(address);
 
@@ -455,6 +460,14 @@ export class LiftedMachine implements IBus {
 
       return this.key;
     }
+  }
+
+
+  /** The speaker's cone flipped at this cycle of the game's own clock, which the Apple's never sees. */
+  private click(): number {
+    this.apple.speaker.toggle(this.cpu.cycles);
+
+    return 0;
   }
 
 

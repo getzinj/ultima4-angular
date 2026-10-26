@@ -3,9 +3,11 @@ import { paletteByName } from '../runtime/apple-palette';
 export interface IDisplaySettings {
   readonly palette: string;
   readonly crt: boolean;
+  /** The speaker on or off; the game's own Volume command still decides whether it clicks. */
+  readonly sound: boolean;
 }
 
-export const DEFAULT_DISPLAY_SETTINGS: IDisplaySettings = { palette: 'ntsc', crt: true };
+export const DEFAULT_DISPLAY_SETTINGS: IDisplaySettings = { palette: 'ntsc', crt: true, sound: true };
 const STORAGE_KEY: string = 'ultima4.display';
 
 
@@ -36,6 +38,7 @@ export function loadDisplaySettings(storage: Pick<Storage, 'getItem'> | null): I
       settings = {
         palette: paletteByName(String(candidate.palette)).name,
         crt: (typeof candidate.crt === 'boolean') ? candidate.crt : DEFAULT_DISPLAY_SETTINGS.crt,
+        sound: (typeof candidate.sound === 'boolean') ? candidate.sound : DEFAULT_DISPLAY_SETTINGS.sound,
       };
     }
   } catch {

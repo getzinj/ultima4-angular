@@ -7,7 +7,7 @@ function storageHolding(value: string | null): Pick<Storage, 'getItem'> {
 
 describe('display settings', (): void => {
   it('start with the Apple II colours and the CRT effect on', (): void => {
-    expect(loadDisplaySettings(storageHolding(null))).toEqual({ palette: 'ntsc', crt: true });
+    expect(loadDisplaySettings(storageHolding(null))).toEqual({ palette: 'ntsc', crt: true, sound: true });
   });
 
   it('start with the defaults when there is no storage', (): void => {
@@ -15,7 +15,11 @@ describe('display settings', (): void => {
   });
 
   it('read what was saved', (): void => {
-    expect(loadDisplaySettings(storageHolding('{"palette":"green","crt":false}'))).toEqual({ palette: 'green', crt: false });
+    expect(loadDisplaySettings(storageHolding('{"palette":"green","crt":false,"sound":false}'))).toEqual({ palette: 'green', crt: false, sound: false });
+  });
+
+  it('keep the sound on for settings saved before there was any', (): void => {
+    expect(loadDisplaySettings(storageHolding('{"palette":"green","crt":false}')).sound).toBe(true);
   });
 
   it('fall back to the defaults for text that is not JSON', (): void => {
@@ -39,9 +43,9 @@ describe('display settings', (): void => {
 
     saveDisplaySettings({ setItem: (_key: string, value: string): void => {
       saved.push(value);
-    } }, { palette: 'amber', crt: false });
+    } }, { palette: 'amber', crt: false, sound: true });
 
-    expect(saved).toEqual([ '{"palette":"amber","crt":false}' ]);
+    expect(saved).toEqual([ '{"palette":"amber","crt":false,"sound":true}' ]);
   });
 
   it('are not lost to a throw when saving', (): void => {

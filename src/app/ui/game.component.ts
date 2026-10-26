@@ -11,10 +11,13 @@ import type { IDisplaySettings } from './display-settings';
 import { browserStorage, loadDisplaySettings, saveDisplaySettings } from './display-settings';
 import { isControl } from './key-target';
 import { SettingsMenuComponent } from './settings-menu.component';
+import { SpeakerPlayer } from './speaker-player';
 import { TextMirrorComponent } from './text-mirror.component';
 import { TouchPadComponent } from './touch-pad.component';
 
 const FIRST_FRAME_MS: number = 1000 / 60;
+/** The rate the speaker is drained at before there is anything to play it on: its clicks are only discarded. */
+const UNHEARD_SAMPLE_RATE: number = 8000;
 
 
 /** The game running on the screen, a frame at a time, with the keyboard as the Apple's, a touch pad, the display's settings, and its text for screen readers. */
@@ -39,6 +42,7 @@ const FIRST_FRAME_MS: number = 1000 / 60;
   ` ],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
+    '(document:pointerdown)': 'startSound()',
   },
 })
 export class GameComponent implements OnDestroy {
@@ -54,6 +58,7 @@ export class GameComponent implements OnDestroy {
   private lastFrame: number | null = null;
   private stopped: boolean = false;
   private lastWrites: number | null = null;
+  private player: SpeakerPlayer | null = null;
 
 
   constructor() {
@@ -76,6 +81,7 @@ export class GameComponent implements OnDestroy {
     this.lastFrame = now;
     try {
       await this.game().runFrame(elapsed);
+      this.playSound();
       this.noticeWrites();
       this.schedule();
     } catch (thrown: unknown) {
@@ -86,6 +92,7 @@ export class GameComponent implements OnDestroy {
 
 
   protected onKeyDown(event: KeyboardEvent): void {
+    this.startSound();
     const code: number | null = (event.altKey || event.metaKey || isControl(event.target)) ? null : appleKeyCodeOf(event.key, event.ctrlKey);
 
     if (code != null) {
@@ -106,6 +113,23 @@ export class GameComponent implements OnDestroy {
   protected choose(settings: IDisplaySettings): void {
     this.settings.set(settings);
     saveDisplaySettings(browserStorage(), settings);
+  }
+
+
+  /** Browsers let a page make sound only after the player has done something, so the speaker starts at the first key or touch. */
+  protected startSound(): void {
+    if ((this.player == null) && (typeof AudioContext !== 'undefined')) {
+      this.player = new SpeakerPlayer(new AudioContext());
+    }
+  }
+
+
+  private playSound(): void {
+    const samples: Float32Array = this.game().drainSound(this.player?.sampleRate ?? UNHEARD_SAMPLE_RATE);
+
+    if ((this.player != null) && this.settings().sound) {
+      this.player.play(samples);
+    }
   }
 
 

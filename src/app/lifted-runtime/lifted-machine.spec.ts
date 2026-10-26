@@ -124,6 +124,33 @@ describe('LiftedMachine', (): void => {
     });
   });
 
+  describe('the speaker', (): void => {
+    it('clicks at the cycle the game has reached when it reads $C030', (): void => {
+      const machine: LiftedMachine = booted();
+      const clicks: number[] = [];
+
+      machine.apple.speaker.toggle = (cycle: number): void => {
+        clicks.push(cycle);
+      };
+      machine.cpu.cycles = 1_234;
+      machine.read(0xC030);
+
+      expect(clicks).toEqual([ 1_234 ]);
+    });
+
+    it('clicks when the game writes $C030 too', (): void => {
+      const machine: LiftedMachine = booted();
+      let clicks: number = 0;
+
+      machine.apple.speaker.toggle = (): void => {
+        clicks = clicks + 1;
+      };
+      machine.write(0xC030, 0x00);
+
+      expect(clicks).toBe(1);
+    });
+  });
+
   describe('DOS', (): void => {
     it('logs a line that starts with Ctrl-D', async (): Promise<void> => {
       const machine: LiftedMachine = booted();

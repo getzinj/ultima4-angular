@@ -19,6 +19,7 @@ export class PortedGame {
   public readonly machine: LiftedMachine;
 
   private target: number = 0;
+  private soundFrom: number = 0;
 
 
   constructor(private readonly disks: DiskSet, private readonly frameBudget: number = FRAME_BUDGET_MS) {
@@ -41,6 +42,16 @@ export class PortedGame {
   /** The Britannia disk as the game has left it: the save disk to keep. */
   public savedImage(): Uint8Array {
     return this.disks.britannia.image.bytes.slice();
+  }
+
+
+  /** The speaker since the last call, as samples at `sampleRate`. */
+  public drainSound(sampleRate: number): Float32Array {
+    const samples: Float32Array = this.machine.apple.speaker.drain(this.soundFrom, this.machine.cpu.cycles, sampleRate);
+
+    this.soundFrom = this.machine.cpu.cycles;
+
+    return samples;
   }
 
 

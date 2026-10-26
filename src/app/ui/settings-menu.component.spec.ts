@@ -12,7 +12,7 @@ describe('SettingsMenuComponent', (): void => {
   beforeEach(async (): Promise<void> => {
     fixture = TestBed.createComponent(SettingsMenuComponent);
     emitted = [];
-    fixture.componentRef.setInput('settings', { palette: 'ntsc', crt: true });
+    fixture.componentRef.setInput('settings', { palette: 'ntsc', crt: true, sound: true });
     fixture.componentInstance.changed.subscribe((settings: IDisplaySettings): void => {
       emitted.push(settings);
     });
@@ -29,7 +29,16 @@ describe('SettingsMenuComponent', (): void => {
     box.checked = false;
     box.dispatchEvent(new Event('change'));
 
-    expect(emitted).toEqual([ { palette: 'ntsc', crt: false } ]);
+    expect(emitted).toEqual([ { palette: 'ntsc', crt: false, sound: true } ]);
+  });
+
+  it('turns the sound off when its box is cleared', (): void => {
+    const box: HTMLInputElement = (fixture.nativeElement as HTMLElement).querySelectorAll('input[type="checkbox"]')[1] as HTMLInputElement;
+
+    box.checked = false;
+    box.dispatchEvent(new Event('change'));
+
+    expect(emitted).toEqual([ { palette: 'ntsc', crt: true, sound: false } ]);
   });
 
   it('chooses another screen', (): void => {
@@ -38,6 +47,6 @@ describe('SettingsMenuComponent', (): void => {
     select.value = 'green';
     select.dispatchEvent(new Event('change'));
 
-    expect(emitted).toEqual([ { palette: 'green', crt: true } ]);
+    expect(emitted).toEqual([ { palette: 'green', crt: true, sound: true } ]);
   });
 });
