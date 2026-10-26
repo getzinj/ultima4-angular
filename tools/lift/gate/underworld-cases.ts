@@ -5,6 +5,8 @@
 
 import type { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { OVERLAY_ENTRY } from '../../../src/app/port/program/overlay';
+import { UNDERWORLD_DNGD_MODULE } from '../../../src/app/port/program/underworld/dngd';
+import { DNGD_ENTRIES, DNGD_VARIABLES } from '../../../src/app/port/program/underworld/dngd-data';
 import { UNDERWORLD_SEAR_MODULE } from '../../../src/app/port/program/underworld/sear';
 import { UNDERWORLD_TMAP_MODULE } from '../../../src/app/port/program/underworld/tmap';
 import { UNDERWORLD_USE_MODULE } from '../../../src/app/port/program/underworld/use';
@@ -142,6 +144,90 @@ function drinking(kind: number | null): (machine: LiftedMachine, random: Random)
 }
 
 
+/** What DNGD draws at each distance ahead, by its high nibble: ladders, holes, a field of each kind, doors, rooms and walls, and halls. */
+const VIEW_TILES: readonly number[] = [
+  0x00, 0x00, 0x10, 0x10, 0x20, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x80, 0x88, 0x90, 0xA0, 0xA1, 0xA2, 0xA3, 0xB0,
+  D.dng_tile_door, D.dng_tile_door, D.dng_tile_room, D.dng_tile_secret_door, D.dng_tile_wall, D.dng_tile_wall,
+];
+/** The squares ahead for each part of the view: the ladders and holes, the doors and walls, the fields, and the monsters and items. */
+const LADDERS: readonly number[] = [ 0x10, 0x20, 0x30, 0x50, 0x60 ];
+const DOORS: readonly number[] = [ D.dng_tile_door, D.dng_tile_room, D.dng_tile_secret_door, D.dng_tile_wall, 0xB0, 0x40, 0x70 ];
+const FIELDS: readonly number[] = [ 0xA0, 0xA1, 0xA2, 0xA3 ];
+const THINGS: readonly number[] = [ 0x01, 0x05, 0x0A, 0x0F, 0x13, 0x47, 0x72, 0x40, 0x70, 0x80, 0x81, 0x89, 0x90, 0xB0, D.dng_tile_door, D.dng_tile_room ];
+const LEVEL_SIZE: number = 0x40;
+const DUNGEON_MAP: number = 0xE800;
+const DIRECTION_X: readonly number[] = [ 0, 1, 0, -1 ];
+const DIRECTION_Y: readonly number[] = [ -1, 0, 1, 0 ];
+/** DNGD's zero page: the tiles three ahead and behind, as get_neighbor_tiles leaves them. */
+const TILES_AHEAD: readonly number[] = [ 0xC9, 0xCA, 0xCB ];
+const TILE_BEHIND: number = 0xCC;
+
+
+/** A tile of the view's, now and then with a monster's number on it. */
+function viewTile(random: Random): number {
+  const tile: number = pick(random, VIEW_TILES);
+
+  return (random() < 0.3) ? tile | (1 + Math.floor(random() * 15)) : tile;
+}
+
+
+/** The map's cell `steps` ahead of the party, behind for -1. */
+function ahead(machine: LiftedMachine, steps: number): number {
+  const direction: number = machine.read(PRTY.dng_direction);
+  const x: number = (machine.read(PRTY.player_xpos) + (steps * DIRECTION_X[direction])) & 0x07;
+  const y: number = (machine.read(PRTY.player_ypos) + (steps * DIRECTION_Y[direction])) & 0x07;
+
+  return DUNGEON_MAP + (machine.read(PRTY.dungeon_level) * LEVEL_SIZE) + (y * 8) + x;
+}
+
+
+/** A dungeon whose level is drawn from the view's tiles, the party's square and those ahead often empty or of `near`, mostly lit, and the tiles about the party as get_neighbor_tiles reads them. */
+function viewing(machine: LiftedMachine, random: Random, near: readonly number[] | null): void {
+  belowground(machine, random);
+  for (let index: number = 0; index < LEVEL_SIZE; index++) {
+    machine.write(DUNGEON_MAP + (machine.read(PRTY.dungeon_level) * LEVEL_SIZE) + index, viewTile(random));
+  }
+  for (let steps: number = 0; steps <= TILES_AHEAD.length; steps++) {
+    if (random() < 0.4) {
+      machine.write(ahead(machine, steps), 0x00);
+    } else if (near != null) {
+      machine.write(ahead(machine, steps), pick(random, near));
+    }
+  }
+  machine.write(PRTY.light_duration, pick(random, [ 0x00, 0x01, 0x50, 0xFF, byte(random) ]));
+  TILES_AHEAD.forEach((tile: number, index: number): void => machine.write(tile, machine.read(ahead(machine, index + 1))));
+  machine.write(TILE_BEHIND, machine.read(ahead(machine, -1)));
+  machine.write(ZP_MAIN.tile_under_player, machine.read(ahead(machine, 0)));
+}
+
+
+/** DNGD loaded, its generator at random, and the view last drawn from here, as it would be if nothing had changed, more often than not. */
+function drawnBefore(machine: LiftedMachine, random: Random): void {
+  machine.bload('underworld', UNDERWORLD_DNGD_MODULE.name);
+  for (let index: number = 0; index < 3; index++) {
+    machine.write(DNGD_VARIABLES.rand_data + index, byte(random));
+  }
+  if (random() < 0.6) {
+    const now: readonly number[] = [
+      machine.read(PRTY.dungeon_level), machine.read(PRTY.player_xpos), machine.read(PRTY.player_ypos), machine.read(PRTY.dng_direction),
+      ...[ -1, 0, 1, 2, 3 ].map((steps: number): number => machine.read(ahead(machine, steps))),
+    ];
+
+    now.forEach((value: number, index: number): void => {
+      machine.write(DNGD_VARIABLES.last_drawn_dungeon_level + index, (random() < 0.04) ? byte(random) : value);
+    });
+  }
+}
+
+
+function viewCase(entry: number, near: readonly number[] | null = null): IOverlayCase {
+  return { module: UNDERWORLD_DNGD_MODULE, entry, testCase: { ult4: true, screen: true, stops: STOPS, setup: (machine: LiftedMachine, random: Random): void => {
+    viewing(machine, random, near);
+    drawnBefore(machine, random);
+  } } };
+}
+
+
 function words(...lists: readonly (readonly string[])[]): (random: Random) => readonly Key[] {
   return (random: Random): readonly Key[] => lists.flatMap((list: readonly string[]): readonly Key[] => typedWord(pick(random, list), random));
 }
@@ -159,6 +245,13 @@ function who(random: Random): readonly Key[] {
 
 
 export const UNDERWORLD_CASES: Readonly<Record<string, IOverlayCase>> = {
+  dngd_check_update: viewCase(DNGD_ENTRIES.dungeon_check_update),
+  dngd_draw_items_monsters: viewCase(DNGD_ENTRIES.draw_items_monsters),
+  dngd_redraw: viewCase(DNGD_ENTRIES.dungeon_redraw),
+  dngd_ladders: viewCase(DNGD_ENTRIES.dungeon_redraw, LADDERS),
+  dngd_doors: viewCase(DNGD_ENTRIES.dungeon_redraw, DOORS),
+  dngd_fields: viewCase(DNGD_ENTRIES.dungeon_redraw, FIELDS),
+  dngd_sprites: viewCase(DNGD_ENTRIES.draw_items_monsters, THINGS),
   underworld_tmap: underworldCase(UNDERWORLD_TMAP_MODULE, (random: Random): readonly Key[] => [ { code: 0x41, polls: Math.floor(random() * 5) } ], belowground),
   underworld_sear_orb: underworldCase(UNDERWORLD_SEAR_MODULE, who, searching([ D.dng_tile_orb ])),
   underworld_sear_fountain: underworldCase(UNDERWORLD_SEAR_MODULE, who, drinking(null)),

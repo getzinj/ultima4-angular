@@ -1,0 +1,155 @@
+import { inline } from '../../inline-data';
+import type { IInlineData } from '../../inline-data';
+
+// Where DNGD keeps its variables, tables and the operands it rewrites in the `fixed` build
+// ($8C00-$9919), and what they hold when it is loaded. The port keeps them at these addresses, so
+// memory matches the original's byte for byte.
+
+export const DNGD_ENTRIES = {
+  dungeon_check_update: 0x8C00,
+  draw_items_monsters: 0x8C03,
+  dungeon_redraw: 0x8C06,
+} as const;
+
+export const DNGD_VARIABLES = {
+  rand_data: 0x9608,
+  bit_count: 0x986E,
+  sprite1x_byteW: 0x986F,
+  sprite1x_byte1: 0x9870,
+  sprite1x_byte2: 0x9871,
+  sprite2x_byte0: 0x9872,
+  sprite2x_byte1: 0x9873,
+  sprite2x_byte2: 0x9874,
+  sprite2x_byte3: 0x9875,
+  sprite_palette: 0x9876,
+  sprite_line: 0x9877,
+  render_distance: 0x9878,
+  temp1: 0x9879,
+  column_draw_mode: 0x987A,
+  pixel_x: 0x987B,
+  pixel_y: 0x987C,
+  gdt_x: 0x987D,
+  gdt_y: 0x987E,
+  step_x: 0x987F,
+  step_y: 0x9880,
+  temp2: 0x9881,
+  error_delta_line: 0x9882,
+  draw_x1: 0x9883,
+  draw_x2: 0x9884,
+  draw_y1: 0x9885,
+  draw_y2: 0x9886,
+  draw_width: 0x9887,
+  draw_height: 0x9888,
+  error_delta_top: 0x9889,
+  error_delta_bottom: 0x988A,
+  draw_top_y1: 0x988B,
+  draw_top_y2: 0x988C,
+  draw_top_step_y: 0x988D,
+  pixel_column_start_y: 0x988E,
+  draw_top_height: 0x988F,
+  draw_bottom_y1: 0x9890,
+  draw_bottom_y2: 0x9891,
+  draw_bottom_step_y: 0x9892,
+  pixel_column_end_y: 0x9893,
+  draw_bottom_height: 0x9894,
+  last_drawn_dungeon_level: 0x9911,
+  last_drawn_player_xpos: 0x9912,
+  last_drawn_player_ypos: 0x9913,
+  last_drawn_dng_direction: 0x9914,
+  last_drawn_under_player: 0x9915,
+  last_drawn_tile_under_player: 0x9916,
+  last_drawn_forward_1: 0x9917,
+  last_drawn_forward_2: 0x9918,
+  last_drawn_forward_3: 0x9919,
+} as const;
+
+export const DNGD_TABLES = {
+  field_color_mask: 0x95DE,
+  field_y1: 0x95E2,
+  field_y2: 0x95E6,
+  field_x1: 0x95EA,
+  field_x2: 0x95EE,
+  window_table: 0x984E,
+  dir_delta_x: 0x9895,
+  dir_delta_y: 0x9899,
+  wall_left_x: 0x989D,
+  wall_right_x: 0x98A2,
+  wall_top_y: 0x98A7,
+  wall_bottom_y: 0x98AC,
+  door_left_start_x: 0x98B1,
+  door_left_end_x: 0x98B5,
+  door_right_start_x: 0x98B9,
+  door_right_end_x: 0x98BD,
+  door_top_start_y: 0x98C1,
+  door_top_end_y: 0x98C5,
+  door_bottom_start_y: 0x98C9,
+  door_bottom_end_y: 0x98CD,
+  ceiling_hole_top_y: 0x98D1,
+  ceiling_hole_bottom_y: 0x98D5,
+  floor_hole_bottom_y: 0x98D9,
+  floor_hole_top_y: 0x98DD,
+  hole_bottom_left_x: 0x98E1,
+  hole_top_left_x: 0x98E5,
+  hole_bottom_right_x: 0x98E9,
+  hole_top_right_x: 0x98ED,
+  ladder_left_x: 0x98F1,
+  ladder_right_x: 0x98F5,
+  ladder_up_top_rung_y: 0x98F9,
+  ladder_up_middle_rung_y: 0x98FD,
+  ladder_up_bottom_rung_y: 0x9901,
+  ladder_down_top_rung_y: 0x9905,
+  ladder_down_middle_rung_y: 0x9909,
+  ladder_down_bottom_rung_y: 0x990D,
+} as const;
+
+/** One sprite routine's rewritten operands: the words of its `lda TMP_PAGE,y` from each bank, and of each `sta TMP_ADDR,x`. */
+export interface ISpriteOperands {
+  readonly sources: readonly [ number, number ];
+  readonly destinations: readonly number[];
+}
+
+/** draw_sprite_0 to draw_sprite_3's operands, nearest first. */
+export const SPRITE_OPERANDS: readonly ISpriteOperands[] = [
+  { sources: [ 0x9740, 0x974E ], destinations: [ 0x977D, 0x9784, 0x978B, 0x9792 ] },
+  { sources: [ 0x96BA, 0x96C8 ], destinations: [ 0x96F7, 0x96FE, 0x9705, 0x970C ] },
+  { sources: [ 0x9683, 0x968D ], destinations: [ 0x9686, 0x9690 ] },
+  { sources: [ 0x9634, 0x963E ], destinations: [ 0x9637, 0x9641 ] },
+];
+
+const V = DNGD_VARIABLES;
+const T = DNGD_TABLES;
+const SOURCE_PAGE: readonly number[] = [ 0x00, 0xFF ];
+const DESTINATION: readonly number[] = [ 0xFF, 0xFF ];
+
+export const DNGD_DATA: readonly IInlineData[] = [
+  inline(T.field_color_mask, [ 0x55, 0xAA, 0x55, 0xAA ]),
+  inline(T.field_y1, [ 0x08, 0x28, 0x48, 0x58 ]),
+  inline(T.field_y2, [ 0xB7, 0x97, 0x77, 0x67 ]),
+  inline(T.field_x1, [ 0x01, 0x05, 0x09, 0x0B ]),
+  inline(T.field_x2, [ 0x16, 0x12, 0x0E, 0x0C ]),
+  inline(V.rand_data, [ 0x49, 0x2F, 0x15 ]),
+  inline(T.window_table, [
+    0x00, 0x00, 0x00, 0x00, 0xFF, 0x55, 0xFF, 0xFF, 0x00, 0x00, 0xAA, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+    0x00, 0x00, 0x00, 0x00, 0x55, 0x55, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+  ]),
+  inline(V.bit_count, new Array<number>(V.draw_bottom_height + 1 - V.bit_count).fill(0x00)),
+  inline(T.dir_delta_x, [ 0x00, 0x01, 0x00, 0xFF ]),
+  inline(T.dir_delta_y, [ 0xFF, 0x00, 0x01, 0x00 ]),
+  inline(T.wall_left_x, [ 0x07, 0x23, 0x3F, 0x4D, 0x53 ]),
+  inline(T.wall_right_x, [ 0xA0, 0x84, 0x68, 0x5A, 0x54 ]),
+  inline(T.wall_top_y, [ 0x08, 0x28, 0x48, 0x58, 0x5F ]),
+  inline(T.wall_bottom_y, [ 0xB7, 0x97, 0x77, 0x67, 0x60 ]),
+  inline(T.door_left_start_x, [
+    0x07, 0x2A, 0x43, 0x4F, 0x15, 0x38, 0x4A, 0x51, 0xA0, 0x7D, 0x64, 0x58, 0x92, 0x6F, 0x5D, 0x56,
+    0x34, 0x48, 0x56, 0x5A, 0x3D, 0x51, 0x5B, 0x5F, 0xB7, 0x8F, 0x73, 0x65, 0xA7, 0x7F, 0x6B, 0x62,
+    0x08, 0x30, 0x4C, 0x5A, 0x18, 0x40, 0x54, 0x5D, 0xB7, 0x8F, 0x73, 0x65, 0xA7, 0x7F, 0x6B, 0x62,
+    0x2E, 0x3F, 0x4B, 0x51, 0x35, 0x46, 0x4F, 0x52, 0x7A, 0x69, 0x5D, 0x56, 0x73, 0x62, 0x59, 0x55,
+    0x3F, 0x4A, 0x51, 0x53, 0x68, 0x5E, 0x57, 0x54, 0x10, 0x38, 0x50, 0x5D, 0x30, 0x48, 0x56, 0x5E,
+    0x50, 0x58, 0x5C, 0x5F, 0xAF, 0x87, 0x6F, 0x62, 0x8F, 0x77, 0x69, 0x61, 0x6F, 0x67, 0x63, 0x60,
+  ]),
+  inline(V.last_drawn_dungeon_level, new Array<number>(V.last_drawn_forward_3 + 1 - V.last_drawn_dungeon_level).fill(0x00)),
+  ...SPRITE_OPERANDS.flatMap((operands: ISpriteOperands): IInlineData[] => [
+    ...operands.sources.map((address: number): IInlineData => inline(address, SOURCE_PAGE)),
+    ...operands.destinations.map((address: number): IInlineData => inline(address, DESTINATION)),
+  ]),
+];

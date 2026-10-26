@@ -27,6 +27,7 @@ import { TALK_MODULE } from './program/towne/talk';
 import { TOWNE_SEAR_MODULE } from './program/towne/sear';
 import { TOWNE_TMAP_MODULE } from './program/towne/tmap';
 import { TOWNE_USE_MODULE } from './program/towne/use';
+import { UNDERWORLD_DNGD_MODULE } from './program/underworld/dngd';
 import { UNDERWORLD_SEAR_MODULE } from './program/underworld/sear';
 import { UNDERWORLD_TMAP_MODULE } from './program/underworld/tmap';
 import { UNDERWORLD_USE_MODULE } from './program/underworld/use';
@@ -52,6 +53,7 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   TOWNE_SEAR_MODULE,
   TOWNE_TMAP_MODULE,
   TOWNE_USE_MODULE,
+  UNDERWORLD_DNGD_MODULE,
   UNDERWORLD_SEAR_MODULE,
   UNDERWORLD_TMAP_MODULE,
   UNDERWORLD_USE_MODULE,
