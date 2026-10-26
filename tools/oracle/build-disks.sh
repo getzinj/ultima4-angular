@@ -1,6 +1,7 @@
 #!/bin/sh
 # Builds the remaster's `fixed` disks, which the oracle runs, from your own four original disk
-# images (the de-protected DOS-order copies the remaster expects):
+# images (the de-protected DOS-order copies the remaster expects), with the port's deviations
+# (deviations/*.patch) applied to its source:
 #
 #   ./build-disks.sh <program.do> <britannia.do> <towne.do> <underworld.do>
 #
@@ -24,7 +25,10 @@ if [ ! -d "$WORK/.git" ]; then
   git clone --quiet https://github.com/sean-gugler/u4remasteredA2 "$WORK"
 fi
 git -C "$WORK" fetch --quiet origin fixed
-git -C "$WORK" checkout --quiet --detach "$COMMIT"
+git -C "$WORK" checkout --quiet --force --detach "$COMMIT"
+for patch in "$HERE"/deviations/*.patch; do
+  git -C "$WORK" apply "$patch"
+done
 
 mkdir -p "$WORK/files/original"
 cp "$1" "$WORK/files/original/u4program.do"

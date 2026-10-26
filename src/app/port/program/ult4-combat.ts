@@ -1393,7 +1393,7 @@ export abstract class Ult4Combat extends Ult4 {
     }
     if (damage) {
       await this.m.call(J.j_get_stats_ptr);
-      this.lda(ROST.player_armour);
+      this.ldy(ROST.player_armour);
       this.lda(this.peek(this.pointer(ZP_MAIN.ptr1) + this.cpu.y));
       this.ldx(this.cpu.a);
       this.poke(zp_amount, this.lda(this.peek(CT.armour_table + this.cpu.x)));

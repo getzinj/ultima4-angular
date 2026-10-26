@@ -1,0 +1,13 @@
+diff --git a/src/patchedgame/program/ULT4.s b/src/patchedgame/program/ULT4.s
+index 0c123cf..4564b89 100644
+--- a/src/patchedgame/program/ULT4.s
++++ b/src/patchedgame/program/ULT4.s
+@@ -7225,7 +7225,7 @@ do_foe_melee_attack:
+ 	bmi @no_damage ;1/2 chance
+ @check_armour:
+ 	jsr j_get_stats_ptr
+-	lda #player_armour
++	ldy #player_armour
+ 	lda (ptr1),y
+ 	tax
+ 	lda armour_table,x

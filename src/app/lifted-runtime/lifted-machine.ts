@@ -624,7 +624,7 @@ export class LiftedMachine implements IBus {
 
   /**
    * BLOAD: a program's image from its lifted module, or the file. A native program is installed over
-   * whatever image there is and owns only its entries. Returns where it went.
+   * its lifted image, else its file if the disk has one, and owns only its entries. Returns where it went.
    */
   private load(disk: UltimaDiskName, name: string, at: number | null): number {
     const index: number = this.modules.findIndex((module: ILiftedModule): boolean => (module.disk === disk) && (module.name === name));
@@ -640,6 +640,8 @@ export class LiftedMachine implements IBus {
       } else if (nativeIndex >= 0) {
         if (index >= 0) {
           this.copyIn(address, this.images[index]);
+        } else if (this.disks[disk].find(name) != null) {
+          this.copyIn(address, this.disks[disk].readBinary(name).data);
         }
         this.natives[nativeIndex].install(this);
         if ((index >= 0) && (this.natives[nativeIndex].partial === true)) {
