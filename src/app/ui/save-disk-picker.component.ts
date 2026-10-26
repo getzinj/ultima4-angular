@@ -57,7 +57,7 @@ import type { ISaveDiskSummary } from '../data/save-disks';
   `,
   styles: [ `
     :host { display: grid; place-items: center; height: 100%; padding: 16px; box-sizing: border-box; color: #ddd; font: 16px sans-serif; }
-    .panel { width: min(40rem, 100%); padding: 24px; border: 1px solid #3a3a3a; }
+    .panel { box-sizing: border-box; width: min(40rem, 100%); padding: 24px; border: 1px solid #3a3a3a; }
     h1 { margin: 0 0 16px; font-size: 1.5rem; }
     ul { margin: 0 0 16px; padding: 0; list-style: none; }
     li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #222; }

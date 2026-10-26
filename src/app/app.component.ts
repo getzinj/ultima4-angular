@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import type { WritableSignal } from '@angular/core';
 
 import { DiskImage } from './data/disk-image';
@@ -14,6 +14,7 @@ import type { UltimaDiskName } from './data/ultima-disks';
 import type { PortedGame } from './port/ported-game';
 import { DiskImportComponent } from './ui/disk-import.component';
 import type { ImportedDisks } from './ui/disk-import.component';
+import { FailureNotice, messageOf } from './ui/failure-notice';
 import { GameComponent } from './ui/game.component';
 import { SaveDiskPickerComponent } from './ui/save-disk-picker.component';
 
@@ -26,6 +27,12 @@ type AppState = 'loading' | 'importing' | 'picking' | 'ready';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ DiskImportComponent, GameComponent, SaveDiskPickerComponent ],
   template: `
+    @if (notice.message(); as message) {
+      <p class="failure" role="alert">
+        {{ message }}
+        <button type="button" (click)="notice.dismiss()">Dismiss</button>
+      </p>
+    }
     @switch (state()) {
       @case ('importing') {
         <ultima4-disk-import (imported)="onImported($event)" />
@@ -50,7 +57,11 @@ type AppState = 'loading' | 'importing' | 'picking' | 'ready';
       }
     }
   `,
-  styles: [ ':host { display: block; width: 100%; height: 100%; }' ],
+  styles: [ `
+    :host { display: block; width: 100%; height: 100%; }
+    .failure { position: fixed; top: 0; left: 0; right: 0; z-index: 4; margin: 0; padding: 8px 16px; background: #800; color: #fff; font: 16px sans-serif; }
+    .failure button { margin-left: 8px; padding: 2px 8px; border: 1px solid #fff; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  ` ],
 })
 export class AppComponent {
   protected readonly state: WritableSignal<AppState> = signal<AppState>('loading');
@@ -58,6 +69,7 @@ export class AppComponent {
   protected readonly saveDisks: WritableSignal<readonly ISaveDiskSummary[]> = signal<readonly ISaveDiskSummary[]>([]);
   protected readonly failure: WritableSignal<string | null> = signal<string | null>(null);
   protected readonly limit: number = MAXIMUM_SAVE_DISKS;
+  protected readonly notice: FailureNotice = inject(FailureNotice);
 
   private readonly library: SaveDiskLibrary = new SaveDiskLibrary(new BrowserSaveDiskStore());
   private masters: ImportedDisks | null = null;
@@ -91,7 +103,7 @@ export class AppComponent {
         this.state.set('ready');
       } catch (thrown: unknown) {
         console.error('The disks could not be prepared.', thrown);
-        this.failure.set(`${ disk.name } could not be played: ${ (thrown instanceof Error) ? thrown.message : String(thrown) }`);
+        this.failure.set(`${ disk.name } could not be played: ${ messageOf(thrown) }`);
       }
     }
   }
@@ -108,7 +120,7 @@ export class AppComponent {
         if (this.playing != null) {
           this.playing = await this.library.save(this.playing, image);
         }
-      }).catch((thrown: unknown): void => console.error('The save disk could not be kept.', thrown));
+      }).catch((thrown: unknown): void => this.notice.report('The save disk could not be kept', thrown));
     }
   }
 
@@ -126,7 +138,7 @@ export class AppComponent {
 
       await this.added(await this.library.create(image, nameFromFile(file.name)));
     } catch (thrown: unknown) {
-      this.failure.set((thrown instanceof Error) ? thrown.message : String(thrown));
+      this.failure.set(messageOf(thrown));
     }
   }
 

@@ -901,3 +901,22 @@ on the developer's machine. The images, and anything built from them, stay out o
   17 kHz, past what the speaker or anyone hears.
 - **Browsers start audio only from a gesture**, so the `AudioContext` is made at the first key or
   pointer press; before that the clicks are drained and dropped, never queued up to play at once.
+
+## Phase 15 findings
+
+- **No screen survives a change of timing.** Giving `creation`'s keys a few polls later (0–36,
+  at random) left 2 and 4 of its 53 screens as the oracle's, over two runs: the game draws random
+  numbers while it waits, and the title's and Britannia's animation move on. So a browser test
+  that presses keys by the clock cannot be checked against the oracle; one that hands each key over
+  at its recorded poll matches at every snapshot.
+- **A digest's steps are a scenario's keys.** Each step records its key and the polls before it
+  was taken (or the polls idled), so `boot-to-title`, `creation` and `first-steps` replay from
+  their digests alone after `BRUN BOOT`, every region of every snapshot matching. The snapshot is
+  taken as the key is handed over, before the game reads it, and the screen at that moment is the
+  recorded one.
+- **The player's disks are not the oracle's build.** The app plays the originals with the data
+  patches applied; the oracle runs the remaster's build. Their `hgr1`, party, roster and objects
+  match at all 120 snapshots, but `low`, `main` and `lc_high` do not: the differences are code the
+  port never runs (the programs' jump tables and bytes, and at `$FB00` the remaster's trainers,
+  which the originals lack).
+
