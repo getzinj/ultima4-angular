@@ -835,7 +835,9 @@ on the developer's machine. The images, and anything built from them, stay out o
   them native ULT4 is no longer partial.
 - **Nothing lifted is needed.** With only the ported modules, a native program's BLOAD copies its
   file from the disk when there is one, then installs its data over it. All seventeen scenarios
-  match on the built disks with no lifted module loaded (comparing every region but code).
+  match with no lifted module loaded, on the built disks and on the player's own prepared as the
+  app prepares them (comparing every region but code: `main`, and on the retail disks page 3,
+  where SEL is loaded).
 - **On the player's own disks one thing differed: foes' melee.** `do_foe_melee_attack` loads
   `#player_armour` into A where it means Y, so it reads the player's first byte (the name's first
   letter) as the armour and indexes `armour_table` by it, landing in ULT4's code at `$7FC5` and on.
