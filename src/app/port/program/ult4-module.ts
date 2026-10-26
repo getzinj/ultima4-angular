@@ -3,7 +3,7 @@ import type { INativeModule, NativeRoutine } from '../../lifted-runtime/native-m
 import { exitRoutine } from '../routine';
 import type { Exit } from '../routine';
 import { COMBAT_ENTRIES, combatData } from './ult4-combat-data';
-import { ULT4_ENTRIES, ULT4_LOAD, ult4Data } from './ult4-data';
+import { ULT4_ENTRIES, ULT4_LOAD, ULT4_UNLABELLED_ENTRIES, ult4Data } from './ult4-data';
 import { COMMAND_ENTRIES, commandData } from './ult4-commands-data';
 import { MONSTER_ENTRIES, monsterData } from './ult4-monsters-data';
 import { SPELL_ENTRIES, spellData } from './ult4-spells-data';
@@ -24,7 +24,7 @@ const MO = MONSTER_ENTRIES;
 const CE = COMMAND_ENTRIES;
 
 const BODIES: readonly [ number, Body ][] = [
-  [ E.main_jump_table, (p: Ult4Townes): Exit => p.mainJumpTable() ],
+  [ ULT4_UNLABELLED_ENTRIES.main_jump_table, (p: Ult4Townes): Exit => p.mainJumpTable() ],
   [ E.game_init, (p: Ult4Townes): Promise<Exit> => p.gameInit() ],
   [ E.load_saved_game, (p: Ult4Townes): Promise<Exit> => p.loadSavedGame() ],
   [ E.halt, (p: Ult4Townes): Exit => p.halt() ],
@@ -354,7 +354,7 @@ const COMMAND_BODIES: readonly [ number, Body ][] = [
 
 const TOWNE_BODIES: readonly [ number, Body ][] = [
   [ TOWNE_ENTRIES.cmd_talk, (p: Ult4Townes): Promise<Exit> => p.cmdTalk() ],
-  [ TOWNE_ENTRIES.after_lord_british, (p: Ult4Townes): Promise<Exit> => p.afterLordBritish() ],
+  [ ULT4_UNLABELLED_ENTRIES.after_lord_british, (p: Ult4Townes): Promise<Exit> => p.afterLordBritish() ],
   [ TOWNE_ENTRIES.mobs_act_towne, (p: Ult4Townes): Promise<Exit> => p.mobsActTowne() ],
 ];
 

@@ -13,8 +13,6 @@ export const TOWNE_VARIABLES = {
 /** ULT4's entries for the townes that the port takes over. */
 export const TOWNE_ENTRIES = {
   cmd_talk: 0x5B70,
-  /** Talk's return from LORD: HELP and LORD BRUN each other dropping frames, so LORD's RTS comes back here unawaited. */
-  after_lord_british: 0x5C1F,
   mobs_act_towne: 0x6AA8,
 } as const;
 

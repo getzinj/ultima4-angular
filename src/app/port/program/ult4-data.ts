@@ -32,10 +32,16 @@ export const ULT4_TABLES = {
   moongate_y: 0x4C57,
 } as const;
 
-/** ULT4's own entries the port takes over: every label lifted code jumps to or calls. */
-export const ULT4_ENTRIES = {
+/** Entries the build gives no label, which other programs still reach. */
+export const ULT4_UNLABELLED_ENTRIES = {
   /** The main jump table's first slot, `jmp game_init`. */
   main_jump_table: 0x4000,
+  /** Talk's return from LORD: HELP and LORD BRUN each other dropping frames, so LORD's RTS comes back here unawaited. */
+  after_lord_british: 0x5C1F,
+} as const;
+
+/** ULT4's own entries the port takes over: every label lifted code jumps to or calls. */
+export const ULT4_ENTRIES = {
   game_init: 0x4009,
   load_saved_game: 0x4033,
   halt: 0x4060,
