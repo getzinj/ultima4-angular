@@ -10,6 +10,8 @@ import { UNDERWORLD_CASES } from './underworld-cases';
 // the talks and meditations, so must every write to the screen.
 
 const SEEDS: number = 10;
+/** END's cases run its delays, millions of cycles each, on the lifted side. */
+const CASE_TIMEOUT: number = 900_000;
 
 
 describe('the overlays, ported, against the lifted originals', (): void => {
@@ -21,5 +23,5 @@ describe('the overlays, ported, against the lifted originals', (): void => {
     }
 
     expect(found).toEqual([]);
-  }, 300_000);
+  }, CASE_TIMEOUT);
 });
