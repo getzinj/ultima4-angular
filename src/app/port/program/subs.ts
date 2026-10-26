@@ -26,6 +26,12 @@ const ZP_SFX_FREQ: number = 0xDA;
 const ZP_SFX_DURATION: number = 0xF0;
 /** One idle tick of `delay`: ldx #$4b / ldy #$00 and the two loops. */
 const DELAY_CYCLES: number = 96_303;
+/** One idle tick's drawing in each mode as the 6502 runs it (the oracle's medians); the port counts no instructions, so these pace the game. */
+const IDLE_WORLD_CYCLES: number = 174_342;
+const IDLE_TOWNE_CYCLES: number = 168_861;
+const IDLE_DUNGEON_CYCLES: number = 148_594 - DELAY_CYCLES;
+const IDLE_COMBAT_CYCLES: number = 111_454;
+const IDLE_SHRINE_CYCLES: number = 108_586;
 
 
 export class Subs extends PortProgram {
@@ -317,23 +323,28 @@ export class Subs extends PortProgram {
     } else if (this.negative()) {
       this.cmp(PRTY.mode_shrine);
       if (this.zero()) {
+        this.cpu.cycles = this.cpu.cycles + IDLE_SHRINE_CYCLES;
         await this.animateView();
       } else {
+        this.cpu.cycles = this.cpu.cycles + IDLE_COMBAT_CYCLES;
         await this.idleCombat();
       }
     } else {
       this.cmp(PRTY.mode_world);
       if (this.zero()) {
+        this.cpu.cycles = this.cpu.cycles + IDLE_WORLD_CYCLES;
         this.updateWind();
         await this.updateBalloon();
         await this.updateBritannia();
       } else {
         this.cmp(PRTY.mode_towne);
         if (this.zero()) {
+          this.cpu.cycles = this.cpu.cycles + IDLE_TOWNE_CYCLES;
           await this.updateTowne();
         } else {
           this.cmp(PRTY.mode_dungeon);
           if (this.zero()) {
+            this.cpu.cycles = this.cpu.cycles + IDLE_DUNGEON_CYCLES;
             this.scrollTiles();
             this.animateFields();
             await this.m.call(JUMP_OVERLAY.j_dng_draw_items_monsters);

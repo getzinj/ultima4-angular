@@ -34,6 +34,8 @@ const MB_TYPE_END: number = CHAR.char_num_first + 0x05;
 const DELAY_96_CYCLES: number = 192_750;
 /** input_text's `ldy #$00` / `dey` between polls. */
 const TEXT_DELAY_CYCLES: number = 1_280;
+/** A pass of attract_loop as the 6502 runs it (the oracle's median), which paces the demo. */
+const ATTRACT_STEP_CYCLES: number = 176_477;
 
 type MenuStep = 'return_to_view' | 'menu_main' | 'draw_menu' | 'number_of_drives' | 'journey_onward' | 'init_new_game' | 'activate_mockingboard' | 'done';
 
@@ -968,6 +970,7 @@ export class Boot extends PortProgram {
     do {
       await this.jsr(0x6C68, (): Promise<void> => this.updateAttractAndCaptives());
       await this.jsr(0x6C6B, (): Promise<void> => this.updateMusic());
+      this.cpu.cycles = this.cpu.cycles + ATTRACT_STEP_CYCLES;
       this.lda(await this.m.readKeyboard());
     } while (!this.negative());
     this.cpu.bit(await this.m.clearKeyboardStrobe());

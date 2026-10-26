@@ -34,6 +34,8 @@ const PLAYER_1_STATUS: number = 0xEC12;
 const STATUS_DEAD: number = 0xC4;
 const KEY_BUF_LEN: number = 0xB8;
 const PLAYER_TRANSPORT: number = 0x0E;
+const SHIP_HULL: number = 0x1B;
+const SHIP_HULL_FULL: number = 0x50;
 const PLAYER_1_STRENGTH: number = 0xEC13;
 const PLAYER_1_DEXTERITY: number = 0xEC14;
 const PLAYER_1_WEAPON: number = 0xEC1E;
@@ -644,6 +646,7 @@ export async function commands(session: Session): Promise<void> {
   await combatTurn(session, 'R', 'B');
   await fight(session);
   session.poke(PLAYER_TRANSPORT, TILE_SHIP_WEST);
+  session.poke(SHIP_HULL, SHIP_HULL_FULL);
   await command(session, 'F', LEFT);
   await command(session, 'F', UP);
   placeObject(session, 0x08, TILE_PIRATE, 0xE7, 0x86);

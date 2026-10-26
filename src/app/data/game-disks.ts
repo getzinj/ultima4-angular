@@ -96,6 +96,12 @@ export class GameDisks {
   }
 
 
+  /** The working copies, which the game reads and saves to. */
+  public get all(): DiskSet {
+    return this.disks;
+  }
+
+
   public disk(name: UltimaDiskName): Dos33Disk {
     return this.disks[name];
   }

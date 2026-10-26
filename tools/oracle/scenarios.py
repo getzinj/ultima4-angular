@@ -22,6 +22,7 @@ GEMS, HORN = 0xED09, 0xED15
 PLAYER_1_STATUS, STATUS_DEAD = 0xEC12, 0xC4
 KEY_BUF_LEN = 0xB8
 PLAYER_TRANSPORT = 0x0E
+SHIP_HULL, SHIP_HULL_FULL = 0x1B, 0x50
 PLAYER_1_STRENGTH, PLAYER_1_DEXTERITY, PLAYER_1_WEAPON = 0xEC13, 0xEC14, 0xEC1E
 WEAPON_SWORD, WEAPON_BOW = 0x06, 0x07
 TILE_PIRATE, TILE_ORC, TILE_PYTHON = 0x80, 0xC0, 0xCC
@@ -487,6 +488,7 @@ def commands(session):
     combat_turn(session, 'R', 'B')
     fight(session)
     session.poke(PLAYER_TRANSPORT, TILE_SHIP_WEST)
+    session.poke(SHIP_HULL, SHIP_HULL_FULL)
     command(session, 'F', LEFT)
     command(session, 'F', UP)
     place_object(session, 0x08, TILE_PIRATE, 0xE7, 0x86)

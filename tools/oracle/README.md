@@ -18,6 +18,17 @@ pip install py65
 images (the de-protected DOS-order copies its README names) where its Makefile wants them, runs
 `make all`, and checks that the four built disks and the label files the scenarios use are there.
 
+### Deviations
+
+Where the port fixes a bug the remaster keeps, the fix is a patch to the remaster's source in
+`deviations/`, which `build-disks.sh` applies before building, so the oracle, the lifter and the
+port all run the same code. Build the lifted modules from the same patched checkout. There is one:
+
+- **`foe-melee-armour.patch`:** `do_foe_melee_attack` loads `#player_armour` into A, not Y, so the
+  armour read is the player's first byte (the name's first letter) and the hit chance comes from
+  the bytes past `armour_table`, which are code. With `ldy` the armour counts. Both are two bytes,
+  so nothing moves.
+
 ## Recording
 
 ```sh
@@ -86,7 +97,9 @@ Monitor would have left, which nothing here reproduces and the game does not use
 - **`commands`:** a new game by Britain with three in the party, a sextant, a torch, arms and the
   quest's items: Locate, Ignite, Ztats through every page both ways, Ready and Wear (taken,
   refused by class, lacking, aborted), New order, Volume and Music, starving, four chests, Attack
-  at nothing, at a whirlpool and at a rat (a fight with Ztats and Ready in it), Fire from a ship,
+  at nothing, at a whirlpool and at a rat (a fight with Ztats and Ready in it), Fire from a ship
+  (its hull poked full: with armour counting, the rat fight before it draws other random numbers,
+  and the pirate's cannon then sank the ship),
   a turn on each of swamp, fire, sleep, poison and lava (poked under the party into the map's
   chunks), three on a bridge, and Quit.
 - **`townes`:** a new game by Moonglow with eight in the party: into the towne, where the

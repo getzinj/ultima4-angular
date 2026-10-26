@@ -823,3 +823,37 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **The harness's cases.** One with the chamber's conditions often unmet, one with the virtues'
   answers mostly right, one with every answer mostly right, and one with all of them. A word's first
   key waits ten polls, as the oracle's do, since printing takes a key already waiting.
+
+## Phase 13a findings
+
+- **TRAINERS** sits at `$FB00` in the language card and is the remaster's own, so the retail disks
+  have no file for it. Its teleport drops Talk's frame with `pla` / `pla`; getcoord's abort drops
+  its own frame the same way and leaves the return address's high byte, `$FB`, in A, which the
+  port reproduces.
+- **ULT4's last two lifted entries** were `$4000`, the jump table BOOT and NEWGAME run, which
+  goes straight to `game_init`, and `$5C1F`, where TALK returns from Lord British's castle. With
+  them native ULT4 is no longer partial.
+- **Nothing lifted is needed.** With only the ported modules, a native program's BLOAD copies its
+  file from the disk when there is one, then installs its data over it. All seventeen scenarios
+  match on the built disks with no lifted module loaded (comparing every region but code).
+- **On the player's own disks one thing differed: foes' melee.** `do_foe_melee_attack` loads
+  `#player_armour` into A where it means Y, so it reads the player's first byte (the name's first
+  letter) as the armour and indexes `armour_table` by it, landing in ULT4's code at `$7FC5` and on.
+  The original and the remaster both do this; the hit chance was whatever opcode sat there, which
+  differs between the built ULT4 and the retail file. The port uses the armour (`ldy`), and the
+  oracle's build applies the same one-byte patch (`tools/oracle/deviations/`), so the gate still
+  checks fights. With it, the `commands` scenario's rat fight draws other random numbers and the
+  pirate's cannon sank the ship afterwards; the scenario now fills the hull first.
+- **The port counts no instructions, only the original's delays**, so anything paced purely by
+  instruction time ran at host speed in the app. Two places matter. `idle`, one tick of waiting
+  for a key, calls `delay` only in the dungeon and with no mode; elsewhere its pace is the drawing
+  it does, which the oracle measures at a median 174,342 cycles a tick in Britannia, 168,861 in a
+  towne, 148,594 in a dungeon (delay included), 111,454 in combat and 108,586 in a shrine. Without
+  them a combat turn timed out ("Pass") in under a second rather than about fourteen. And the title's
+  attract demo costs 176,477 a pass. The port adds these to the clock. The lifted code is no guide
+  here: it counts base cycles only, without the taken branch's extra one, so its `delay` reads
+  77,115 cycles where the 6502 takes 96,316.
+- **The app** runs the game a frame at a time: the Apple time since the last frame (at most
+  100 ms), at 1,023 cycles a millisecond, or 12 ms of host time, whichever ends first. A delay
+  overshooting a frame is paid back by the frames after it; a frame cut short by host time isn't
+  owed. The port's code is a lazy chunk (582 kB), the initial bundle 171 kB.

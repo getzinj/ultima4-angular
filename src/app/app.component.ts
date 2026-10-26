@@ -8,11 +8,10 @@ import { Dos33Disk } from './data/dos33';
 import { GameDisks } from './data/game-disks';
 import { DISK_NAMES } from './data/ultima-disks';
 import type { UltimaDiskName } from './data/ultima-disks';
-import { AppleMachine } from './runtime/apple-machine';
-import { drawTestPattern } from './runtime/test-pattern';
-import { AppleScreenComponent } from './ui/apple-screen.component';
+import type { PortedGame } from './port/ported-game';
 import { DiskImportComponent } from './ui/disk-import.component';
 import type { ImportedDisks } from './ui/disk-import.component';
+import { GameComponent } from './ui/game.component';
 
 
 type AppState = 'loading' | 'importing' | 'ready';
@@ -21,32 +20,27 @@ type AppState = 'loading' | 'importing' | 'ready';
 @Component({
   selector: 'ultima4-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ AppleScreenComponent, DiskImportComponent ],
+  imports: [ DiskImportComponent, GameComponent ],
   template: `
     @switch (state()) {
       @case ('importing') {
         <ultima4-disk-import (imported)="onImported($event)" />
       }
       @case ('ready') {
-        <ultima4-apple-screen [machine]="machine" />
+        @if (game(); as running) {
+          <ultima4-game [game]="running" />
+        }
       }
     }
   `,
   styles: [ ':host { display: block; width: 100%; height: 100%; }' ],
-  host: {
-    '(document:keydown)': 'onKeyDown($event)',
-  },
 })
 export class AppComponent {
-  protected readonly machine: AppleMachine = new AppleMachine();
   protected readonly state: WritableSignal<AppState> = signal<AppState>('loading');
-
-  /** The disks as the game will play them; nothing reads them until the game is ported. */
-  protected disks: GameDisks | null = null;
+  protected readonly game: WritableSignal<PortedGame | null> = signal<PortedGame | null>(null);
 
 
   constructor() {
-    drawTestPattern(this.machine);
     void this.start();
   }
 
@@ -55,13 +49,6 @@ export class AppComponent {
     await storeMasterImages(Object.fromEntries(DISK_NAMES.map((name: UltimaDiskName): [ UltimaDiskName, Uint8Array ] =>
       [ name, masters[name].image.bytes ])) as MasterImages);
     await this.ready(masters);
-  }
-
-
-  protected onKeyDown(event: KeyboardEvent): void {
-    if ((this.state() === 'ready') && !event.altKey && !event.metaKey && this.machine.keyboard.pressKey(event.key, event.ctrlKey)) {
-      event.preventDefault();
-    }
   }
 
 
@@ -77,9 +64,13 @@ export class AppComponent {
   }
 
 
+  /** The disks prepared, and the game, fetched on demand to keep it out of the first download, booted from them. */
   private async ready(masters: ImportedDisks): Promise<void> {
     try {
-      this.disks = await GameDisks.prepare(masters);
+      const disks: GameDisks = await GameDisks.prepare(masters);
+      const { PortedGame: Game } = await import('./port/ported-game');
+
+      this.game.set(new Game(disks.all));
       this.state.set('ready');
     } catch (thrown: unknown) {
       console.error('The stored disks could not be prepared; asking for them again.', thrown);
