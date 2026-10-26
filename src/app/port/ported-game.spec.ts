@@ -39,4 +39,15 @@ describe('PortedGame', (): void => {
 
     expect(game.screen).toBe(game.machine.apple);
   });
+
+  it('has written nothing to its disks on booting', async (): Promise<void> => {
+    expect((await booted()).diskWrites).toBe(0);
+  });
+
+  it('gives its Britannia disk as the save to keep', async (): Promise<void> => {
+    const disks: GameDisks = await GameDisks.prepare(syntheticDiskSet());
+
+    expect(new PortedGame(disks.all, UNHURRIED_MS).savedImage()).toEqual(disks.disk('britannia').image.bytes);
+  });
 });
+

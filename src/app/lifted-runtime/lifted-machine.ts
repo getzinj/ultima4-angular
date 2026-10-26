@@ -119,6 +119,8 @@ export class LiftedMachine implements IBus {
   public polls: number = 0;
   public pending: IPendingKey | null = null;
   public maxCyclesPerStep: number = 200_000_000;
+  /** Every BSAVE and RWTS write so far, so whoever keeps the disks knows when to keep them again. */
+  public diskWrites: number = 0;
 
   private readonly disks: Record<UltimaDiskName, Dos33Disk>;
   private readonly drives: Map<number, UltimaDiskName> = new Map<number, UltimaDiskName>([ [ 1, 'program' ], [ 2, 'britannia' ] ]);
@@ -618,6 +620,7 @@ export class LiftedMachine implements IBus {
       const data: Uint8Array = Uint8Array.from({ length }, (_: unknown, index: number): number => this.read(address + index));
 
       this.disks[disk].writeBinary(name, address, data, RAW_TRACKS[disk]);
+      this.diskWrites = this.diskWrites + 1;
     }
   }
 
@@ -728,6 +731,7 @@ export class LiftedMachine implements IBus {
       this.copyIn(buffer, disk.image.readSector(track, sector));
     } else if (command === 2) {
       disk.image.writeSector(track, sector, Uint8Array.from({ length: 256 }, (_: unknown, index: number): number => this.read(buffer + index)));
+      this.diskWrites = this.diskWrites + 1;
     }
   }
 }

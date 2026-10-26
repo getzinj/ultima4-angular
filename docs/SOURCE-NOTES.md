@@ -873,3 +873,12 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **A cell read mid-draw** is half a line, which a reading taken a poll later corrects; announcing
   only a reading that matches the one before keeps such lines out.
 
+## Phase 13d findings
+
+- **The game saves when the party quits.** `Q` (Quit & save) BSAVEs `LIST`, `ROST` and `PRTY` to
+  the Britannia disk, and entering a towne BSAVEs `TLST`; nothing else on any disk is written, so a
+  save disk is a Britannia disk and the other three are always the masters. No data patch touches
+  Britannia, so a save disk is a plain copy of the master's.
+- **A save from the real disks** changed 5 bytes of `PRTY` (the move count among them, BCD, at
+  `$1C`), 2 of `ROST` and 4 of `LIST`.
+
