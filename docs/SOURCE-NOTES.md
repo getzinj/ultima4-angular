@@ -764,3 +764,32 @@ on the developer's machine. The images, and anything built from them, stay out o
   courage's altar room on the way out, poisoned drinkers at a poison fountain, and each principle's
   stones and keypart. 61 of 62 mutants are caught; the other, clamping a stat at 50 with `cmp #$50`
   for `cmp #$51`, is equivalent.
+
+## Phase 11b findings
+
+- **When the view is drawn again.** `dungeon_check_update` compares the level, the place, the
+  facing and the tile under the party with what it last drew from, then each square ahead in turn
+  up to one that hides what is beyond: a field, or a door or anything above it (a room or anything
+  above under the party). Only then does it redraw; the monsters and items are drawn every time.
+  The tile behind is recorded with the rest but never compared.
+- **Distance 0 is the party's own square.** A door there is the party standing in the doorway:
+  it is cleared from the wall ahead instead of drawn, and that square's sides are skipped.
+- **`draw_wall` sets up its error terms only when a bottom edge slopes up**, which no wall or door
+  in the tables does, so the terms carry over from whatever drew last. The port keeps that.
+- **DNGD has a generator of its own**, three bytes in its image, whose `adc`s take the carry as
+  they find it. A trap shows as a hole one time in 64 (in the ceiling below 8, a pit from 8, none
+  at 0); that roll always follows `cmp #dng_tile_trap` with the carry set, so a case can choose
+  the generator's state to show one.
+- **A field among the items** is drawn by `get_item_sprite`, which then pulls its caller's return
+  address (`pla` / `pla`), so `draw_items_monsters` returns at once with A the high byte of that
+  return.
+- **The sprites** are read a byte from each of the language card's banks a line, the distant ones
+  every line or every other, the near ones doubled in width through a five-bit window table and
+  drawn two or four times a line. The copies' `lda`/`sta` operands are rewritten in place; the
+  port writes them at their addresses and reads them back.
+- **The harness's cases.** One for each entry, and one each for the ladders and holes, the doors,
+  the fields, the monsters and items, the traps (the generator set to show one) and an unchanged
+  view with a square ahead changed behind one that may hide it. DNGD is loaded before its own
+  variables are set, since loading it resets them. Two mutants are equivalent: the error terms'
+  setup, which no table reaches, and testing the third square ahead for what it hides, when
+  nothing lies beyond it.

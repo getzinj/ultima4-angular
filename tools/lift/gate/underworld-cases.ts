@@ -149,11 +149,15 @@ const VIEW_TILES: readonly number[] = [
   0x00, 0x00, 0x10, 0x10, 0x20, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x80, 0x88, 0x90, 0xA0, 0xA1, 0xA2, 0xA3, 0xB0,
   D.dng_tile_door, D.dng_tile_door, D.dng_tile_room, D.dng_tile_secret_door, D.dng_tile_wall, D.dng_tile_wall,
 ];
-/** The squares ahead for each part of the view: the ladders and holes, the doors and walls, the fields, and the monsters and items. */
+/** The squares ahead for each part of the view: the ladders and holes, the doors (often) and walls, the fields, and the monsters and items. */
 const LADDERS: readonly number[] = [ 0x10, 0x20, 0x30, 0x50, 0x60 ];
-const DOORS: readonly number[] = [ D.dng_tile_door, D.dng_tile_room, D.dng_tile_secret_door, D.dng_tile_wall, 0xB0, 0x40, 0x70 ];
+const DOORS: readonly number[] = [ D.dng_tile_door, D.dng_tile_door, D.dng_tile_door, D.dng_tile_room, D.dng_tile_secret_door, D.dng_tile_wall, 0xB0, 0x40, 0x70 ];
 const FIELDS: readonly number[] = [ 0xA0, 0xA1, 0xA2, 0xA3 ];
+/** What may hide the squares beyond it from the view: a field, a door and what is above it, and an altar, which does not. */
+const HIDING: readonly number[] = [ 0xA0, 0xA2, 0xB0, D.dng_tile_door, D.dng_tile_door, D.dng_tile_room, D.dng_tile_wall ];
 const THINGS: readonly number[] = [ 0x01, 0x05, 0x0A, 0x0F, 0x13, 0x47, 0x72, 0x40, 0x70, 0x80, 0x81, 0x89, 0x90, 0xB0, D.dng_tile_door, D.dng_tile_room ];
+/** Traps of every number, the one that shows none among them, those either side of 8 often. */
+const TRAPS: readonly number[] = [ ...Array.from({ length: 16 }, (_: unknown, index: number): number => D.dng_tile_trap + index), 0x84, 0x87, 0x88, 0x8B ];
 const LEVEL_SIZE: number = 0x40;
 const DUNGEON_MAP: number = 0xE800;
 const DIRECTION_X: readonly number[] = [ 0, 1, 0, -1 ];
@@ -201,29 +205,51 @@ function viewing(machine: LiftedMachine, random: Random, near: readonly number[]
 }
 
 
+/** How a case draws DNGD's state: the view last drawn from here with a tile ahead changed, or the generator set to show a trap. */
+interface IDrawn {
+  readonly vary?: boolean;
+  readonly trap?: boolean;
+}
+
+
+/** DNGD's generator, three bytes whose first roll, with the carry set (as after `cmp #dng_tile_trap`), is a multiple of 64, or of 32 only. */
+function trapShows(random: Random): readonly number[] {
+  const r0: number = byte(random);
+  const r2: number = byte(random);
+  const sum: number = r0 + r2 + 1;
+  const roll: number = pick(random, [ 0x00, 0x00, 0x20 ]);
+  const wanted: number = ((roll + 0x100 - r0 - (sum > 0xFF ? 1 : 0)) & 0x3F) | (byte(random) & 0xC0);
+
+  return [ r0, (sum & 0xFF) ^ wanted, r2 ];
+}
+
+
 /** DNGD loaded, its generator at random, and the view last drawn from here, as it would be if nothing had changed, more often than not. */
-function drawnBefore(machine: LiftedMachine, random: Random): void {
+function drawnBefore(machine: LiftedMachine, random: Random, drawn: IDrawn): void {
+  const generator: readonly number[] = ((drawn.trap === true) && (random() < 0.9)) ? trapShows(random) : [ byte(random), byte(random), byte(random) ];
+
   machine.bload('underworld', UNDERWORLD_DNGD_MODULE.name);
-  for (let index: number = 0; index < 3; index++) {
-    machine.write(DNGD_VARIABLES.rand_data + index, byte(random));
-  }
-  if (random() < 0.6) {
+  generator.forEach((value: number, index: number): void => machine.write(DNGD_VARIABLES.rand_data + index, value));
+  if ((drawn.vary === true) || (random() < 0.6)) {
     const now: readonly number[] = [
       machine.read(PRTY.dungeon_level), machine.read(PRTY.player_xpos), machine.read(PRTY.player_ypos), machine.read(PRTY.dng_direction),
       ...[ -1, 0, 1, 2, 3 ].map((steps: number): number => machine.read(ahead(machine, steps))),
     ];
 
     now.forEach((value: number, index: number): void => {
-      machine.write(DNGD_VARIABLES.last_drawn_dungeon_level + index, (random() < 0.04) ? byte(random) : value);
+      machine.write(DNGD_VARIABLES.last_drawn_dungeon_level + index, ((drawn.vary !== true) && (random() < 0.04)) ? byte(random) : value);
     });
+    if (drawn.vary === true) {
+      machine.write(DNGD_VARIABLES.last_drawn_forward_1 + Math.floor(random() * 3), viewTile(random));
+    }
   }
 }
 
 
-function viewCase(entry: number, near: readonly number[] | null = null): IOverlayCase {
+function viewCase(entry: number, near: readonly number[] | null = null, drawn: IDrawn = {}): IOverlayCase {
   return { module: UNDERWORLD_DNGD_MODULE, entry, testCase: { ult4: true, screen: true, stops: STOPS, setup: (machine: LiftedMachine, random: Random): void => {
     viewing(machine, random, near);
-    drawnBefore(machine, random);
+    drawnBefore(machine, random, drawn);
   } } };
 }
 
@@ -252,6 +278,8 @@ export const UNDERWORLD_CASES: Readonly<Record<string, IOverlayCase>> = {
   dngd_doors: viewCase(DNGD_ENTRIES.dungeon_redraw, DOORS),
   dngd_fields: viewCase(DNGD_ENTRIES.dungeon_redraw, FIELDS),
   dngd_sprites: viewCase(DNGD_ENTRIES.draw_items_monsters, THINGS),
+  dngd_traps: viewCase(DNGD_ENTRIES.draw_items_monsters, TRAPS, { trap: true }),
+  dngd_unchanged: viewCase(DNGD_ENTRIES.dungeon_check_update, HIDING, { vary: true }),
   underworld_tmap: underworldCase(UNDERWORLD_TMAP_MODULE, (random: Random): readonly Key[] => [ { code: 0x41, polls: Math.floor(random() * 5) } ], belowground),
   underworld_sear_orb: underworldCase(UNDERWORLD_SEAR_MODULE, who, searching([ D.dng_tile_orb ])),
   underworld_sear_fountain: underworldCase(UNDERWORLD_SEAR_MODULE, who, drinking(null)),
