@@ -141,6 +141,19 @@ Monitor would have left, which nothing here reproduces and the game does not use
 
 A step that waits for a label or a DOS command stops with an error if the game never gets there.
 
+## Sound
+
+```sh
+python3 clicks.py record --build work/u4remasteredA2 <scenario> oracle.json
+npx tsx apps/Ultima4/tools/lift/gate/record-clicks.ts <scenario> port.json   # from the repo root
+python3 clicks.py compare oracle.json port.json
+```
+
+A record is the cycle count at every `$C030` access, never committed (its length and spacing are
+the game's). `compare` buckets the intervals between clicks by the oracle's length and prints the
+port's ratio to it. On `combat` and `creation` the ratios are 1.000 except BOOT's title hum, whose
+`$C030` reads come from blitting and which the port makes with no time between them.
+
 ## Checks without the game
 
 ```sh

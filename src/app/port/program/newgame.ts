@@ -27,6 +27,11 @@ const MAX_SPK_ROW: number = 0x8F;
 const QUESTIONS: number = 0x07;
 /** One turn of sound_portal_line's `dex` / `bne`. */
 const FREQUENCY_CYCLES: number = 5;
+/** The rest of a portal click's pass: `ldx` / `bit` / `dey` / `bne`, less the `bne` the pitch loop falls through. */
+const PORTAL_PASS_CYCLES: number = 11;
+/** Between one line's last click and the next line's first, measured, so the two do not fall on one cycle and cancel. */
+const PORTAL_APPEAR_LINE_CYCLES: number = 82;
+const PORTAL_VANISH_LINE_CYCLES: number = 163;
 
 /** The scenes that do more than print: a picture shown and the next loaded, the portal, the music. */
 const SCENE_PICTURES: ReadonlyMap<number, IInlineData> = new Map<number, IInlineData>([
@@ -374,7 +379,7 @@ export class Newgame extends PortProgram {
     this.cpu.bit(this.peek(APPLE.hw_SPEAKER));
     do {
       this.ldx(this.peek(ZP_MAIN.temp_y));
-      this.cpu.cycles = this.cpu.cycles + (FREQUENCY_CYCLES * ((this.cpu.x === 0) ? 0x100 : this.cpu.x));
+      this.cpu.cycles = this.cpu.cycles + PORTAL_PASS_CYCLES + (FREQUENCY_CYCLES * ((this.cpu.x === 0) ? 0x100 : this.cpu.x));
       this.ldx(0x00);
       this.cpu.bit(this.peek(APPLE.hw_SPEAKER));
     } while (this.dey() !== 0);
@@ -425,6 +430,7 @@ export class Newgame extends PortProgram {
       this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(APPLE.gfx_blue_odd));
       this.iny();
       this.poke(this.pointer(ZP_MAIN.ptr1) + this.cpu.y, this.lda(APPLE.gfx_blue_even));
+      this.cpu.cycles = this.cpu.cycles + PORTAL_APPEAR_LINE_CYCLES;
       this.dec(ZP_MAIN.temp_y);
       this.lda(this.peek(ZP_MAIN.temp_y));
       this.cmp(PORTAL_ROW_MIN);
@@ -448,6 +454,7 @@ export class Newgame extends PortProgram {
         this.iny();
         this.cpu.compare(this.cpu.y, PORTAL_COL_MAX);
       } while (!this.carry());
+      this.cpu.cycles = this.cpu.cycles + PORTAL_VANISH_LINE_CYCLES;
       this.inc(ZP_MAIN.temp_y);
       this.lda(this.peek(ZP_MAIN.temp_y));
       this.cmp(PORTAL_ROW_MAX);

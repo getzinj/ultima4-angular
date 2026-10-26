@@ -882,3 +882,22 @@ on the developer's machine. The images, and anything built from them, stay out o
 - **A save from the real disks** changed 5 bytes of `PRTY` (the move count among them, BCD, at
   `$1C`), 2 of `ROST` and 4 of `LIST`.
 
+## Phase 14 findings
+
+- **Every sound is the speaker toggled by `bit hw_SPEAKER`**, its pitch the delay loop between two
+  toggles; nothing else on the Apple makes sound, and there is no volume (the `V` command only sets
+  whether the effects are played). So the cycles counted between clicks are the pitch, and a port
+  that counts none plays every effect as one click.
+- **What the loops cost**, from `SUBS.s` and measured on py65: a click's own `bit` / `dey` / `bne`
+  is 11 cycles past its delay; `sfx_random_clicks` waits 257 between clicks; `sfx_error1`'s pass is
+  `nop` / `nop` / `dex` / `bne` (9) and `sfx_error2`'s `pha` / `pla` / `dex` / `bne` (12); every
+  other effect's pass is `dex` / `bne` (5), or 12 in the whirlpool's and the storm's ramps.
+  NEWGAME's portal clicks once a line, 11 cycles plus 5 a pitch step, and 82 cycles between lines
+  as it appears and 163 as it vanishes; without those two the line's last click and the next's
+  first fell on one cycle and cancelled.
+- **BOOT's title hums by accident.** `mask_byte` reads `$C030` as it blits the title; the port keeps the reads, so the toggles are the same, but counts no
+  time between them, so the hum is silent. Left as it is.
+- **`sfx_ship_fire`'s shortest intervals are 3 cycles short** (16 for 19, rising by 5): above
+  17 kHz, past what the speaker or anyone hears.
+- **Browsers start audio only from a gesture**, so the `AudioContext` is made at the first key or
+  pointer press; before that the clicks are drained and dropped, never queued up to play at once.

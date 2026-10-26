@@ -32,6 +32,14 @@ const IDLE_TOWNE_CYCLES: number = 168_861;
 const IDLE_DUNGEON_CYCLES: number = 148_594 - DELAY_CYCLES;
 const IDLE_COMBAT_CYCLES: number = 111_454;
 const IDLE_SHRINE_CYCLES: number = 108_586;
+const DEX_BNE_CYCLES: number = 5;
+/** sfx_error1's pass, `nop` / `nop` / `dex` / `bne`, and sfx_error2's, `pha` / `pla` / `dex` / `bne`. */
+const ERROR1_PASS_CYCLES: number = 9;
+const ERROR2_PASS_CYCLES: number = 12;
+/** A click's own instructions around the delay loop, `bit hw_SPEAKER` and the loop's step and test (the oracle's most common gap). */
+const CLICK_CYCLES: number = 11;
+/** `rand` as the random clicks call it before each delay, less the click's own share (the oracle's 268 between clicks). */
+const RANDOM_CLICK_CYCLES: number = 257;
 
 
 export class Subs extends PortProgram {
@@ -1917,14 +1925,15 @@ export class Subs extends PortProgram {
   // --- sound (SUBS.s:2420-2674) -------------------------------------------------------------
 
   private speaker(): void {
+    this.cpu.cycles = this.cpu.cycles + CLICK_CYCLES;
     this.cpu.bit(this.m.read(APPLE.hw_SPEAKER));
   }
 
 
-  /** `dex` / `bne` until X is zero, as the delay loops do; X = 0 runs 256 times. */
-  private spinX(): void {
+  /** `dex` / `bne` until X is zero, as the delay loops do, each pass `passCycles` with whatever else the loop holds; X = 0 runs 256 times. */
+  private spinX(passCycles: number = DEX_BNE_CYCLES): void {
     do {
-      this.cpu.cycles = this.cpu.cycles + 5;
+      this.cpu.cycles = this.cpu.cycles + passCycles;
     } while (this.dex() !== 0);
   }
 
@@ -1974,6 +1983,7 @@ export class Subs extends PortProgram {
     this.ldy(count);
     do {
       this.rand();
+      this.cpu.cycles = this.cpu.cycles + RANDOM_CLICK_CYCLES;
       if (mask !== 0xFF) {
         this.lda(this.cpu.a & mask);
       }
@@ -1992,7 +2002,7 @@ export class Subs extends PortProgram {
     this.ldy(0x32);
     do {
       this.cpu.nz(this.cpu.a);
-      this.spinX();
+      this.spinX(ERROR2_PASS_CYCLES);
       this.speaker();
     } while (this.dey() !== 0);
   }
@@ -2001,7 +2011,7 @@ export class Subs extends PortProgram {
   private sfxError1(): void {
     this.ldy(0x32);
     do {
-      this.spinX();
+      this.spinX(ERROR1_PASS_CYCLES);
       this.speaker();
     } while (this.dey() !== 0);
     this.sfxError2();
