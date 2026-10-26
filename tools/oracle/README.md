@@ -165,6 +165,19 @@ python3 smoke.py <fixed checkout> # the remaster's own code on blank data (see i
 through the same steps as `creation`. With nothing on the Britannia disk to load, it stops where
 the game is in Britannia.
 
+## Pixels in the browser
+
+```sh
+npx playwright test -c apps/Ultima4/e2e/playwright.config.ts pixels   # from the repo root
+```
+
+`e2e/pixels.spec.ts` imports the originals `build-disks.sh` was given into the app, as a player
+would, then swaps the running game for a fresh one and replays `boot-to-title`, `creation` and
+`first-steps` from their digests, each key at the poll the oracle took it. At every snapshot the
+canvas must be the recorded `hgr1` through the renderer, pixel for pixel. Without the originals or
+`recordings/` it is skipped, as in CI. The other scenarios poke memory, so they cannot be replayed
+from keys alone.
+
 ## Fixtures for the lifter
 
 Two scripts write committed fixtures for the lifter (`../lift/`). Neither holds any of the game:

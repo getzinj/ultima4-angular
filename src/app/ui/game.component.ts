@@ -9,6 +9,7 @@ import { appleKeyCodeOf } from '../runtime/keyboard';
 import { AppleScreenComponent } from './apple-screen.component';
 import type { IDisplaySettings } from './display-settings';
 import { browserStorage, loadDisplaySettings, saveDisplaySettings } from './display-settings';
+import { messageOf } from './failure-notice';
 import { isControl } from './key-target';
 import { SettingsMenuComponent } from './settings-menu.component';
 import { SpeakerPlayer } from './speaker-player';
@@ -86,7 +87,7 @@ export class GameComponent implements OnDestroy {
       this.schedule();
     } catch (thrown: unknown) {
       console.error('The game stopped.', thrown);
-      this.failure.set((thrown instanceof Error) ? thrown.message : String(thrown));
+      this.failure.set(messageOf(thrown));
     }
   }
 
