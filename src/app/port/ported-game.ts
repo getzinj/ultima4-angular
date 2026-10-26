@@ -21,7 +21,7 @@ export class PortedGame {
   private target: number = 0;
 
 
-  constructor(disks: DiskSet, private readonly frameBudget: number = FRAME_BUDGET_MS) {
+  constructor(private readonly disks: DiskSet, private readonly frameBudget: number = FRAME_BUDGET_MS) {
     this.machine = new LiftedMachine(disks, [], null, PORTED_MODULES);
     this.machine.boot();
   }
@@ -29,6 +29,18 @@ export class PortedGame {
 
   public get screen(): AppleMachine {
     return this.machine.apple;
+  }
+
+
+  /** How many times the game has written to its disks, which only ever means the Britannia disk, the save. */
+  public get diskWrites(): number {
+    return this.machine.diskWrites;
+  }
+
+
+  /** The Britannia disk as the game has left it: the save disk to keep. */
+  public savedImage(): Uint8Array {
+    return this.disks.britannia.image.bytes.slice();
   }
 
 

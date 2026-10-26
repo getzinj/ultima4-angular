@@ -1,6 +1,6 @@
 import type { OnDestroy } from '@angular/core';
-import { ChangeDetectionStrategy, Component, afterNextRender, computed, input, signal } from '@angular/core';
-import type { InputSignal, Signal, WritableSignal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, afterNextRender, computed, input, output, signal } from '@angular/core';
+import type { InputSignal, OutputEmitterRef, Signal, WritableSignal } from '@angular/core';
 
 import type { PortedGame } from '../port/ported-game';
 import type { IApplePalette } from '../runtime/apple-palette';
@@ -43,6 +43,8 @@ const FIRST_FRAME_MS: number = 1000 / 60;
 })
 export class GameComponent implements OnDestroy {
   public readonly game: InputSignal<PortedGame> = input.required<PortedGame>();
+  /** The game wrote to its save disk during the last frame. */
+  public readonly diskWritten: OutputEmitterRef<void> = output<void>();
 
   protected readonly failure: WritableSignal<string | null> = signal<string | null>(null);
   protected readonly settings: WritableSignal<IDisplaySettings> = signal<IDisplaySettings>(loadDisplaySettings(browserStorage()));
@@ -51,6 +53,7 @@ export class GameComponent implements OnDestroy {
   private frameHandle: number = 0;
   private lastFrame: number | null = null;
   private stopped: boolean = false;
+  private lastWrites: number | null = null;
 
 
   constructor() {
@@ -73,6 +76,7 @@ export class GameComponent implements OnDestroy {
     this.lastFrame = now;
     try {
       await this.game().runFrame(elapsed);
+      this.noticeWrites();
       this.schedule();
     } catch (thrown: unknown) {
       console.error('The game stopped.', thrown);
@@ -102,6 +106,16 @@ export class GameComponent implements OnDestroy {
   protected choose(settings: IDisplaySettings): void {
     this.settings.set(settings);
     saveDisplaySettings(browserStorage(), settings);
+  }
+
+
+  private noticeWrites(): void {
+    const writes: number = this.game().diskWrites;
+
+    if ((this.lastWrites != null) && (writes !== this.lastWrites)) {
+      this.diskWritten.emit();
+    }
+    this.lastWrites = writes;
   }
 
 

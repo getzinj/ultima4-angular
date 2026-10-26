@@ -13,7 +13,8 @@ describe('GameComponent', (): void => {
   let game: MockProxy<PortedGame>;
 
   beforeEach(async (): Promise<void> => {
-    game = mock<PortedGame>({ screen: new AppleMachine() });
+    game = mock<PortedGame>();
+    Object.assign(game, { screen: new AppleMachine() });
     fixture = TestBed.createComponent(GameComponent);
     fixture.componentRef.setInput('game', game);
     await fixture.whenStable();
@@ -89,6 +90,33 @@ describe('GameComponent', (): void => {
       await fixture.whenStable();
 
       expect((fixture.nativeElement as HTMLElement).querySelector('.scanlines')).toBeNull();
+    });
+  });
+
+  describe('the save disk', (): void => {
+    let writes: number;
+
+    beforeEach((): void => {
+      writes = 0;
+      fixture.componentInstance.diskWritten.subscribe((): void => {
+        writes = writes + 1;
+      });
+    });
+
+    it('is not reported written by a frame that wrote nothing', async (): Promise<void> => {
+      await fixture.componentInstance.frame(1_000);
+      await fixture.componentInstance.frame(1_020);
+
+      expect(writes).toBe(0);
+    });
+
+    it('is reported written by a frame in which the game wrote to it', async (): Promise<void> => {
+      Object.assign(game, { diskWrites: 0 });
+      await fixture.componentInstance.frame(1_000);
+      Object.assign(game, { diskWrites: 3 });
+      await fixture.componentInstance.frame(1_020);
+
+      expect(writes).toBe(1);
     });
   });
 
