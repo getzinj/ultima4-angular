@@ -263,8 +263,8 @@ const END_CYCLES: number = 400_000_000;
 const WAITING: number = 10;
 
 
-/** At the Abyss's last altar, END run by USE: the key of three parts, eight in the party and every virtue at its height, each more often than not as `ready` says, and the drives as they may be. */
-function inTheChamber(ready: number): (machine: LiftedMachine, random: Random) => void {
+/** At the Abyss's last altar, END run by USE: the key of three parts, eight in the party and every virtue at its height, each more often than not as `ready` says, or one virtue short of it (honesty's, the last it checks, often), and the drives as they may be. */
+function inTheChamber(ready: number, shortOf: boolean = false): (machine: LiftedMachine, random: Random) => void {
   return (machine: LiftedMachine, random: Random): void => {
     belowground(machine, random);
     machine.write(PRTY.current_location, ABYSS);
@@ -273,6 +273,9 @@ function inTheChamber(ready: number): (machine: LiftedMachine, random: Random) =
     machine.write(PRTY.party_size, (random() < ready) ? 0x08 : 1 + Math.floor(random() * 8));
     for (let virtue: number = 0; virtue < ROST.virtue_last; virtue++) {
       machine.write(ROST.party_stats + virtue, (random() < ready) ? 0x00 : pick(random, [ 0x00, 0x01, 0x99 ]));
+    }
+    if (shortOf) {
+      machine.write(ROST.party_stats + pick(random, [ 0x00, 0x00, Math.floor(random() * ROST.virtue_last) ]), pick(random, [ 0x01, 0x99 ]));
     }
     machine.write(ZP_MAIN.numdrives, pick(random, [ 0x01, 0x02 ]));
     machine.write(ZP_MAIN.currdisk_drive1, pick(random, [ DISKS.disk_program, DISKS.disk_dungeon ]));
@@ -295,8 +298,8 @@ function answered(word: string, random: Random): readonly Key[] {
 /** The word of passage, mostly right; each of the `asked` answers right as `right` says; then the last, and a key for every page and prompt. */
 function inTheVoice(asked: number, right: number): (random: Random) => readonly Key[] {
   return (random: Random): readonly Key[] => [
-    ...answered((random() < 0.9) ? 'VERAMOCOR' : pick(random, [ 'VERAMOCAR', 'VERA', 'X' ]), random),
-    ...CODEX_ANSWERS.slice(0, asked).flatMap((answer: string): readonly Key[] => answered((random() < right) ? answer : pick(random, [ ...CODEX_ANSWERS, 'SELF' ]), random)),
+    ...answered((random() < 0.9) ? pick(random, [ 'VERAMOCOR', 'VERAMOCOR', 'VERAMOCOR X' ]) : pick(random, [ 'VERAMOCAR', 'VERA', 'VERAMO COR', 'X' ]), random),
+    ...CODEX_ANSWERS.slice(0, asked).flatMap((answer: string): readonly Key[] => answered((random() < right) ? answer : pick(random, [ ...CODEX_ANSWERS, 'SELF', 'HON ESTY' ]), random)),
     { code: 0x20, polls: WAITING },
     ...answered((random() < right) ? 'INFINITY' : pick(random, [ 'SELF', 'INFINIT', 'INF' ]), random),
     ...Array.from({ length: 12 }, (): Key => ({ code: pick(random, [ 0x20, 0x20, 0x1B ]), polls: WAITING })),
@@ -305,9 +308,9 @@ function inTheVoice(asked: number, right: number): (random: Random) => readonly 
 }
 
 
-function endCase(ready: number, asked: number, right: number): IOverlayCase {
+function endCase(ready: number, asked: number, right: number, shortOf: boolean = false): IOverlayCase {
   return { module: END_MODULE, entry: OVERLAY_ENTRY, testCase: {
-    ult4: true, screen: true, stops: END_STOPS, cycles: END_CYCLES, keys: inTheVoice(asked, right), setup: loaded(END_MODULE.name, inTheChamber(ready), 'underworld'),
+    ult4: true, screen: true, stops: END_STOPS, cycles: END_CYCLES, keys: inTheVoice(asked, right), setup: loaded(END_MODULE.name, inTheChamber(ready, shortOf), 'underworld'),
   } };
 }
 
@@ -330,6 +333,7 @@ function who(random: Random): readonly Key[] {
 
 export const UNDERWORLD_CASES: Readonly<Record<string, IOverlayCase>> = {
   end_passage: endCase(0.6, 0, 0),
+  end_not_avatar: endCase(1, 0, 0, true),
   end_virtues: endCase(1, 8, 0.9),
   end_principles: endCase(1, CODEX_ANSWERS.length, 0.95),
   end_codex: endCase(1, CODEX_ANSWERS.length, 1),
