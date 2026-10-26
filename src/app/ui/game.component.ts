@@ -11,21 +11,23 @@ import type { IDisplaySettings } from './display-settings';
 import { browserStorage, loadDisplaySettings, saveDisplaySettings } from './display-settings';
 import { isControl } from './key-target';
 import { SettingsMenuComponent } from './settings-menu.component';
+import { TextMirrorComponent } from './text-mirror.component';
 import { TouchPadComponent } from './touch-pad.component';
 
 const FIRST_FRAME_MS: number = 1000 / 60;
 
 
-/** The game running on the screen, a frame at a time, with the keyboard as the Apple's, a touch pad, and the display's settings. */
+/** The game running on the screen, a frame at a time, with the keyboard as the Apple's, a touch pad, the display's settings, and its text for screen readers. */
 @Component({
   selector: 'ultima4-game',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ AppleScreenComponent, SettingsMenuComponent, TouchPadComponent ],
+  imports: [ AppleScreenComponent, SettingsMenuComponent, TextMirrorComponent, TouchPadComponent ],
   template: `
     @if (failure(); as message) {
       <p role="alert">The game stopped: {{ message }}</p>
     }
     <ultima4-apple-screen [machine]="game().screen" [palette]="palette()" [crt]="settings().crt" />
+    <ultima4-text-mirror [machine]="game().screen" />
     <ultima4-settings-menu [settings]="settings()" (changed)="choose($event)" />
     <ultima4-touch-pad (pressed)="press($event)" />
   `,

@@ -53,3 +53,9 @@ test('the CRT effect can be turned off from the settings', async ({ page }: { pa
 
   await expect(page.locator('.scanlines')).toHaveCount(0);
 });
+
+test('the game\'s messages are a log for screen readers', async ({ page }: { page: Page }) => {
+  await importSyntheticDisks(page);
+
+  await expect(page.getByRole('log', { name: 'Messages' })).toBeAttached();
+});

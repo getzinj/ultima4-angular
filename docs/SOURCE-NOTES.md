@@ -859,3 +859,17 @@ on the developer's machine. The images, and anything built from them, stay out o
   100 ms), at 1,023 cycles a millisecond, or 12 ms of host time, whichever ends first. A delay
   overshooting a frame is paid back by the frames after it; a frame cut short by host time isn't
   owed. The port's code is a lazy chunk (582 kB), the initial bundle 171 kB.
+
+## Phase 13c findings
+
+- **All text is drawn into the hi-res page.** `drawchar` copies a glyph's eight rows from
+  `font_data` (`$E400` in the language card, a glyph's rows 128 bytes apart) to whole bytes of a
+  character cell, so the screen can be read back cell by cell; BOOT's menu goes through the same
+  routine. `invert_player_name` XORs a name's cells with `$7F`, the cursor cycles through glyphs
+  `$7C`-`$7F`, and the palette bit plays no part in which glyph a cell holds.
+- **The layout.** The party is rows 1-5 and the food and gold row 10, columns 24-39; the messages
+  scroll in rows 12-23 there; the wind is on row 23 under the map, its direction padded to five
+  letters ("WIND  WEST").
+- **A cell read mid-draw** is half a line, which a reading taken a poll later corrects; announcing
+  only a reading that matches the one before keeps such lines out.
+
