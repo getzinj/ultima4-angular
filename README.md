@@ -8,18 +8,20 @@ included.
 The game is ported from Sean Gugler's reconstructed source,
 [`sean-gugler/u4remasteredA2`](https://github.com/sean-gugler/u4remasteredA2),
 which is linked, not copied. The plan and progress are in
-[`docs/plans/2026-10-ultima4-port.md`](../../docs/plans/2026-10-ultima4-port.md),
+[`docs/port-plan.md`](docs/port-plan.md),
 and the findings about the source in
-[`docs/plans/2026-10-ultima4-source-notes.md`](../../docs/plans/2026-10-ultima4-source-notes.md).
+[`docs/SOURCE-NOTES.md`](docs/SOURCE-NOTES.md).
 
 ## Running
 
 ```sh
-npx nx serve Ultima4        # http://localhost:4203
-npx nx test Ultima4
-npx nx lint Ultima4
-npx nx e2e Ultima4
-npx nx run Ultima4:inspect-disks -- <image> ...   # check disk images from the command line
+npm ci
+npm start           # http://localhost:4203
+npm test
+npm run lint
+npm run e2e         # Playwright: starts the dev server itself
+npm run build       # dist/ultima4/browser
+npm run inspect-disks -- <image> ...   # check disk images from the command line
 ```
 
 On first load the app asks for the four disk images (program, Britannia, towne,
@@ -32,10 +34,11 @@ and never sent anywhere. Tests and CI use synthetic disks
 These run against a checkout of the remaster at the pinned commit, with cc65 2.19 installed:
 
 ```sh
-npx nx run Ultima4:lift <checkout>               # generate src/app/lifted/ (not committed)
-npx nx run Ultima4:lift-gate                     # the lifted game against the oracle
-npx nx run Ultima4:generate-symbols <checkout>   # regenerate src/app/state/symbols.ts
-npx nx run Ultima4:verify-symbols <checkout>     # check it against ca65
+npm run lift -- <checkout>               # generate src/app/lifted/ (not committed)
+npm run lift-gate                        # the lifted game against the oracle
+npm run real-gate -- [--native]          # every scenario on your disks against the oracle's digests
+npm run generate-symbols -- <checkout>   # regenerate src/app/state/symbols.ts
+npm run verify-symbols -- <checkout>     # check it against ca65
 ```
 
 The oracle, in Python, is in [`tools/oracle/`](tools/oracle/README.md), and the lifter is in
@@ -43,11 +46,14 @@ The oracle, in Python, is in [`tools/oracle/`](tools/oracle/README.md), and the 
 
 ## Deploying
 
-The site is a static build for a domain root (`dist/apps/Ultima4/browser`). `deploy/deploy.yml` lints, tests,
-builds and runs the e2e specs on every pull request and push, and deploys pushes to `main` to GitHub Pages. It is not
-active in this monorepo; the extraction to its own repo moves it to `.github/workflows/` and `deploy/CNAME` to
-`public/`. Then Pages needs its source set to "GitHub Actions" and its custom domain set to
-`ultima4.stonequest.org` in the repository settings, because a deploy from Actions ignores `CNAME`.
+The site is a static build for a domain root (`dist/ultima4/browser`), served at
+[ultima4.stonequest.org](https://ultima4.stonequest.org). `.github/workflows/deploy.yml` lints, tests, builds and runs
+the e2e specs on every pull request and push, and deploys pushes to `main` to GitHub Pages. Pages takes its source
+from GitHub Actions and has its custom domain set in the repository settings, because a deploy from Actions ignores
+`public/CNAME`.
+
+The port was written as `apps/Ultima4` in `getzinj/Stonequest-Angular` and moved here with its history, so the pull
+request numbers in older commit messages are that repository's.
 
 ## Licence
 

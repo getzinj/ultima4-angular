@@ -1,6 +1,6 @@
 // The SUBS differential from the command line, with every difference spelled out:
 //
-//   npx tsx apps/Ultima4/tools/lift/gate/run-differential.ts [routine ...] [--seeds n]
+//   npx tsx tools/lift/gate/run-differential.ts [routine ...] [--seeds n]
 
 import { SUBS_MODULE } from '../../../src/app/port/program/subs-module';
 import { differences, runRoutine } from './differential';

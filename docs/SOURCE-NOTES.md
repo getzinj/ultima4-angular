@@ -1,6 +1,6 @@
 # Ultima IV port — source notes
 
-> Findings from phase 0 of [`2026-10-ultima4-port.md`](2026-10-ultima4-port.md). The paths are in
+> Findings from phase 0 of the [port plan](port-plan.md), and from each phase after it. The paths are in
 > [`sean-gugler/u4remasteredA2`](https://github.com/sean-gugler/u4remasteredA2) unless stated otherwise. Nothing
 > from that repo or from the game is copied here; this file only describes it.
 
@@ -923,10 +923,17 @@ on the developer's machine. The images, and anything built from them, stay out o
 ## Phase 16a findings
 
 - **The deploy cannot run from here.** This repo is private, has one Pages site, and its `main` is
-  Stonequest's, so the workflow and `CNAME` wait in `apps/Ultima4/deploy/` for the extraction. A
+  Stonequest's, so the workflow and `CNAME` wait in `deploy/` for the extraction. A
   Pages deploy from Actions ignores `CNAME`, so the custom domain is set in the new repo's
   settings as well.
 - **Nothing in the deployed site needs the disks or the oracle.** The lifted modules, the oracle's
   build and its recordings are all local; the app runs only the ported modules, and its e2e specs
   use synthetic disks, with the pixel checkpoints skipping themselves.
+
+## Phase 16b findings
+
+- **The Angular CLI checks Node itself.** `ng build` refuses Node 22.22.0 (it wants 22.22.3, or 24.15
+  and up), which Nx's executor never checked; `package.json` asks for Node 24, as the workflow uses.
+- **npm 10 cannot lock this tree.** Its resolver fails on the peer dependencies with "Cannot read
+  properties of null (reading 'edgesOut')"; npm 11 writes the lock file, and `npm ci` from it works.
 

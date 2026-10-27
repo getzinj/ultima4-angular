@@ -1,6 +1,6 @@
 // Runs the creation scenario on the lifted game and compares it with the oracle's fixture:
 //
-//   npx tsx apps/Ultima4/tools/lift/gate/run-gate.ts   (from the workspace root)
+//   npx tsx tools/lift/gate/run-gate.ts   (from the repo root)
 //
 // The gate spec does the same; this prints the first divergence in full.
 
@@ -63,7 +63,7 @@ export function liftedSnapshots({ machine, failure }: { machine: LiftedMachine; 
 
 
 async function main(): Promise<void> {
-  const expected: IGateSnapshot[] = oracleSnapshots('apps/Ultima4/tools/lift/gate/creation-blank.json');
+  const expected: IGateSnapshot[] = oracleSnapshots('tools/lift/gate/creation-blank.json');
   const actual: IGateSnapshot[] = liftedSnapshots(await runCreation());
   const first: number = expected.findIndex((snapshot: IGateSnapshot, index: number): boolean => JSON.stringify(snapshot) !== JSON.stringify(actual[index]));
 

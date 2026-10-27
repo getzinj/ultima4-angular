@@ -1,6 +1,6 @@
 // The oracle's scenarios on the real game, against the digests recorded from it (tools/oracle/digests):
 //
-//   npx tsx apps/Ultima4/tools/lift/gate/run-real-gate.ts [--native] [scenario ...]
+//   npx tsx tools/lift/gate/run-real-gate.ts [--native] [scenario ...]
 //
 // Needs the disks tools/oracle/build-disks.sh built from your own images. With --native, the
 // ported programs stand in for their lifted modules. Every region of every snapshot is compared.
@@ -21,7 +21,7 @@ import type { INativeModule } from '../../../src/app/lifted-runtime/native-modul
 import { PORTED_MODULES } from '../../../src/app/port/ported-modules';
 import { SCENARIOS, Session } from './session';
 
-const ORACLE: string = 'apps/Ultima4/tools/oracle';
+const ORACLE: string = 'tools/oracle';
 const BUILD: string = join(ORACLE, 'work/u4remasteredA2/output');
 
 interface IStep {

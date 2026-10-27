@@ -1,7 +1,7 @@
 // The ULT4 and Britannia overlay differentials from the command line, with every difference
 // spelled out:
 //
-//   npx tsx apps/Ultima4/tools/lift/gate/run-ult4-differential.ts [routine ...] [--seeds n]
+//   npx tsx tools/lift/gate/run-ult4-differential.ts [routine ...] [--seeds n]
 
 import type { INativeModule } from '../../../src/app/lifted-runtime/native-module';
 import { ULT4_MODULE } from '../../../src/app/port/program/ult4-module';

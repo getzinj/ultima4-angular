@@ -9,8 +9,8 @@ bytes, which stay out of git like the disks. Generate it locally.
 
 ```sh
 # cc65 2.19 and GNU Make, and a checkout of the remaster at the pinned commit
-npx nx run Ultima4:lift <checkout>
-npx nx run Ultima4:lift-gate
+npm run lift -- <checkout>
+npm run lift-gate
 ```
 
 For each program (everything in `src/patchedgame/` but the Mockingboard drivers, plus
@@ -58,6 +58,6 @@ ported code call each other, so a program can be ported while its callers are st
 - `gate/run-differential.ts [routine ...] [--seeds n]` runs each routine from the same random
   state lifted and ported, and names every difference. `gate/subs-differential.spec.ts` runs it
   in `lift-gate`.
-- `nx run Ultima4:real-gate [--native] [scenario ...]` runs the oracle's scenarios on the disks
+- `npm run real-gate -- [--native] [scenario ...]` runs the oracle's scenarios on the disks
   `tools/oracle/build-disks.sh` built from your images, against `tools/oracle/digests/`, with
   the ported programs when `--native` is given.

@@ -1,7 +1,7 @@
 // Checks src/app/state/symbols.ts against ca65 itself: each include file is assembled after uscii.i,
 // with every symbol it defines emitted as a .dword, and the bytes compared with the generated values.
 //
-//   npx tsx apps/Ultima4/tools/symbols/verify-symbols.ts <checkout>   (needs cc65 2.19)
+//   npx tsx tools/symbols/verify-symbols.ts <checkout>   (needs cc65 2.19)
 
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';

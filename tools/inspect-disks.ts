@@ -1,6 +1,6 @@
 // Runs the checks the app runs on imported disks, from the command line, and prints what it finds:
 //
-//   npx nx run Ultima4:inspect-disks -- <image> [<image> ...]
+//   npm run inspect-disks -- <image> [<image> ...]
 //
 // Nothing is written; the images are only read.
 

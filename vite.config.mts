@@ -4,9 +4,6 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [angular({ tsconfig: path.resolve(import.meta.dirname, 'tsconfig.spec.json') })],
-  resolve: {
-    tsconfigPaths: true,
-  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -15,12 +12,12 @@ export default defineConfig({
     reporters: ['default'],
     pool: 'forks',
     maxWorkers: 4,
-    // Matches apps/Stonequest: a shared module registry is much faster, at the cost of vi.mock().
+    // A shared module registry is much faster, at the cost of vi.mock(), which nothing here needs.
     isolate: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      reportsDirectory: '../../coverage/apps/Ultima4',
+      reportsDirectory: './coverage',
       include: ['src/**/*.ts'],
       exclude: [
         '**/*.spec.ts',

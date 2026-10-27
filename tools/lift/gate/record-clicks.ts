@@ -1,6 +1,6 @@
 // When the ported game's speaker clicks in an oracle scenario, for tools/oracle/clicks.py to compare:
 //
-//   npx tsx apps/Ultima4/tools/lift/gate/record-clicks.ts <scenario> <out.json>
+//   npx tsx tools/lift/gate/record-clicks.ts <scenario> <out.json>
 //
 // Needs the disks tools/oracle/build-disks.sh built from your own images.
 
@@ -17,7 +17,7 @@ import { LiftedMachine } from '../../../src/app/lifted-runtime/lifted-machine';
 import { PORTED_MODULES } from '../../../src/app/port/ported-modules';
 import { SCENARIOS, Session } from './session';
 
-const BUILD: string = 'apps/Ultima4/tools/oracle/work/u4remasteredA2/output';
+const BUILD: string = 'tools/oracle/work/u4remasteredA2/output';
 
 
 async function main(name: string, out: string): Promise<void> {

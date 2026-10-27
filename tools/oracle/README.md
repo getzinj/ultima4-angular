@@ -145,7 +145,7 @@ A step that waits for a label or a DOS command stops with an error if the game n
 
 ```sh
 python3 clicks.py record --build work/u4remasteredA2 <scenario> oracle.json
-npx tsx apps/Ultima4/tools/lift/gate/record-clicks.ts <scenario> port.json   # from the repo root
+npx tsx tools/lift/gate/record-clicks.ts <scenario> port.json   # from the repo root
 python3 clicks.py compare oracle.json port.json
 ```
 
@@ -168,7 +168,7 @@ the game is in Britannia.
 ## Pixels in the browser
 
 ```sh
-npx playwright test -c apps/Ultima4/e2e/playwright.config.ts pixels   # from the repo root
+npx playwright test -c e2e/playwright.config.ts pixels   # from the repo root
 ```
 
 `e2e/pixels.spec.ts` imports the originals `build-disks.sh` was given into the app, as a player

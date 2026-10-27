@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    root: 'apps/Ultima4',
+    root: '.',
     include: ['tools/lift/gate/*.spec.ts'],
     reporters: ['default'],
   },

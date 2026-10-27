@@ -9,7 +9,7 @@ import { liftedSnapshots, oracleSnapshots, runCreation } from './run-gate';
 import type { IGateSnapshot } from './run-gate';
 
 // The phase 5 gate: the lifted game, on blank data, matches the oracle at every key of the creation
-// scenario. Needs the lifted output: run `npx nx run Ultima4:lift <checkout>` first.
+// scenario. Needs the lifted output: run `npm run lift -- <checkout>` first.
 
 const expected: IGateSnapshot[] = oracleSnapshots(join(import.meta.dirname, 'creation-blank.json'));
 

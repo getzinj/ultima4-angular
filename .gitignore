@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+tmp/
+.angular/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+
+# The lifted game, generated locally from the remaster and never committed
+# (tools/oracle/.gitignore keeps out the oracle's build and recordings).
+src/app/lifted/
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

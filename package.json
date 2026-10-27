@@ -1,0 +1,51 @@
+{
+  "name": "ultima4-angular",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "^24.15.0 || >=26.0.0"
+  },
+  "scripts": {
+    "start": "ng serve",
+    "build": "ng build",
+    "build-dev": "ng build --configuration development",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "e2e": "playwright test --config e2e/playwright.config.ts",
+    "inspect-disks": "tsx tools/inspect-disks.ts",
+    "lift": "tsx tools/lift/lift.ts",
+    "lift-gate": "vitest run --config tools/lift/vitest.gate.config.mts",
+    "real-gate": "tsx tools/lift/gate/run-real-gate.ts",
+    "generate-symbols": "tsx tools/symbols/generate-symbols.ts",
+    "verify-symbols": "tsx tools/symbols/verify-symbols.ts"
+  },
+  "dependencies": {
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@analogjs/vite-plugin-angular": "2.7.5",
+    "@analogjs/vitest-angular": "2.7.5",
+    "@angular/build": "22.2.2",
+    "@angular/cli": "22.2.2",
+    "@angular/compiler-cli": "22.2.3",
+    "@angular/language-service": "22.2.3",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "~24.13.3",
+    "@vitest/coverage-v8": "4.1.11",
+    "angular-eslint": "22.6.0",
+    "eslint": "^10.8.1",
+    "jsdom": "30.0.1",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.40.0",
+    "vite": "8.2.1",
+    "vitest": "4.1.11",
+    "vitest-mock-extended": "^5.1.1"
+  }
+}
