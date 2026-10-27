@@ -41,6 +41,14 @@ npx nx run Ultima4:verify-symbols <checkout>     # check it against ca65
 The oracle, in Python, is in [`tools/oracle/`](tools/oracle/README.md), and the lifter is in
 [`tools/lift/`](tools/lift/README.md).
 
+## Deploying
+
+The site is a static build for a domain root (`dist/apps/Ultima4/browser`). `deploy/deploy.yml` lints, tests,
+builds and runs the e2e specs on every pull request and push, and deploys pushes to `main` to GitHub Pages. It is not
+active in this monorepo; the extraction to its own repo moves it to `.github/workflows/` and `deploy/CNAME` to
+`public/`. Then Pages needs its source set to "GitHub Actions" and its custom domain set to
+`ultima4.stonequest.org` in the repository settings, because a deploy from Actions ignores `CNAME`.
+
 ## Licence
 
 GPL-3.0 for the original work of this port only. The game itself belongs to its

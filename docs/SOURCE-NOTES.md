@@ -920,3 +920,13 @@ on the developer's machine. The images, and anything built from them, stay out o
   port never runs (the programs' jump tables and bytes, and at `$FB00` the remaster's trainers,
   which the originals lack).
 
+## Phase 16a findings
+
+- **The deploy cannot run from here.** This repo is private, has one Pages site, and its `main` is
+  Stonequest's, so the workflow and `CNAME` wait in `apps/Ultima4/deploy/` for the extraction. A
+  Pages deploy from Actions ignores `CNAME`, so the custom domain is set in the new repo's
+  settings as well.
+- **Nothing in the deployed site needs the disks or the oracle.** The lifted modules, the oracle's
+  build and its recordings are all local; the app runs only the ported modules, and its e2e specs
+  use synthetic disks, with the pixel checkpoints skipping themselves.
+
