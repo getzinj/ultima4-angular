@@ -1,7 +1,8 @@
 import type { LiftedMachine } from '../../lifted-runtime/lifted-machine';
-import { CHAR, JUMP_SYSTEM, TABLES, TRAINERS, ZP_MAIN } from '../../state/symbols';
+import { APPLE, CHAR, JUMP_SYSTEM, TABLES, TRAINERS, ZP_MAIN } from '../../state/symbols';
 import { encode } from '../text';
 import { INPUT_TEXT, RETURN, atBoot, atName, booting, dosSeen, named, pressUntil } from '../testing/boot-machine';
+import { BOOT_VARIABLES } from './boot-data';
 
 // INIT, SEL, SUBS and BOOT, ported, with nothing lifted, from the first instruction to NEWGAME.
 
@@ -77,6 +78,42 @@ describe('the boot, ported', (): void => {
       await pressUntil(machine, 'M', dosSeen(machine, 'BRUN NEWGAME'));
 
       expect(machine.dosLog.slice(-2)).toEqual([ 'BLOAD TRAINERS,D1', 'BRUN NEWGAME,A$6400,D1' ]);
+    });
+  });
+
+  describe('the sound board', (): void => {
+    /** "Activate Sound Board" from the menu: one board of the first kind in slot 4, until the drivers are loaded. */
+    async function boardChosen(): Promise<LiftedMachine> {
+      const machine: LiftedMachine = await atBoot();
+
+      await pressUntil(machine, 'A', (): boolean => machine.read(BOOT_VARIABLES.init_mb_iigs) === APPLE.opcode_RTS);
+      for (const key of [ 'O', '1', '4' ]) {
+        await machine.press(key.charCodeAt(0));
+      }
+      await machine.runUntil(dosSeen(machine, 'BLOAD MBSI'));
+      await machine.idle(5);
+
+      return machine;
+    }
+
+    it('loads its drivers once a board is chosen', async (): Promise<void> => {
+      expect((await boardChosen()).dosLog.slice(-2)).toEqual([ 'BLOAD MBSM,A$F000', 'BLOAD MBSI,A$8000' ]);
+    });
+
+    it('leaves the music silenced when no board answers', async (): Promise<void> => {
+      expect((await boardChosen()).read(JUMP_SYSTEM.music_ctl)).toBe(APPLE.opcode_RTS);
+    });
+
+    it('is not taken as active when no board answers', async (): Promise<void> => {
+      expect((await boardChosen()).read(BOOT_VARIABLES.mockingboard_active)).toBe(0x00);
+    });
+
+    it('goes back to the menu when no board answers', async (): Promise<void> => {
+      const machine: LiftedMachine = await boardChosen();
+
+      await pressUntil(machine, 'I', (): boolean => (machine.cpu.pc === INPUT_TEXT) && (machine.programAt(INPUT_TEXT) === 'BOOT'));
+
+      expect(machine.programAt(machine.cpu.pc)).toBe('BOOT');
     });
   });
 });
