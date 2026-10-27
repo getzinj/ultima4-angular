@@ -9,6 +9,7 @@ import { TMAP_MODULE } from './program/britannia/tmap';
 import { USE_MODULE } from './program/britannia/use';
 import { BOOT_MODULE } from './program/boot-module';
 import { INIT_MODULE } from './program/init-module';
+import { MBSI_MODULE } from './program/mbsi';
 import { NEWGAME_MODULE } from './program/newgame-module';
 import { SEL_MODULE } from './program/sel-module';
 import { SUBS_MODULE } from './program/subs-module';
@@ -44,6 +45,7 @@ export const PORTED_MODULES: readonly INativeModule[] = [
   SUBS_MODULE,
   ULT4_MODULE,
   TRAINERS_MODULE,
+  MBSI_MODULE,
   HELP_MODULE,
   HOLE_MODULE,
   LORD_MODULE,
